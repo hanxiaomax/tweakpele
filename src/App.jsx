@@ -4,9 +4,11 @@ import {
   LuFilePlus2 as FilePlus2, LuPlus as Plus, LuClipboardCopy as ClipboardCopy, LuBraces as Braces,
   LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
+  LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
+import Canvas from './components/Canvas.jsx';
 import EditorView from './components/EditorView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import {
@@ -21,6 +23,7 @@ const OPTS_KEY = 'tweakpele.opts.v1';
 const THEME_KEY = 'tweakpele.siteTheme';
 const SPLIT_KEY = 'tweakpele.split.v1';
 const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
+const VIEW_KEY = 'tweakpele.viewMode';
 
 function seedLibrary() {
   return (window.TWEAKPELE_DIAGRAMS || []).map((m) => ({
@@ -42,6 +45,7 @@ export default function App() {
     return seedLibrary();
   });
   const [toolboxCollapsed, setToolboxCollapsed] = useState(() => loadJSON(TOOLBOX_KEY, false) === true);
+  const [viewMode, setViewMode] = useState(() => (loadJSON(VIEW_KEY, 'gallery') === 'canvas' ? 'canvas' : 'gallery'));
   const [split, setSplit] = useState(() => {
     const v = loadJSON(SPLIT_KEY, 42);
     return Number.isFinite(v) ? Math.max(16, Math.min(84, v)) : 42;
@@ -71,6 +75,13 @@ export default function App() {
   );
   const debouncedMountOptions = useDebounced(mountOptions, 160);
   const galleryOptions = useMemo(() => ({ ...debouncedMountOptions, zoom: false }), [debouncedMountOptions]);
+  // Canvas: natural full diagrams — no Pele in-diagram zoom, generous maxWidth, never crop.
+  const canvasOptions = useMemo(() => ({
+    ...debouncedMountOptions,
+    zoom: false,
+    maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600),
+    responsive: false,
+  }), [debouncedMountOptions]);
   const varsStyle = useMemo(() => {
     const o = {};
     for (const { name } of VAR_META) o[name] = vars[name];
@@ -84,6 +95,7 @@ export default function App() {
   useEffect(() => { saveJSON(OPTS_KEY, optVals); }, [optVals]);
   useEffect(() => { saveJSON(LIB_KEY, { formatVersion: 1, diagrams }); }, [diagrams]);
   useEffect(() => { saveJSON(TOOLBOX_KEY, toolboxCollapsed); }, [toolboxCollapsed]);
+  useEffect(() => { saveJSON(VIEW_KEY, viewMode); }, [viewMode]);
   useEffect(() => { saveJSON(SPLIT_KEY, split); }, [split]);
 
   useEffect(() => {
@@ -238,6 +250,13 @@ export default function App() {
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark ink theme' : 'Switch to light paper theme'}
             onClick={toggleTheme} />
+          {route.view !== 'edit' && (
+            <IconButton
+              Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
+              label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}
+              onClick={() => setViewMode((m) => (m === 'gallery' ? 'canvas' : 'gallery'))}
+            />
+          )}
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
@@ -256,11 +275,19 @@ export default function App() {
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
           <div className="view-holder" style={{ display: route.view === 'gallery' ? '' : 'none' }}>
-            <Gallery
-              diagrams={diagrams} galleryOptions={galleryOptions}
-              onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-              onNew={() => setNewOpen(true)} onCardMenu={cardMenu} onBoardMenu={boardMenu}
-            />
+            {viewMode === 'gallery' ? (
+              <Gallery
+                diagrams={diagrams} galleryOptions={galleryOptions}
+                onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                onNew={() => setNewOpen(true)} onCardMenu={cardMenu} onBoardMenu={boardMenu}
+              />
+            ) : (
+              <Canvas
+                diagrams={diagrams} canvasOptions={canvasOptions}
+                onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                onNew={() => setNewOpen(true)} onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+              />
+            )}
           </div>
           {route.view === 'edit' && (current
             ? <EditorView
