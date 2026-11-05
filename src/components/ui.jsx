@@ -19,19 +19,27 @@ export function ContextMenu({ menu, onClose }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!menu) return;
-    const close = () => onClose();
+    // Ignore presses inside the menu so item onClick can fire (capture would otherwise unmount first).
+    const onPointerDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      onClose();
+    };
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    const onScroll = (e) => { if (ref.current && e.target.contains && e.target.contains(ref.current)) onClose(); };
-    window.addEventListener('pointerdown', close, true);
+    const onScroll = (e) => {
+      if (!ref.current) return;
+      if (e.target === document || e.target === document.documentElement) onClose();
+      else if (e.target.contains && e.target.contains(ref.current)) onClose();
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKey, true);
-    window.addEventListener('blur', close);
-    window.addEventListener('resize', close);
+    window.addEventListener('blur', onClose);
+    window.addEventListener('resize', onClose);
     document.addEventListener('scroll', onScroll, true);
     return () => {
-      window.removeEventListener('pointerdown', close, true);
+      window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('blur', close);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('blur', onClose);
+      window.removeEventListener('resize', onClose);
       document.removeEventListener('scroll', onScroll, true);
     };
   }, [menu, onClose]);

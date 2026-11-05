@@ -5,6 +5,8 @@ import {
   LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
+  LuFocus as Focus, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
+  LuSave as Save,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -46,6 +48,7 @@ export default function App() {
   });
   const [toolboxCollapsed, setToolboxCollapsed] = useState(() => loadJSON(TOOLBOX_KEY, false) === true);
   const [viewMode, setViewMode] = useState(() => (loadJSON(VIEW_KEY, 'gallery') === 'canvas' ? 'canvas' : 'gallery'));
+  const [focusedId, setFocusedId] = useState(null);
   const [split, setSplit] = useState(() => {
     const v = loadJSON(SPLIT_KEY, 42);
     return Number.isFinite(v) ? Math.max(16, Math.min(84, v)) : 42;
@@ -109,10 +112,15 @@ export default function App() {
       if (t && (t.closest && t.closest('input, textarea, select, [contenteditable]'))) return;
       if (e.key === 't' || e.key === 'T') setToolboxCollapsed((c) => !c);
       else if (e.key === 'Escape' && route.view === 'edit') navigate({ view: 'gallery' });
+      else if (route.view !== 'edit') {
+        if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') clearFocus();
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); focusPrev(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); focusNext(); }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [route.view]);
+  }, [route.view, diagrams, focusedId]);
 
   const forgetMeasures = () => {
     try { pele.forgetTextWidths(); } catch (_) { /* pele not loaded */ }
@@ -158,6 +166,36 @@ export default function App() {
 
   // ------------------------------------------------------------------ library actions
   const findDiagram = (id) => diagrams.find((d) => d.id === id);
+
+  const focusDiagram = (id) => setFocusedId(id);
+  const clearFocus = () => setFocusedId(null);
+  const focusStep = (dir) => {
+    if (!diagrams.length) return;
+    const i = diagrams.findIndex((d) => d.id === focusedId);
+    let next;
+    if (i < 0) next = dir > 0 ? 0 : diagrams.length - 1;
+    else next = (i + dir + diagrams.length) % diagrams.length;
+    setFocusedId(diagrams[next].id);
+  };
+  const focusPrev = () => focusStep(-1);
+  const focusNext = () => focusStep(1);
+  const saveAsDiagram = (id) => {
+    const src = findDiagram(id);
+    if (!src) return;
+    const d = {
+      ...src, id: newId(), title: `${src.title} (copy)`,
+      original: src.source, builtin: false,
+    };
+    setDiagrams((list) => {
+      const i = list.findIndex((x) => x.id === id);
+      const out = [...list];
+      out.splice(i + 1, 0, d);
+      return out;
+    });
+    setFocusedId(d.id);
+    notify(`Saved as “${d.title}”`);
+  };
+
   const openEditor = (id) => navigate({ view: 'edit', id });
   const backToGallery = () => navigate({ view: 'gallery' });
 
@@ -187,6 +225,7 @@ export default function App() {
     const src = findDiagram(id);
     if (!src) return;
     setDiagrams((list) => list.filter((x) => x.id !== id));
+    if (focusedId === id) setFocusedId(null);
     if (route.view === 'edit' && route.id === id) backToGallery();
     notify(`Deleted “${src.title}”`);
   };
@@ -204,7 +243,6 @@ export default function App() {
       x: e.clientX, y: e.clientY,
       items: [
         { label: 'New diagram…', Icon: FilePlus2, onClick: () => setNewOpen(true) },
-        { label: 'Blank flowchart', Icon: Plus, onClick: () => addDiagram(STARTERS[0]) },
       ],
     });
   };
@@ -212,8 +250,10 @@ export default function App() {
     setCtxMenu({
       x: e.clientX, y: e.clientY,
       items: [
+        { label: 'Focus', Icon: Focus, onClick: () => focusDiagram(d.id) },
         { label: `Edit “${d.title}”`, Icon: Pencil, onClick: () => openEditor(d.id) },
         { label: 'Duplicate', Icon: Copy, onClick: () => duplicateDiagram(d.id) },
+        { label: 'Save as…', Icon: Save, onClick: () => saveAsDiagram(d.id) },
         { label: 'Delete', Icon: Trash2, danger: true, onClick: () => deleteDiagram(d.id) },
       ],
     });
@@ -277,15 +317,20 @@ export default function App() {
           <div className="view-holder" style={{ display: route.view === 'gallery' ? '' : 'none' }}>
             {viewMode === 'gallery' ? (
               <Gallery
-                diagrams={diagrams} galleryOptions={galleryOptions}
+                diagrams={diagrams} galleryOptions={galleryOptions} focusedId={focusedId}
                 onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                onNew={() => setNewOpen(true)} onCardMenu={cardMenu} onBoardMenu={boardMenu}
+                onNew={() => setNewOpen(true)}
+                onFocus={focusDiagram} onClearFocus={clearFocus}
+                onFocusPrev={focusPrev} onFocusNext={focusNext}
+                onCardMenu={cardMenu} onBoardMenu={boardMenu}
               />
             ) : (
               <Canvas
-                diagrams={diagrams} canvasOptions={canvasOptions}
+                diagrams={diagrams} canvasOptions={canvasOptions} focusedId={focusedId}
                 onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                onNew={() => setNewOpen(true)} onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+                onFocus={focusDiagram} onClearFocus={clearFocus}
+                onFocusPrev={focusPrev} onFocusNext={focusNext}
+                onFrameMenu={cardMenu} onBoardMenu={boardMenu}
               />
             )}
           </div>

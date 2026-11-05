@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuPlus as Plus,
+  LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuFocus as Focus,
   LuMaximize2 as Maximize2, LuZoomIn as ZoomIn, LuZoomOut as ZoomOut,
+  LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
@@ -16,7 +17,7 @@ const FALLBACK_H = 280;
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
-function Frame({ d, options, onOpen, onDuplicate, onDelete, onFrameMenu, onSize, focused }) {
+function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize, focused }) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
 
@@ -39,13 +40,14 @@ function Frame({ d, options, onOpen, onDuplicate, onDelete, onFrameMenu, onSize,
       ref={shellRef}
       className={'canvas-frame' + (dirty ? ' edited' : '') + (focused ? ' focused' : '')}
       data-frame={d.id}
-      onDoubleClick={(e) => { e.stopPropagation(); onOpen(d.id); }}
+      onDoubleClick={(e) => { e.stopPropagation(); onFocus(d.id); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onFrameMenu(e, d); }}
     >
       <header className="canvas-frame-title">
         <b>{d.title}</b>
         <code>{d.keyword || ''}</code>
         <span className="card-actions" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+          <IconButton Icon={Focus} label={`Focus ${d.title}`} onClick={() => onFocus(d.id)} />
           <IconButton Icon={Pencil} label={`Edit ${d.title}`} onClick={() => onOpen(d.id)} />
           <IconButton Icon={Copy} label={`Duplicate ${d.title}`} onClick={() => onDuplicate(d.id)} />
           <IconButton Icon={Trash2} label={`Delete ${d.title}`} kind="danger" onClick={() => onDelete(d.id)} />
@@ -64,16 +66,14 @@ function Frame({ d, options, onOpen, onDuplicate, onDelete, onFrameMenu, onSize,
 }
 
 export default function Canvas({
-  diagrams, canvasOptions, onOpen, onDuplicate, onDelete, onNew, onFrameMenu, onBoardMenu,
+  diagrams, canvasOptions, focusedId, onFocus, onClearFocus, onFocusPrev, onFocusNext,
+  onOpen, onDuplicate, onDelete, onFrameMenu, onBoardMenu,
 }) {
   const vpRef = useRef(null);
-  const worldRef = useRef(null);
   const camRef = useRef({ x: 40, y: 40, s: 1 });
   const userMovedRef = useRef(false);
-  const focusedRef = useRef(null);
   const sizesRef = useRef(new Map());
   const [cam, setCam] = useState({ x: 40, y: 40, s: 1 });
-  const [focused, setFocused] = useState(null);
   const [layoutTick, setLayoutTick] = useState(0);
   const [animating, setAnimating] = useState(false);
 
@@ -105,7 +105,6 @@ export default function Canvas({
       y += rowH + GAP;
     }
     return map;
-    // layoutTick forces recompute after size reports
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diagrams, layoutTick]);
 
@@ -133,17 +132,14 @@ export default function Canvas({
   }, [applyCam]);
 
   const fitAll = useCallback((animate = true) => {
-    focusedRef.current = null;
-    setFocused(null);
+    onClearFocus();
     if (animate !== false) userMovedRef.current = false;
     fitRect(worldBounds(), 36, animate !== false);
-  }, [fitRect, worldBounds]);
+  }, [fitRect, worldBounds, onClearFocus]);
 
   const focusFrame = useCallback((id, animate = true) => {
     const p = positions.get(id);
     if (!p) return;
-    focusedRef.current = id;
-    setFocused(id);
     if (animate !== false) userMovedRef.current = false;
     fitRect({ x: p.x, y: p.y, w: p.w, h: p.h }, 28, animate !== false);
   }, [fitRect, positions]);
@@ -169,14 +165,19 @@ export default function Canvas({
     setLayoutTick((t) => t + 1);
   }, []);
 
-  // Fit when layout settles and user hasn't panned
+  // Camera follows focus / overview when layout settles
   useLayoutEffect(() => {
     if (userMovedRef.current) return;
-    if (focusedRef.current) focusFrame(focusedRef.current, false);
-    else fitAll(false);
-  }, [positions, fitAll, focusFrame]);
+    if (focusedId) focusFrame(focusedId, false);
+    else fitRect(worldBounds(), 36, false);
+  }, [positions, focusedId, focusFrame, fitRect, worldBounds]);
 
-  // Pointer pan + wheel zoom
+  // When focusedId changes from outside, camera-follow (allow animate)
+  useEffect(() => {
+    userMovedRef.current = false;
+    if (focusedId) focusFrame(focusedId, true);
+  }, [focusedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp) return;
@@ -191,7 +192,7 @@ export default function Canvas({
 
     const onDown = (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (e.target.closest('button, a, input, textarea, select, [data-pele-zoom]')) return;
+      if (e.target.closest('button, a, input, textarea, select, [data-pele-zoom], .ctxmenu')) return;
       pts.set(e.pointerId, local(e));
       moved = false;
       if (pts.size === 1) {
@@ -245,17 +246,10 @@ export default function Canvas({
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       zoomAt(p.x, p.y, Math.exp(-dy * k), false);
     };
-    const onKey = (e) => {
-      const t = e.target;
-      if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
-      if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') fitAll(true);
-      else if (e.key === '+' || e.key === '=') zoomCenter(1.25);
-      else if (e.key === '-' || e.key === '_') zoomCenter(0.8);
-    };
     const ro = new ResizeObserver(() => {
       if (userMovedRef.current) return;
-      if (focusedRef.current) focusFrame(focusedRef.current, false);
-      else fitAll(false);
+      if (focusedId) focusFrame(focusedId, false);
+      else fitRect(worldBounds(), 36, false);
     });
     ro.observe(vp);
 
@@ -265,7 +259,6 @@ export default function Canvas({
     vp.addEventListener('pointercancel', end);
     vp.addEventListener('click', onClickCapture, true);
     vp.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('keydown', onKey);
     return () => {
       ro.disconnect();
       vp.removeEventListener('pointerdown', onDown);
@@ -274,15 +267,12 @@ export default function Canvas({
       vp.removeEventListener('pointercancel', end);
       vp.removeEventListener('click', onClickCapture, true);
       vp.removeEventListener('wheel', onWheel);
-      window.removeEventListener('keydown', onKey);
     };
-  }, [applyCam, fitAll, focusFrame, zoomAt, zoomCenter]);
+  }, [applyCam, focusFrame, focusedId, fitRect, worldBounds, zoomAt]);
 
-  // Initial fit once diagrams exist
-  useEffect(() => {
-    const t = setTimeout(() => { if (!userMovedRef.current) fitAll(false); }, 80);
-    return () => clearTimeout(t);
-  }, [diagrams.length, fitAll]);
+  const label = focusedId
+    ? (diagrams.find((d) => d.id === focusedId)?.title || 'Focused')
+    : 'Overview';
 
   return (
     <section
@@ -300,21 +290,21 @@ export default function Canvas({
       }}
     >
       <div className="canvas-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-        <IconButton Icon={Maximize2} label="Fit all (F)" onClick={() => fitAll(true)} />
+        <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onFocusPrev} disabled={!diagrams.length} />
+        <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} disabled={!diagrams.length} />
+        <span className="canvas-zoom-label" title={label}>{focusedId ? 'Focus' : `${Math.round(cam.s * 100)}%`}</span>
+        <IconButton Icon={Maximize2} label="Fit all (Esc / F)" onClick={() => fitAll(true)} />
         <IconButton Icon={ZoomOut} label="Zoom out" onClick={() => zoomCenter(0.8)} />
-        <span className="canvas-zoom-label">{Math.round(cam.s * 100)}%</span>
         <IconButton Icon={ZoomIn} label="Zoom in" onClick={() => zoomCenter(1.25)} />
       </div>
       <div
         className={'canvas-world' + (animating ? ' animating' : '')}
-        ref={worldRef}
         style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})` }}
       >
         {diagrams.length === 0 && (
           <div className="empty canvas-empty">
             <p>No diagrams yet.</p>
-            <p><button type="button" className="btn" onClick={onNew}>New diagram…</button></p>
-            <p className="muted">Right-click empty space to create one.</p>
+            <p className="muted">Right-click empty space to create one, or use Duplicate / Save as.</p>
           </div>
         )}
         {diagrams.map((d) => {
@@ -327,31 +317,18 @@ export default function Canvas({
                 onOpen={onOpen}
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
+                onFocus={onFocus}
                 onFrameMenu={onFrameMenu}
                 onSize={onSize}
-                focused={focused === d.id}
+                focused={focusedId === d.id}
               />
             </div>
           );
         })}
-        {diagrams.length > 0 && (
-          <button
-            type="button"
-            className="canvas-new"
-            style={{
-              left: PAD + (diagrams.length % COLS) * (FALLBACK_W + GAP),
-              top: PAD + Math.floor(diagrams.length / COLS) * (FALLBACK_H + GAP),
-            }}
-            onClick={onNew}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="New diagram"
-          >
-            <Plus aria-hidden="true" />
-            <span>New</span>
-          </button>
-        )}
       </div>
-      <div className="canvas-hint">Drag to pan · scroll to zoom · double-click empty to fit all · F fits all</div>
+      <div className="canvas-hint">
+        Drag to pan · scroll to zoom · double-click a diagram to focus · ←/→ prev/next · Esc/F fit all · right-click empty to create
+      </div>
     </section>
   );
 }
