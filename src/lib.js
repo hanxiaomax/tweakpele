@@ -1,5 +1,5 @@
 /** Shared helpers: persistence, clipboard, hash routing, timing. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function loadJSON(key, fallback) {
   try {
@@ -13,6 +13,8 @@ export function loadJSON(key, fallback) {
 export function saveJSON(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* private mode */ }
 }
+
+export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
 export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; }
@@ -61,14 +63,14 @@ export function useDebounced(value, ms) {
   return v;
 }
 
-/** Fire callback at most once per `ms` while `value` keeps changing. */
-export function useDebouncedCallback(value, ms, fn) {
-  const ref = useRef(fn);
-  ref.current = fn;
-  useEffect(() => {
-    const t = setTimeout(() => ref.current(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
+/** useState that persists to localStorage under `key`. `init` is a value or (stored) => value. */
+export function usePersistedState(key, init) {
+  const [value, setValue] = useState(() => {
+    const stored = loadJSON(key, undefined);
+    return typeof init === 'function' ? init(stored) : stored ?? init;
+  });
+  useEffect(() => { saveJSON(key, value); }, [key, value]);
+  return [value, setValue];
 }
 
 export function newId() {

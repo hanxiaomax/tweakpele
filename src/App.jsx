@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LuSun as Sun, LuMoon as Moon, LuPanelLeftClose as PanelLeftClose, LuPanelLeftOpen as PanelLeftOpen,
-  LuFilePlus2 as FilePlus2, LuPlus as Plus, LuClipboardCopy as ClipboardCopy, LuBraces as Braces,
+  LuFilePlus2 as FilePlus2, LuClipboardCopy as ClipboardCopy, LuBraces as Braces,
   LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
-  LuFocus as Focus, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
-  LuSave as Save,
+  LuFocus as Focus, LuSave as Save,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -17,7 +16,7 @@ import {
   VAR_META, FACTORY, DARK, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
-import { loadJSON, saveJSON, copyText, useHashRoute, navigate, useDebounced, newId } from './lib.js';
+import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId } from './lib.js';
 
 const LIB_KEY = 'tweakpele.library.v1';
 const VARS_KEY = 'tweakpele.vars.v1';
@@ -35,9 +34,10 @@ function seedLibrary() {
 }
 
 export default function App() {
-  const [siteTheme, setSiteTheme] = useState(() => (loadJSON(THEME_KEY, 'light') === 'dark' ? 'dark' : 'light'));
-  const [vars, setVars] = useState(() => ({ ...FACTORY, ...loadJSON(VARS_KEY, {}) }));
-  const [optVals, setOptVals] = useState(() => ({ ...factoryOpts(), ...loadJSON(OPTS_KEY, {}) }));
+  const [siteTheme, setSiteTheme] = usePersistedState(THEME_KEY, (v) => (v === 'dark' ? 'dark' : 'light'));
+  const [vars, setVars] = usePersistedState(VARS_KEY, (v) => ({ ...FACTORY, ...v }));
+  const [optVals, setOptVals] = usePersistedState(OPTS_KEY, (v) => ({ ...factoryOpts(), ...v }));
+  // library persists a versioned wrapper, so it keeps its explicit load/save pair
   const [diagrams, setDiagrams] = useState(() => {
     const stored = loadJSON(LIB_KEY, null);
     if (stored && Array.isArray(stored.diagrams)
@@ -46,13 +46,10 @@ export default function App() {
     }
     return seedLibrary();
   });
-  const [toolboxCollapsed, setToolboxCollapsed] = useState(() => loadJSON(TOOLBOX_KEY, false) === true);
-  const [viewMode, setViewMode] = useState(() => (loadJSON(VIEW_KEY, 'gallery') === 'canvas' ? 'canvas' : 'gallery'));
+  const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => v === true);
+  const [viewMode, setViewMode] = usePersistedState(VIEW_KEY, (v) => (v === 'canvas' ? 'canvas' : 'gallery'));
   const [focusedId, setFocusedId] = useState(null);
-  const [split, setSplit] = useState(() => {
-    const v = loadJSON(SPLIT_KEY, 42);
-    return Number.isFinite(v) ? Math.max(16, Math.min(84, v)) : 42;
-  });
+  const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (Number.isFinite(v) ? clamp(v, 16, 84) : 42));
   const [remeasureTick, setRemeasureTick] = useState(0);
   const route = useHashRoute();
   const [toastMsg, setToastMsg] = useState('');
@@ -93,17 +90,71 @@ export default function App() {
 
   // ------------------------------------------------------------------ effects
   useEffect(() => { document.documentElement.dataset.theme = siteTheme; }, [siteTheme]);
-  useEffect(() => { saveJSON(THEME_KEY, siteTheme); }, [siteTheme]);
-  useEffect(() => { saveJSON(VARS_KEY, vars); }, [vars]);
-  useEffect(() => { saveJSON(OPTS_KEY, optVals); }, [optVals]);
   useEffect(() => { saveJSON(LIB_KEY, { formatVersion: 1, diagrams }); }, [diagrams]);
-  useEffect(() => { saveJSON(TOOLBOX_KEY, toolboxCollapsed); }, [toolboxCollapsed]);
-  useEffect(() => { saveJSON(VIEW_KEY, viewMode); }, [viewMode]);
-  useEffect(() => { saveJSON(SPLIT_KEY, split); }, [split]);
 
   useEffect(() => {
     setStatus(`${diagrams.length} diagrams · ${VAR_META.length} variables · ${ALL_OPTS.length} render options`);
   }, [diagrams.length]);
+
+
+  const forgetMeasures = useCallback(() => {
+    try { pele.forgetTextWidths(); } catch (_) { /* pele not loaded */ }
+    setRemeasureTick((t) => t + 1);
+  }, []);
+
+  // ------------------------------------------------------------------ theme actions
+  const applyPreset = (preset) => { setVars({ ...preset }); forgetMeasures(); };
+  const toggleTheme = () => {
+    const next = siteTheme === 'light' ? 'dark' : 'light';
+    setSiteTheme(next);
+    applyPreset(next === 'dark' ? DARK : FACTORY);
+    notify(next === 'dark' ? 'Dark ink theme' : 'Light paper theme');
+  };
+  const resetFactory = () => { setOptVals(factoryOpts()); applyPreset(FACTORY); notify('Factory theme & options restored'); };
+  const loadDarkSample = () => { applyPreset(DARK); notify('Dark ink sample applied'); };
+
+  // ------------------------------------------------------------------ toolbox actions
+  const onVarChange = useCallback((name, value) => {
+    if (REMEASURE_VARS.has(name)) forgetMeasures();
+    setVars((v) => (v[name] === value ? v : { ...v, [name]: value }));
+    setStatus(name);
+  }, [forgetMeasures]);
+  const onOptChange = useCallback((o, value) => {
+    setOptVals((v) => ({ ...v, [o.id]: value }));
+    setStatus(o.path ? o.path.join('.') : o.key);
+  }, []);
+  const onOptReset = useCallback((o) => {
+    setOptVals((v) => {
+      const next = { ...v };
+      if (o.factory !== undefined) next[o.id] = o.factory; else delete next[o.id];
+      return next;
+    });
+    setStatus(`${o.key} → default`);
+  }, []);
+
+  // ------------------------------------------------------------------ copy actions
+  const doCopy = async (text, label) => {
+    const ok = await copyText(text);
+    notify(ok ? `Copied ${label}` : 'Copy failed — select manually');
+    setStatus(ok ? `Copied ${label}` : 'Copy failed');
+  };
+
+  // ------------------------------------------------------------------ library actions
+  // stable identities where possible: they are passed to memoized Cards/Frames/PeleHosts
+  const findDiagram = useCallback((id) => diagrams.find((d) => d.id === id), [diagrams]);
+
+  const focusDiagram = useCallback((id) => setFocusedId(id), []);
+  const clearFocus = useCallback(() => setFocusedId(null), []);
+  const focusStep = useCallback((dir) => {
+    if (!diagrams.length) return;
+    const i = diagrams.findIndex((d) => d.id === focusedId);
+    let next;
+    if (i < 0) next = dir > 0 ? 0 : diagrams.length - 1;
+    else next = (i + dir + diagrams.length) % diagrams.length;
+    setFocusedId(diagrams[next].id);
+  }, [diagrams, focusedId]);
+  const focusPrev = useCallback(() => focusStep(-1), [focusStep]);
+  const focusNext = useCallback(() => focusStep(1), [focusStep]);
 
   // global shortcuts: T = toolbox, Esc = back to gallery
   useEffect(() => {
@@ -120,84 +171,28 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [route.view, diagrams, focusedId]);
+  }, [route.view, diagrams, focusedId, clearFocus, focusPrev, focusNext]);
 
-  const forgetMeasures = () => {
-    try { pele.forgetTextWidths(); } catch (_) { /* pele not loaded */ }
-    setRemeasureTick((t) => t + 1);
-  };
-
-  // ------------------------------------------------------------------ theme actions
-  const applyPreset = (preset) => { setVars({ ...preset }); forgetMeasures(); };
-  const toggleTheme = () => {
-    const next = siteTheme === 'light' ? 'dark' : 'light';
-    setSiteTheme(next);
-    applyPreset(next === 'dark' ? DARK : FACTORY);
-    notify(next === 'dark' ? 'Dark ink theme' : 'Light paper theme');
-  };
-  const resetFactory = () => { setOptVals(factoryOpts()); applyPreset(FACTORY); notify('Factory theme & options restored'); };
-  const loadDarkSample = () => { applyPreset(DARK); notify('Dark ink sample applied'); };
-
-  // ------------------------------------------------------------------ toolbox actions
-  const onVarChange = (name, value) => {
-    if (REMEASURE_VARS.has(name)) forgetMeasures();
-    setVars((v) => (v[name] === value ? v : { ...v, [name]: value }));
-    setStatus(name);
-  };
-  const onOptChange = (o, value) => {
-    setOptVals((v) => ({ ...v, [o.id]: value }));
-    setStatus(o.path ? o.path.join('.') : o.key);
-  };
-  const onOptReset = (o) => {
-    setOptVals((v) => {
-      const next = { ...v };
-      if (o.factory !== undefined) next[o.id] = o.factory; else delete next[o.id];
-      return next;
-    });
-    setStatus(`${o.key} → default`);
-  };
-
-  // ------------------------------------------------------------------ copy actions
-  const doCopy = async (text, label) => {
-    const ok = await copyText(text);
-    notify(ok ? `Copied ${label}` : 'Copy failed — select manually');
-    setStatus(ok ? `Copied ${label}` : 'Copy failed');
-  };
-
-  // ------------------------------------------------------------------ library actions
-  const findDiagram = (id) => diagrams.find((d) => d.id === id);
-
-  const focusDiagram = (id) => setFocusedId(id);
-  const clearFocus = () => setFocusedId(null);
-  const focusStep = (dir) => {
-    if (!diagrams.length) return;
-    const i = diagrams.findIndex((d) => d.id === focusedId);
-    let next;
-    if (i < 0) next = dir > 0 ? 0 : diagrams.length - 1;
-    else next = (i + dir + diagrams.length) % diagrams.length;
-    setFocusedId(diagrams[next].id);
-  };
-  const focusPrev = () => focusStep(-1);
-  const focusNext = () => focusStep(1);
-  const saveAsDiagram = (id) => {
-    const src = findDiagram(id);
-    if (!src) return;
-    const d = {
-      ...src, id: newId(), title: `${src.title} (copy)`,
-      original: src.source, builtin: false,
-    };
+  const insertCopyAfter = useCallback((id, d) => {
     setDiagrams((list) => {
       const i = list.findIndex((x) => x.id === id);
       const out = [...list];
       out.splice(i + 1, 0, d);
       return out;
     });
+  }, []);
+
+  const saveAsDiagram = useCallback((id) => {
+    const src = findDiagram(id);
+    if (!src) return;
+    const d = { ...src, id: newId(), title: `${src.title} (copy)`, original: src.source, builtin: false };
+    insertCopyAfter(id, d);
     setFocusedId(d.id);
     notify(`Saved as “${d.title}”`);
-  };
+  }, [findDiagram, insertCopyAfter, notify]);
 
-  const openEditor = (id) => navigate({ view: 'edit', id });
-  const backToGallery = () => navigate({ view: 'gallery' });
+  const openEditor = useCallback((id) => navigate({ view: 'edit', id }), []);
+  const backToGallery = useCallback(() => navigate({ view: 'gallery' }), []);
 
   const addDiagram = (starter) => {
     const d = {
@@ -209,44 +204,38 @@ export default function App() {
     openEditor(d.id);
     notify(`Created “${d.title}”`);
   };
-  const duplicateDiagram = (id) => {
+  const duplicateDiagram = useCallback((id) => {
     const src = findDiagram(id);
     if (!src) return;
-    const d = { ...src, id: newId(), title: `${src.title} (copy)`, builtin: false };
-    setDiagrams((list) => {
-      const i = list.findIndex((x) => x.id === id);
-      const out = [...list];
-      out.splice(i + 1, 0, d);
-      return out;
-    });
+    insertCopyAfter(id, { ...src, id: newId(), title: `${src.title} (copy)`, builtin: false });
     notify(`Duplicated “${src.title}”`);
-  };
-  const deleteDiagram = (id) => {
+  }, [findDiagram, insertCopyAfter, notify]);
+  const deleteDiagram = useCallback((id) => {
     const src = findDiagram(id);
     if (!src) return;
     setDiagrams((list) => list.filter((x) => x.id !== id));
     if (focusedId === id) setFocusedId(null);
     if (route.view === 'edit' && route.id === id) backToGallery();
     notify(`Deleted “${src.title}”`);
-  };
-  const changeSource = (id, source) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, source } : d)));
-  const changeTitle = (id, title) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, title } : d)));
-  const resetSource = (id) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, source: d.original } : d)));
+  }, [findDiagram, focusedId, route.view, route.id, backToGallery, notify]);
+  const changeSource = useCallback((id, source) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, source } : d))), []);
+  const changeTitle = useCallback((id, title) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, title } : d))), []);
+  const resetSource = useCallback((id) => setDiagrams((list) => list.map((d) => (d.id === id ? { ...d, source: d.original } : d))), []);
   const restoreSamples = () => {
     setDiagrams((list) => [...seedLibrary(), ...list.filter((d) => !d.builtin)]);
     notify('Built-in samples restored');
   };
 
   // ------------------------------------------------------------------ context menus
-  const boardMenu = (e) => {
+  const boardMenu = useCallback((e) => {
     setCtxMenu({
       x: e.clientX, y: e.clientY,
       items: [
         { label: 'New diagram…', Icon: FilePlus2, onClick: () => setNewOpen(true) },
       ],
     });
-  };
-  const cardMenu = (e, d) => {
+  }, []);
+  const cardMenu = useCallback((e, d) => {
     setCtxMenu({
       x: e.clientX, y: e.clientY,
       items: [
@@ -257,7 +246,7 @@ export default function App() {
         { label: 'Delete', Icon: Trash2, danger: true, onClick: () => deleteDiagram(d.id) },
       ],
     });
-  };
+  }, [focusDiagram, openEditor, duplicateDiagram, saveAsDiagram, deleteDiagram]);
 
   // console handle
   useEffect(() => {
@@ -270,7 +259,7 @@ export default function App() {
       },
       mountOptions: () => mountOptions, STARTERS, OPT_GROUPS,
     };
-  });
+  }, [diagrams, vars, optVals, mountOptions, onVarChange, onOptChange]);
 
   const current = route.view === 'edit' ? findDiagram(route.id) : null;
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';

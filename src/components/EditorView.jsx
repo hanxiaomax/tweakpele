@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
+import { clamp } from '../lib.js';
 
 /**
  * Split editor view: left = Mermaid source, right = live Pele preview
@@ -58,7 +59,7 @@ export default function EditorView({
     const rect = el.parentElement.getBoundingClientRect();
     document.body.classList.add('dragging-split');
     const move = (ev) => {
-      const pct = Math.max(16, Math.min(84, ((ev.clientX - rect.left) / rect.width) * 100));
+      const pct = clamp(((ev.clientX - rect.left) / rect.width) * 100, 16, 84);
       onSplitChange(pct);
     };
     const up = () => {
@@ -87,7 +88,7 @@ export default function EditorView({
         </span>
         <span className="editor-actions">
           <IconButton Icon={Maximize} label="Reset preview zoom"
-            onClick={() => { try { ctlRef.current && ctlRef.current.zoom && ctlRef.current.zoom.reset(); } catch (_) { /* ignore */ } }} />
+            onClick={() => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } }} />
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
             onClick={() => { onResetSource(diagram.id); notify('Source reset'); }} />
           <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"

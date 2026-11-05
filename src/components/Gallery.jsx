@@ -48,8 +48,8 @@ export default function Gallery({
   onOpen, onDuplicate, onDelete, onNew, onFocus, onClearFocus, onFocusPrev, onFocusNext,
   onCardMenu, onBoardMenu,
 }) {
-  const focused = diagrams.find((d) => d.id === focusedId);
-  const idx = focused ? diagrams.findIndex((d) => d.id === focusedId) + 1 : 0;
+  const idx = diagrams.findIndex((d) => d.id === focusedId);
+  const focused = idx >= 0 ? diagrams[idx] : null;
 
   return (
     <section
@@ -67,7 +67,7 @@ export default function Gallery({
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} />
           <IconButton Icon={Maximize2} label="Clear focus / show all" onClick={onClearFocus} disabled={!focusedId} />
           <span className="muted">
-            {focusedId ? `${idx} / ${diagrams.length} · ${focused?.title || ''}` : `${diagrams.length} diagrams · click to focus`}
+            {focusedId ? `${idx + 1} / ${diagrams.length} · ${focused?.title || ''}` : `${diagrams.length} diagrams · click to focus`}
           </span>
         </div>
       )}

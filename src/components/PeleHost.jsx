@@ -24,6 +24,15 @@ function optsKey(options) {
   try { return JSON.stringify(options); } catch (_) { return String(options); }
 }
 
+/** Wrap pele options with onRender/onError trampolines through the ref (stable identities). */
+function withCallbacks(cbRef, opts) {
+  return {
+    ...opts,
+    onRender: (r) => cbRef.current.onResult && cbRef.current.onResult(r),
+    onError: (e) => cbRef.current.onError && cbRef.current.onError(e),
+  };
+}
+
 /**
  * Imperative wrapper around pele.mount().
  * - Mounts once (or when `active` becomes true), destroys on unmount / inactive.
@@ -47,10 +56,9 @@ function PeleHost({ source, options, bindController, onResult, onError, classNam
     if (!el || typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
     let shown = false;
     const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting || e.intersectionRatio > 0) {
-          if (!shown) { shown = true; setVisible(true); }
-        }
+      if (!shown && entries.some((e) => e.isIntersecting || e.intersectionRatio > 0)) {
+        shown = true;
+        setVisible(true);
       }
     }, { root: null, rootMargin: '200px 0px', threshold: 0.01 });
     io.observe(el);
@@ -75,17 +83,11 @@ function PeleHost({ source, options, bindController, onResult, onError, classNam
     const el = hostRef.current;
     if (!el || typeof pele === 'undefined' || typeof pele.mount !== 'function') return;
 
-    const withCb = (opts) => ({
-      ...opts,
-      onRender: (r) => cbRef.current.onResult && cbRef.current.onResult(r),
-      onError: (e) => cbRef.current.onError && cbRef.current.onError(e),
-    });
-
     (async () => {
       release = await acquireMountSlot();
       if (cancelled || !hostRef.current) { release && release(); return; }
       try {
-        ctlRef.current = pele.mount(hostRef.current, source, withCb(options));
+        ctlRef.current = pele.mount(hostRef.current, source, withCallbacks(cbRef, options));
         mountedSrcRef.current = source;
         mountedOptsRef.current = optsKey(options);
         cbRef.current.bindController && cbRef.current.bindController(ctlRef.current);
@@ -117,11 +119,7 @@ function PeleHost({ source, options, bindController, onResult, onError, classNam
     mountedSrcRef.current = source;
     mountedOptsRef.current = nextOpts;
     try {
-      ctlRef.current.update(source, {
-        ...options,
-        onRender: (r) => cbRef.current.onResult && cbRef.current.onResult(r),
-        onError: (e) => cbRef.current.onError && cbRef.current.onError(e),
-      });
+      ctlRef.current.update(source, withCallbacks(cbRef, options));
     } catch (e) {
       cbRef.current.onError && cbRef.current.onError(e);
     }

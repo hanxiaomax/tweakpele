@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuFocus as Focus,
   LuMaximize2 as Maximize2, LuZoomIn as ZoomIn, LuZoomOut as ZoomOut,
@@ -6,6 +6,7 @@ import {
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
+import { clamp } from '../lib.js';
 
 const MIN_S = 0.03;
 const MAX_S = 6;
@@ -15,9 +16,7 @@ const PAD = 24;
 const FALLBACK_W = 640;
 const FALLBACK_H = 280;
 
-function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-
-function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize, focused }) {
+const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize, focused }) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
 
@@ -26,6 +25,7 @@ function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu
     if (!el) return;
     onSize(d.id, el.offsetWidth, el.offsetHeight);
   }, [d.id, onSize]);
+  const reportWhenPainted = useCallback(() => requestAnimationFrame(report), [report]);
 
   useEffect(() => {
     const el = shellRef.current;
@@ -58,13 +58,13 @@ function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu
           source={d.source}
           options={options}
           lazy
-          onResult={() => requestAnimationFrame(report)}
-          onError={() => requestAnimationFrame(report)}
+          onResult={reportWhenPainted}
+          onError={reportWhenPainted}
         />
       </div>
     </article>
   );
-}
+});
 
 export default function Canvas({
   diagrams, canvasOptions, focusedId, onFocus, onClearFocus, onFocusPrev, onFocusNext,
@@ -141,8 +141,8 @@ export default function Canvas({
   const focusFrame = useCallback((id, animate = true) => {
     const p = positions.get(id);
     if (!p) return;
-    if (animate !== false) userMovedRef.current = false;
-    fitRect({ x: p.x, y: p.y, w: p.w, h: p.h }, 28, animate !== false);
+    if (animate) userMovedRef.current = false;
+    fitRect({ x: p.x, y: p.y, w: p.w, h: p.h }, 28, animate);
   }, [fitRect, positions]);
 
   const zoomAt = useCallback((px, py, factor, animate) => {
@@ -168,12 +168,17 @@ export default function Canvas({
     sizeTimer.current = setTimeout(() => setLayoutTick((t) => t + 1), 48);
   }, []);
 
-  // Camera follows focus / overview when layout settles
-  useLayoutEffect(() => {
+  // Camera policy: keep the focused frame (or the whole world) in view unless the user panned away.
+  const followCamera = useCallback((animate = false) => {
     if (userMovedRef.current) return;
-    if (focusedId) focusFrame(focusedId, false);
-    else fitRect(worldBounds(), 36, false);
-  }, [positions, focusedId, focusFrame, fitRect, worldBounds]);
+    if (focusedId) focusFrame(focusedId, animate);
+    else fitRect(worldBounds(), 36, animate);
+  }, [focusedId, focusFrame, fitRect, worldBounds]);
+  const followCameraRef = useRef(followCamera);
+  followCameraRef.current = followCamera;
+
+  // Camera follows focus / overview when layout settles
+  useLayoutEffect(() => { followCamera(); }, [followCamera]);
 
   // When focusedId changes from outside, camera-follow (allow animate)
   useEffect(() => {
@@ -249,11 +254,7 @@ export default function Canvas({
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       zoomAt(p.x, p.y, Math.exp(-dy * k), false);
     };
-    const ro = new ResizeObserver(() => {
-      if (userMovedRef.current) return;
-      if (focusedId) focusFrame(focusedId, false);
-      else fitRect(worldBounds(), 36, false);
-    });
+    const ro = new ResizeObserver(() => followCameraRef.current());
     ro.observe(vp);
 
     vp.addEventListener('pointerdown', onDown);
@@ -271,7 +272,7 @@ export default function Canvas({
       vp.removeEventListener('click', onClickCapture, true);
       vp.removeEventListener('wheel', onWheel);
     };
-  }, [applyCam, focusFrame, focusedId, fitRect, worldBounds, zoomAt]);
+  }, [applyCam, zoomAt]);
 
   const label = focusedId
     ? (diagrams.find((d) => d.id === focusedId)?.title || 'Focused')

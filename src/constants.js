@@ -257,8 +257,8 @@ export function factoryOpts() {
   return v;
 }
 
-/** Build pele.mount options from toolbox state (no callbacks). */
-export function buildMountOptions(optVals, vars) {
+/** Collect non-empty toolbox values into a nested options object. */
+function collectOptions(optVals, vars) {
   const out = {};
   const put = (path, v) => {
     let cur = out;
@@ -266,31 +266,23 @@ export function buildMountOptions(optVals, vars) {
     cur[path[path.length - 1]] = v;
   };
   for (const o of ALL_OPTS) {
-    let v = o.kind === 'font' ? vars[o.cssVar] : optVals[o.id];
+    const v = o.kind === 'font' ? vars[o.cssVar] : optVals[o.id];
     if (v === undefined || v === '' || v === null) continue;
     if (o.kind === 'checks' && !v.length) continue;
-    if (o.key === 'zoom') v = v === 'auto' ? 'auto' : v !== 'false';
     put(o.path, v);
   }
-  if (out.now) out.now = new Date(out.now + 'T12:00:00');
   return out;
 }
 
 /** JSON shown in the Output panel / "Copy render JSON" (dates serialized, zoom readable). */
-export function exportOptions(optVals, vars) {
-  const raw = {};
-  const put = (path, v) => {
-    let cur = raw;
-    for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]] ??= {};
-    cur[path[path.length - 1]] = v;
-  };
-  for (const o of ALL_OPTS) {
-    let v = o.kind === 'font' ? vars[o.cssVar] : optVals[o.id];
-    if (v === undefined || v === '' || v === null) continue;
-    if (o.kind === 'checks' && !v.length) continue;
-    put(o.path, v);
-  }
-  return raw;
+export const exportOptions = collectOptions;
+
+/** Build pele.mount options from toolbox state (no callbacks). */
+export function buildMountOptions(optVals, vars) {
+  const out = collectOptions(optVals, vars);
+  if (out.zoom !== undefined) out.zoom = out.zoom === 'auto' ? 'auto' : out.zoom !== 'false';
+  if (out.now) out.now = new Date(out.now + 'T12:00:00');
+  return out;
 }
 
 export function peleCssBlock(vars) {

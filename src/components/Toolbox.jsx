@@ -1,4 +1,5 @@
-import { VAR_META, OPT_GROUPS, ALL_OPTS } from '../constants.js';
+import { memo } from 'react';
+import { VAR_META, OPT_GROUPS } from '../constants.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v).trim());
 function expandHex(hex) {
@@ -8,7 +9,7 @@ function expandHex(hex) {
   return h;
 }
 
-function VarRow({ meta, value, onChange }) {
+const VarRow = memo(function VarRow({ meta, value, onChange }) {
   return (
     <div className="var-row">
       <div className="var-meta">
@@ -31,9 +32,9 @@ function VarRow({ meta, value, onChange }) {
       </div>
     </div>
   );
-}
+});
 
-function OptRow({ o, value, onChange, onReset }) {
+const OptRow = memo(function OptRow({ o, value, onChange, onReset }) {
   const set = (v) => onChange(o, v);
   let ctl = null;
   if (o.kind === 'num') {
@@ -103,7 +104,7 @@ function OptRow({ o, value, onChange, onReset }) {
       </div>
     </div>
   );
-}
+});
 
 export default function Toolbox({ vars, onVarChange, optVals, onOptChange, onOptReset, cssBlock, optionsJson }) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
@@ -142,5 +143,3 @@ export default function Toolbox({ vars, onVarChange, optVals, onOptChange, onOpt
     </aside>
   );
 }
-
-export { ALL_OPTS };
