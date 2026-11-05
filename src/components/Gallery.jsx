@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuPlus as Plus, LuFocus as Focus,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuMaximize2 as Maximize2,
@@ -6,7 +6,7 @@ import {
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
 
-function Card({ d, galleryOptions, focused, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
+const Card = memo(function Card({ d, galleryOptions, focused, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
   const dirty = d.source !== d.original;
   const ref = useRef(null);
 
@@ -37,11 +37,11 @@ function Card({ d, galleryOptions, focused, onOpen, onDuplicate, onDelete, onFoc
         </span>
       </header>
       <div className="card-body">
-        <PeleHost source={d.source} options={galleryOptions} />
+        <PeleHost source={d.source} options={galleryOptions} lazy />
       </div>
     </article>
   );
-}
+});
 
 export default function Gallery({
   diagrams, galleryOptions, focusedId,

@@ -76,7 +76,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [optVals, vars['--pele-font'], vars['--pele-font-mono'], remeasureTick]
   );
-  const debouncedMountOptions = useDebounced(mountOptions, 160);
+  const debouncedMountOptions = useDebounced(mountOptions, 280);
   const galleryOptions = useMemo(() => ({ ...debouncedMountOptions, zoom: false }), [debouncedMountOptions]);
   // Canvas: natural full diagrams — no Pele in-diagram zoom, generous maxWidth, never crop.
   const canvasOptions = useMemo(() => ({
@@ -314,26 +314,28 @@ export default function App() {
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
-          <div className="view-holder" style={{ display: route.view === 'gallery' ? '' : 'none' }}>
-            {viewMode === 'gallery' ? (
-              <Gallery
-                diagrams={diagrams} galleryOptions={galleryOptions} focusedId={focusedId}
-                onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                onNew={() => setNewOpen(true)}
-                onFocus={focusDiagram} onClearFocus={clearFocus}
-                onFocusPrev={focusPrev} onFocusNext={focusNext}
-                onCardMenu={cardMenu} onBoardMenu={boardMenu}
-              />
-            ) : (
-              <Canvas
-                diagrams={diagrams} canvasOptions={canvasOptions} focusedId={focusedId}
-                onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                onFocus={focusDiagram} onClearFocus={clearFocus}
-                onFocusPrev={focusPrev} onFocusNext={focusNext}
-                onFrameMenu={cardMenu} onBoardMenu={boardMenu}
-              />
-            )}
-          </div>
+          {route.view === 'gallery' && (
+            <div className="view-holder">
+              {viewMode === 'gallery' ? (
+                <Gallery
+                  diagrams={diagrams} galleryOptions={galleryOptions} focusedId={focusedId}
+                  onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                  onNew={() => setNewOpen(true)}
+                  onFocus={focusDiagram} onClearFocus={clearFocus}
+                  onFocusPrev={focusPrev} onFocusNext={focusNext}
+                  onCardMenu={cardMenu} onBoardMenu={boardMenu}
+                />
+              ) : (
+                <Canvas
+                  diagrams={diagrams} canvasOptions={canvasOptions} focusedId={focusedId}
+                  onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                  onFocus={focusDiagram} onClearFocus={clearFocus}
+                  onFocusPrev={focusPrev} onFocusNext={focusNext}
+                  onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+                />
+              )}
+            </div>
+          )}
           {route.view === 'edit' && (current
             ? <EditorView
                 key={current.id}

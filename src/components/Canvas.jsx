@@ -57,6 +57,7 @@ function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu
         <PeleHost
           source={d.source}
           options={options}
+          lazy
           onResult={() => requestAnimationFrame(report)}
           onError={() => requestAnimationFrame(report)}
         />
@@ -158,11 +159,13 @@ export default function Canvas({
     zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, factor, true);
   }, [zoomAt]);
 
+  const sizeTimer = useRef(0);
   const onSize = useCallback((id, w, h) => {
     const prev = sizesRef.current.get(id);
     if (prev && Math.abs(prev.w - w) < 2 && Math.abs(prev.h - h) < 2) return;
     sizesRef.current.set(id, { w, h });
-    setLayoutTick((t) => t + 1);
+    clearTimeout(sizeTimer.current);
+    sizeTimer.current = setTimeout(() => setLayoutTick((t) => t + 1), 48);
   }, []);
 
   // Camera follows focus / overview when layout settles
