@@ -1,0 +1,13 @@
+gantt
+  title 结账改版发布计划
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+  section 设计
+    需求评审        :done, d1, 2026-11-02, 3d
+    交互稿          :active, d2, after d1, 4d
+  section 开发
+    订单 API        :crit, e1, 2026-11-06, 6d
+    前端结账页      :e2, after d2, 6d
+  section 发布
+    灰度            :r1, after e1, 3d
+    全量上线        :milestone, r2, after r1, 0d

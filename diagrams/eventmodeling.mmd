@@ -1,0 +1,16 @@
+eventmodeling
+timeframe 01 ui CartUI
+timeframe 02 command AddItem [[AddItem01]]
+timeframe 03 event ItemAdded [[ItemAdded]]
+timeframe 04 command Checkout
+timeframe 05 event OrderPlaced
+resetframe 06 event External.PaymentCaptured
+timeframe 07 processor FulfilmentProcessor
+data AddItem01 {
+  sku: 'SKU-1'
+  qty: 2
+}
+data ItemAdded {
+  sku: string
+  qty: number
+}

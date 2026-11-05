@@ -1,0 +1,14 @@
+cynefin-beta
+  title 事故分类
+  complex
+    "新支付渠道异常"
+  complicated
+    "数据库慢查询"
+  clear
+    "证书过期"
+  chaotic
+    "全站宕机"
+  complex --> complicated : "找到模式"
+  complicated --> clear : "写成手册"
+  clear --> chaotic : "疏忽"
+  chaotic --> complex : "止血"

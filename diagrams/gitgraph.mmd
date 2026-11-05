@@ -1,0 +1,18 @@
+gitGraph
+  commit id: "init"
+  branch develop
+  checkout develop
+  commit id: "api"
+  branch feature/checkout
+  checkout feature/checkout
+  commit id: "cart"
+  commit id: "pay" type: HIGHLIGHT
+  checkout develop
+  merge feature/checkout
+  checkout main
+  merge develop tag: "v1.0"
+  branch hotfix
+  checkout hotfix
+  commit id: "fix-tax" type: REVERSE
+  checkout main
+  merge hotfix tag: "v1.0.1"

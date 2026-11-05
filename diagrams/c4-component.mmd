@@ -1,0 +1,19 @@
+C4Component
+  title 组件图：订单 API
+  Container(web, "Web 前端", "React")
+  ContainerDb(db, "订单库", "PostgreSQL")
+  System_Ext(bank, "支付网关")
+  Container_Boundary(api, "订单 API") {
+    Component(ctl, "结账控制器", "HTTP Handler", "接收结账请求")
+    Component(svc, "订单服务", "Domain", "校验、定价、下单")
+    Component(payc, "支付适配器", "Client", "封装支付网关")
+    Component(repo, "订单仓储", "Repository", "持久化订单")
+  }
+  Rel(web, ctl, "POST /checkout", "JSON")
+  Rel(ctl, svc, "调用")
+  Rel(svc, payc, "扣款")
+  Rel(svc, repo, "保存")
+  Rel(payc, bank, "授权", "HTTPS")
+  Rel(repo, db, "读写", "SQL")
+  UpdateElementStyle(svc, $borderColor="var(--pele-accent)")
+  UpdateRelStyle(ctl, svc, $lineColor="var(--pele-accent)", $textColor="var(--pele-accent)")

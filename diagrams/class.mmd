@@ -1,0 +1,30 @@
+classDiagram
+  direction TB
+  class Order {
+    +String id
+    +OrderStatus status
+    +Money total
+    +place()
+    +cancel()
+  }
+  class OrderLine {
+    +Sku sku
+    +int qty
+    +Money price
+  }
+  class Payment {
+    <<interface>>
+    +capture()
+    +refund()
+  }
+  class CardPayment {
+    +String last4
+  }
+  class Customer {
+    +String id
+    +String email
+  }
+  Customer "1" --> "*" Order : places
+  Order "1" *-- "*" OrderLine : contains
+  Order --> Payment : pays with
+  Payment <|.. CardPayment

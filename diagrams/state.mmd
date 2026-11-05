@@ -1,0 +1,15 @@
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Submitted : 提交
+  Submitted --> Review
+  state Review {
+    [*] --> Screening
+    Screening --> Decision
+    Decision --> [*]
+  }
+  Review --> Paid : 通过
+  Review --> Draft : 驳回
+  Paid --> Shipped : 发货
+  Shipped --> Delivered
+  Delivered --> [*]
+  note right of Paid : 支付后锁定库存

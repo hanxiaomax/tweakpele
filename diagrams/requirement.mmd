@@ -1,0 +1,25 @@
+requirementDiagram
+  requirement checkout_req {
+    id: 1
+    text: "订单必须可在线支付"
+    risk: high
+    verifymethod: test
+  }
+  functionalRequirement payment_req {
+    id: 1.1
+    text: "银行卡支付需授权"
+    risk: medium
+    verifymethod: test
+  }
+  performanceRequirement latency_req {
+    id: 1.2
+    text: "支付 p95 小于 800ms"
+    risk: low
+    verifymethod: analysis
+  }
+  element checkout_service {
+    type: service
+  }
+  checkout_req - contains -> payment_req
+  checkout_req - contains -> latency_req
+  checkout_service - satisfies -> payment_req

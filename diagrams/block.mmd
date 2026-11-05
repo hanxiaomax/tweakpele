@@ -1,0 +1,15 @@
+block
+  columns 3
+  web["Web 商城"] mobile["移动 App"] admin["运营后台"]
+  space:3
+  gw["API 网关"]:3
+  block:svc:3
+    columns 3
+    order["订单"] pay["支付"] inv["库存"]
+  end
+  db[("订单库")]:3
+  web --> gw
+  mobile --> gw
+  admin --> gw
+  gw --> svc
+  svc --> db

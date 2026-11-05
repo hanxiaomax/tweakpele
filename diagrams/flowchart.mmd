@@ -1,0 +1,22 @@
+flowchart LR
+  subgraph Client["客户端"]
+    UI[Web 商城]
+    Cache[(本地缓存)]
+  end
+  subgraph Services["服务层"]
+    API[API 网关]
+    Auth[认证服务]
+    Orders[订单服务]
+    Pay{支付成功?}
+  end
+  subgraph Storage["存储"]
+    DB[(订单库)]
+  end
+  UI --> API
+  UI --> Cache
+  API --> Auth
+  API --> Orders
+  Orders --> Pay
+  Pay -->|是| DB
+  Pay -->|否| UI
+  Auth -. token .-> UI

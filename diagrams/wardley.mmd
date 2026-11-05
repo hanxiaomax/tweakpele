@@ -1,0 +1,13 @@
+wardley-beta
+title Shop Value Chain
+anchor Customer [0.95, 0.60]
+component Checkout UX [0.80, 0.55]
+component Order Service [0.62, 0.50]
+component Payment Gateway [0.48, 0.78]
+component Cloud Compute [0.20, 0.85]
+Customer -> Checkout UX
+Checkout UX -> Order Service
+Order Service -> Payment Gateway
+Order Service -> Cloud Compute
+evolve Order Service 0.70
+note "Commoditise payments to move faster" [0.35, 0.30]

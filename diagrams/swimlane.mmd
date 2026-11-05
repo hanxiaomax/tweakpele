@@ -1,0 +1,18 @@
+swimlane-beta LR
+  subgraph Customer["顾客"]
+    request[提交退货]
+    receive[收到退款]
+  end
+  subgraph Support["客服"]
+    triage[审核申请]
+    answer[通知结果]
+  end
+  subgraph Warehouse["仓库"]
+    check[验货]
+    restock[入库]
+  end
+  request --> triage
+  triage -->|需验货| check
+  triage -->|直接退| answer
+  check --> restock --> answer
+  answer --> receive
