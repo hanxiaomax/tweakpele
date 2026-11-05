@@ -1,19 +1,19 @@
 requirementDiagram
   requirement checkout_req {
     id: 1
-    text: "订单必须可在线支付"
+    text: "Orders must be payable online"
     risk: high
     verifymethod: test
   }
   functionalRequirement payment_req {
     id: 1.1
-    text: "银行卡支付需授权"
+    text: "Card payments require authorization"
     risk: medium
     verifymethod: test
   }
   performanceRequirement latency_req {
     id: 1.2
-    text: "支付 p95 小于 800ms"
+    text: "Payment p95 under 800ms"
     risk: low
     verifymethod: analysis
   }

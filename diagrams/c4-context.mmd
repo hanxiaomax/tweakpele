@@ -1,11 +1,11 @@
 C4Context
-  title 系统上下文：在线商城
-  Person(customer, "顾客", "在线浏览并下单")
-  Person_Ext(ops, "运营", "管理商品与活动")
-  System(shop, "在线商城", "商品、购物车、订单")
-  System_Ext(bank, "支付网关", "银行卡与电子钱包")
-  System_Ext(mail, "邮件服务", "订单通知")
-  Rel(customer, shop, "下单", "HTTPS")
-  Rel(ops, shop, "配置")
-  Rel(shop, bank, "扣款", "HTTPS")
-  Rel(shop, mail, "发送通知")
+  title System Context: Online Store
+  Person(customer, "Customer", "Browses and orders online")
+  Person_Ext(ops, "Operations", "Manages products and campaigns")
+  System(shop, "Online Store", "Products, cart, orders")
+  System_Ext(bank, "Payment Gateway", "Cards and e-wallets")
+  System_Ext(mail, "Email Service", "Order notifications")
+  Rel(customer, shop, "Places order", "HTTPS")
+  Rel(ops, shop, "Configures")
+  Rel(shop, bank, "Charges", "HTTPS")
+  Rel(shop, mail, "Sends notification")

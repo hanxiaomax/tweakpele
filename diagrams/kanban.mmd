@@ -4,12 +4,12 @@ config:
     ticketBaseUrl: 'https://tracker.example.com/browse/#TICKET#'
 ---
 kanban
-  todo[待办]
-    t1[地址自动补全]@{ priority: 'Low' }
-    t2[分期付款接入]@{ ticket: SHOP-42, priority: 'High' }
-  doing[进行中]
-    t3[结账页重构]@{ assigned: 'lingfeng', priority: 'Very High' }
-  review[评审]
-    t4[支付回调幂等]@{ ticket: SHOP-38 }
-  done[完成]
-    t5[购物车持久化]
+  todo[To do]
+    t1[Address autocomplete]@{ priority: 'Low' }
+    t2[Installment payments]@{ ticket: SHOP-42, priority: 'High' }
+  doing[In Progress]
+    t3[Checkout page rebuild]@{ assigned: 'lingfeng', priority: 'Very High' }
+  review[Review]
+    t4[Idempotent payment callbacks]@{ ticket: SHOP-38 }
+  done[Done]
+    t5[Persistent shopping cart]

@@ -1,13 +1,13 @@
 architecture-beta
-  group edge(cloud)[边缘]
-  group core(server)[核心服务]
-  group data(database)[数据]
+  group edge(cloud)[Edge]
+  group core(server)[Core Services]
+  group data(database)[Data]
   service cdn(internet)[CDN] in edge
-  service gw(server)[API 网关] in edge
-  service order(server)[订单] in core
-  service pay(server)[支付] in core
-  service db(database)[订单库] in data
-  service store(disk)[对象存储] in data
+  service gw(server)[API Gateway] in edge
+  service order(server)[Orders] in core
+  service pay(server)[Payment] in core
+  service db(database)[Order DB] in data
+  service store(disk)[Object Storage] in data
   cdn:R --> L:gw
   gw:R --> L:order
   order:B --> T:pay

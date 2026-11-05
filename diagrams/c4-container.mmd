@@ -1,15 +1,15 @@
 C4Container
-  title 容器图：在线商城
-  Person(customer, "顾客")
-  System_Boundary(shop, "在线商城") {
-    Container(web, "Web 前端", "React", "结账界面")
-    Container(api, "订单 API", "Go", "订单与支付编排")
-    ContainerDb(db, "订单库", "PostgreSQL")
-    ContainerQueue(bus, "事件总线", "Kafka")
+  title Container Diagram: Online Store
+  Person(customer, "Customer")
+  System_Boundary(shop, "Online Store") {
+    Container(web, "Web Frontend", "React", "Checkout UI")
+    Container(api, "Order API", "Go", "Order and payment orchestration")
+    ContainerDb(db, "Order DB", "PostgreSQL")
+    ContainerQueue(bus, "Event Bus", "Kafka")
   }
-  System_Ext(bank, "支付网关")
-  Rel(customer, web, "使用", "HTTPS")
-  Rel(web, api, "调用", "JSON/HTTPS")
-  Rel(api, db, "读写", "SQL")
-  Rel(api, bus, "发布事件")
-  Rel(api, bank, "扣款")
+  System_Ext(bank, "Payment Gateway")
+  Rel(customer, web, "Uses", "HTTPS")
+  Rel(web, api, "Calls", "JSON/HTTPS")
+  Rel(api, db, "Reads/writes", "SQL")
+  Rel(api, bus, "Publishes events")
+  Rel(api, bank, "Charges")

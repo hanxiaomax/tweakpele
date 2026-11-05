@@ -5,14 +5,14 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "Flowchart",
   "keyword": "flowchart",
   "file": "diagrams/flowchart.mmd",
-  "source": "flowchart LR\n  subgraph Client[\"客户端\"]\n    UI[Web 商城]\n    Cache[(本地缓存)]\n  end\n  subgraph Services[\"服务层\"]\n    API[API 网关]\n    Auth[认证服务]\n    Orders[订单服务]\n    Pay{支付成功?}\n  end\n  subgraph Storage[\"存储\"]\n    DB[(订单库)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> Pay\n  Pay -->|是| DB\n  Pay -->|否| UI\n  Auth -. token .-> UI\n"
+  "source": "flowchart LR\n  subgraph Client[\"Client\"]\n    UI[Web Storefront]\n    Cache[(Local Cache)]\n  end\n  subgraph Services[\"Services\"]\n    API[API Gateway]\n    Auth[Auth Service]\n    Orders[Order Service]\n    Pay{Payment OK?}\n  end\n  subgraph Storage[\"Storage\"]\n    DB[(Order DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> Pay\n  Pay -->|Yes| DB\n  Pay -->|No| UI\n  Auth -. token .-> UI\n"
  },
  {
   "id": "sequence",
   "title": "Sequence",
   "keyword": "sequenceDiagram",
   "file": "diagrams/sequence.mmd",
-  "source": "sequenceDiagram\n  autonumber\n  actor Customer as 顾客\n  participant Web as Web 商城\n  participant API as 订单 API\n  participant Inv as 库存\n  participant Bank as 支付网关\n  Customer->>Web: 提交结账\n  Web->>API: POST /orders\n  activate API\n  API->>Inv: reserve(lines)\n  alt 库存不足\n    Inv-->>API: Reject\n    API-->>Web: 409 OutOfStock\n  else 库存 OK\n    Inv-->>API: Reserved\n    API->>Bank: capture(total)\n    Bank-->>API: Approved\n    API-->>Web: 201 Created\n  end\n  deactivate API\n  Web-->>Customer: 下单结果\n  Note over Customer,Bank: 一笔订单，一次扣款\n"
+  "source": "sequenceDiagram\n  autonumber\n  actor Customer as Customer\n  participant Web as Web Storefront\n  participant API as Order API\n  participant Inv as Inventory\n  participant Bank as Payment Gateway\n  Customer->>Web: Submit checkout\n  Web->>API: POST /orders\n  activate API\n  API->>Inv: reserve(lines)\n  alt Out of stock\n    Inv-->>API: Reject\n    API-->>Web: 409 OutOfStock\n  else In stock\n    Inv-->>API: Reserved\n    API->>Bank: capture(total)\n    Bank-->>API: Approved\n    API-->>Web: 201 Created\n  end\n  deactivate API\n  Web-->>Customer: Order result\n  Note over Customer,Bank: One order, one charge\n"
  },
  {
   "id": "class",
@@ -26,7 +26,7 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "State",
   "keyword": "stateDiagram-v2",
   "file": "diagrams/state.mmd",
-  "source": "stateDiagram-v2\n  [*] --> Draft\n  Draft --> Submitted : 提交\n  Submitted --> Review\n  state Review {\n    [*] --> Screening\n    Screening --> Decision\n    Decision --> [*]\n  }\n  Review --> Paid : 通过\n  Review --> Draft : 驳回\n  Paid --> Shipped : 发货\n  Shipped --> Delivered\n  Delivered --> [*]\n  note right of Paid : 支付后锁定库存\n"
+  "source": "stateDiagram-v2\n  [*] --> Draft\n  Draft --> Submitted : Submit\n  Submitted --> Review\n  state Review {\n    [*] --> Screening\n    Screening --> Decision\n    Decision --> [*]\n  }\n  Review --> Paid : Approve\n  Review --> Draft : Reject\n  Paid --> Shipped : Ship\n  Shipped --> Delivered\n  Delivered --> [*]\n  note right of Paid : Lock stock after payment\n"
  },
  {
   "id": "er",
@@ -40,49 +40,49 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "C4 Context",
   "keyword": "C4Context",
   "file": "diagrams/c4-context.mmd",
-  "source": "C4Context\n  title 系统上下文：在线商城\n  Person(customer, \"顾客\", \"在线浏览并下单\")\n  Person_Ext(ops, \"运营\", \"管理商品与活动\")\n  System(shop, \"在线商城\", \"商品、购物车、订单\")\n  System_Ext(bank, \"支付网关\", \"银行卡与电子钱包\")\n  System_Ext(mail, \"邮件服务\", \"订单通知\")\n  Rel(customer, shop, \"下单\", \"HTTPS\")\n  Rel(ops, shop, \"配置\")\n  Rel(shop, bank, \"扣款\", \"HTTPS\")\n  Rel(shop, mail, \"发送通知\")\n"
+  "source": "C4Context\n  title System Context: Online Store\n  Person(customer, \"Customer\", \"Browses and orders online\")\n  Person_Ext(ops, \"Operations\", \"Manages products and campaigns\")\n  System(shop, \"Online Store\", \"Products, cart, orders\")\n  System_Ext(bank, \"Payment Gateway\", \"Cards and e-wallets\")\n  System_Ext(mail, \"Email Service\", \"Order notifications\")\n  Rel(customer, shop, \"Places order\", \"HTTPS\")\n  Rel(ops, shop, \"Configures\")\n  Rel(shop, bank, \"Charges\", \"HTTPS\")\n  Rel(shop, mail, \"Sends notification\")\n"
  },
  {
   "id": "c4-container",
   "title": "C4 Container",
   "keyword": "C4Container",
   "file": "diagrams/c4-container.mmd",
-  "source": "C4Container\n  title 容器图：在线商城\n  Person(customer, \"顾客\")\n  System_Boundary(shop, \"在线商城\") {\n    Container(web, \"Web 前端\", \"React\", \"结账界面\")\n    Container(api, \"订单 API\", \"Go\", \"订单与支付编排\")\n    ContainerDb(db, \"订单库\", \"PostgreSQL\")\n    ContainerQueue(bus, \"事件总线\", \"Kafka\")\n  }\n  System_Ext(bank, \"支付网关\")\n  Rel(customer, web, \"使用\", \"HTTPS\")\n  Rel(web, api, \"调用\", \"JSON/HTTPS\")\n  Rel(api, db, \"读写\", \"SQL\")\n  Rel(api, bus, \"发布事件\")\n  Rel(api, bank, \"扣款\")\n"
+  "source": "C4Container\n  title Container Diagram: Online Store\n  Person(customer, \"Customer\")\n  System_Boundary(shop, \"Online Store\") {\n    Container(web, \"Web Frontend\", \"React\", \"Checkout UI\")\n    Container(api, \"Order API\", \"Go\", \"Order and payment orchestration\")\n    ContainerDb(db, \"Order DB\", \"PostgreSQL\")\n    ContainerQueue(bus, \"Event Bus\", \"Kafka\")\n  }\n  System_Ext(bank, \"Payment Gateway\")\n  Rel(customer, web, \"Uses\", \"HTTPS\")\n  Rel(web, api, \"Calls\", \"JSON/HTTPS\")\n  Rel(api, db, \"Reads/writes\", \"SQL\")\n  Rel(api, bus, \"Publishes events\")\n  Rel(api, bank, \"Charges\")\n"
  },
  {
   "id": "c4-component",
   "title": "C4 Component",
   "keyword": "C4Component",
   "file": "diagrams/c4-component.mmd",
-  "source": "C4Component\n  title 组件图：订单 API\n  Container(web, \"Web 前端\", \"React\")\n  ContainerDb(db, \"订单库\", \"PostgreSQL\")\n  System_Ext(bank, \"支付网关\")\n  Container_Boundary(api, \"订单 API\") {\n    Component(ctl, \"结账控制器\", \"HTTP Handler\", \"接收结账请求\")\n    Component(svc, \"订单服务\", \"Domain\", \"校验、定价、下单\")\n    Component(payc, \"支付适配器\", \"Client\", \"封装支付网关\")\n    Component(repo, \"订单仓储\", \"Repository\", \"持久化订单\")\n  }\n  Rel(web, ctl, \"POST /checkout\", \"JSON\")\n  Rel(ctl, svc, \"调用\")\n  Rel(svc, payc, \"扣款\")\n  Rel(svc, repo, \"保存\")\n  Rel(payc, bank, \"授权\", \"HTTPS\")\n  Rel(repo, db, \"读写\", \"SQL\")\n  UpdateElementStyle(svc, $borderColor=\"var(--pele-accent)\")\n  UpdateRelStyle(ctl, svc, $lineColor=\"var(--pele-accent)\", $textColor=\"var(--pele-accent)\")\n"
+  "source": "C4Component\n  title Component Diagram: Order API\n  Container(web, \"Web Frontend\", \"React\")\n  ContainerDb(db, \"Order DB\", \"PostgreSQL\")\n  System_Ext(bank, \"Payment Gateway\")\n  Container_Boundary(api, \"Order API\") {\n    Component(ctl, \"Checkout Controller\", \"HTTP Handler\", \"Handles checkout requests\")\n    Component(svc, \"Order Service\", \"Domain\", \"Validation, pricing, ordering\")\n    Component(payc, \"Payment Adapter\", \"Client\", \"Wraps the payment gateway\")\n    Component(repo, \"Order Repository\", \"Repository\", \"Persists orders\")\n  }\n  Rel(web, ctl, \"POST /checkout\", \"JSON\")\n  Rel(ctl, svc, \"Calls\")\n  Rel(svc, payc, \"Charges\")\n  Rel(svc, repo, \"Saves\")\n  Rel(payc, bank, \"Authorizes\", \"HTTPS\")\n  Rel(repo, db, \"Reads/writes\", \"SQL\")\n  UpdateElementStyle(svc, $borderColor=\"var(--pele-accent)\")\n  UpdateRelStyle(ctl, svc, $lineColor=\"var(--pele-accent)\", $textColor=\"var(--pele-accent)\")\n"
  },
  {
   "id": "gantt",
   "title": "Gantt",
   "keyword": "gantt",
   "file": "diagrams/gantt.mmd",
-  "source": "gantt\n  title 结账改版发布计划\n  dateFormat YYYY-MM-DD\n  axisFormat %m-%d\n  section 设计\n    需求评审        :done, d1, 2026-11-02, 3d\n    交互稿          :active, d2, after d1, 4d\n  section 开发\n    订单 API        :crit, e1, 2026-11-06, 6d\n    前端结账页      :e2, after d2, 6d\n  section 发布\n    灰度            :r1, after e1, 3d\n    全量上线        :milestone, r2, after r1, 0d\n"
+  "source": "gantt\n  title Checkout Redesign Release Plan\n  dateFormat YYYY-MM-DD\n  axisFormat %m-%d\n  section Design\n    Requirements review :done, d1, 2026-11-02, 3d\n    Interaction mockups :active, d2, after d1, 4d\n  section Development\n    Order API        :crit, e1, 2026-11-06, 6d\n    Checkout page    :e2, after d2, 6d\n  section Release\n    Canary rollout   :r1, after e1, 3d\n    Full launch      :milestone, r2, after r1, 0d\n"
  },
  {
   "id": "pie",
   "title": "Pie",
   "keyword": "pie",
   "file": "diagrams/pie.mmd",
-  "source": "pie showData\n  title 订单支付方式占比\n  \"银行卡\" : 386\n  \"电子钱包\" : 245\n  \"货到付款\" : 85\n  \"礼品卡\" : 32\n"
+  "source": "pie showData\n  title Order Payment Methods\n  \"Card\" : 386\n  \"E-wallet\" : 245\n  \"Cash on delivery\" : 85\n  \"Gift card\" : 32\n"
  },
  {
   "id": "mindmap",
   "title": "Mindmap",
   "keyword": "mindmap",
   "file": "diagrams/mindmap.mmd",
-  "source": "mindmap\n  root((结账体验))\n    支付\n      银行卡\n      电子钱包\n      分期\n    物流\n      当日达\n      自提柜\n    售后\n      退货\n      换货\n        尺码\n    增长\n      优惠券\n      会员积分\n"
+  "source": "mindmap\n  root((Checkout Experience))\n    Payments\n      Card\n      E-wallet\n      Installments\n    Delivery\n      Same-day\n      Pickup lockers\n    After-sales\n      Returns\n      Exchanges\n        Sizing\n    Growth\n      Coupons\n      Loyalty points\n"
  },
  {
   "id": "timeline",
   "title": "Timeline",
   "keyword": "timeline",
   "file": "diagrams/timeline.mmd",
-  "source": "timeline\n  title 商城平台演进\n  section 起步\n    2019 : 单体 PHP 商城\n    2020 : 引入 Redis 缓存 : 移动端上线\n  section 拆分\n    2022 : 订单服务独立 : 支付网关接入\n    2024 : 事件驱动库存\n  section 现在\n    2026 : 多区域部署 : 全链路可观测\n"
+  "source": "timeline\n  title E-commerce Platform Evolution\n  section Early Days\n    2019 : Monolithic PHP storefront\n    2020 : Redis caching introduced : Mobile app launched\n  section Service Split\n    2022 : Order service extracted : Payment gateway integrated\n    2024 : Event-driven inventory\n  section Today\n    2026 : Multi-region deployment : End-to-end observability\n"
  },
  {
   "id": "gitgraph",
@@ -96,98 +96,98 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "User Journey",
   "keyword": "journey",
   "file": "diagrams/journey.mmd",
-  "source": "journey\n  title 顾客下单旅程\n  section 发现\n    搜索商品: 4: 顾客\n    查看详情: 5: 顾客\n  section 结账\n    填写地址: 2: 顾客\n    选择支付: 3: 顾客, 客服\n    支付成功: 5: 顾客\n  section 履约\n    等待发货: 3: 顾客, 仓库\n    签收: 5: 顾客\n"
+  "source": "journey\n  title Customer Ordering Journey\n  section Discovery\n    Search products: 4: Customer\n    View details: 5: Customer\n  section Checkout\n    Enter address: 2: Customer\n    Choose payment: 3: Customer, Support\n    Payment succeeds: 5: Customer\n  section Fulfilment\n    Await shipment: 3: Customer, Warehouse\n    Receive package: 5: Customer\n"
  },
  {
   "id": "quadrant",
   "title": "Quadrant Chart",
   "keyword": "quadrantChart",
   "file": "diagrams/quadrant.mmd",
-  "source": "quadrantChart\n  title 功能优先级\n  x-axis 低成本 --> 高成本\n  y-axis 低价值 --> 高价值\n  quadrant-1 规划\n  quadrant-2 立即做\n  quadrant-3 暂缓\n  quadrant-4 重新评估\n  一键复购: [0.25, 0.85]\n  分期付款: [0.7, 0.75]\n  暗色模式: [0.3, 0.3]\n  AR 试穿: [0.85, 0.4]\n  地址补全: [0.15, 0.6]\n"
+  "source": "quadrantChart\n  title Feature Priorities\n  x-axis Low cost --> High cost\n  y-axis Low value --> High value\n  quadrant-1 Plan\n  quadrant-2 Do now\n  quadrant-3 Defer\n  quadrant-4 Reassess\n  One-click reorder: [0.25, 0.85]\n  Installments: [0.7, 0.75]\n  Dark mode: [0.3, 0.3]\n  AR try-on: [0.85, 0.4]\n  Address autocomplete: [0.15, 0.6]\n"
  },
  {
   "id": "xychart",
   "title": "XY Chart",
   "keyword": "xychart",
   "file": "diagrams/xychart.mmd",
-  "source": "xychart\n  title \"月度订单量（千单）\"\n  x-axis [\"1月\", \"2月\", \"3月\", \"4月\", \"5月\", \"6月\", \"7月\", \"8月\", \"9月\", \"10月\"]\n  y-axis \"订单\" 0 --> 100\n  bar [32, 38, 45, 50, 58, 62, 70, 74, 81, 92]\n  line [30, 36, 44, 52, 55, 64, 68, 76, 80, 90]\n"
+  "source": "xychart\n  title \"Monthly Order Volume (thousands)\"\n  x-axis [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\"]\n  y-axis \"Orders\" 0 --> 100\n  bar [32, 38, 45, 50, 58, 62, 70, 74, 81, 92]\n  line [30, 36, 44, 52, 55, 64, 68, 76, 80, 90]\n"
  },
  {
   "id": "sankey",
   "title": "Sankey",
   "keyword": "sankey",
   "file": "diagrams/sankey.mmd",
-  "source": "sankey\n访问,浏览商品,1000\n浏览商品,加入购物车,420\n浏览商品,离开,580\n加入购物车,结账,300\n加入购物车,放弃,120\n结账,支付成功,260\n结账,支付失败,40\n"
+  "source": "sankey\nVisit,Browse Products,1000\nBrowse Products,Add to Cart,420\nBrowse Products,Leave,580\nAdd to Cart,Checkout,300\nAdd to Cart,Abandon,120\nCheckout,Payment OK,260\nCheckout,Payment Failed,40\n"
  },
  {
   "id": "block",
   "title": "Block",
   "keyword": "block",
   "file": "diagrams/block.mmd",
-  "source": "block\n  columns 3\n  web[\"Web 商城\"] mobile[\"移动 App\"] admin[\"运营后台\"]\n  space:3\n  gw[\"API 网关\"]:3\n  block:svc:3\n    columns 3\n    order[\"订单\"] pay[\"支付\"] inv[\"库存\"]\n  end\n  db[(\"订单库\")]:3\n  web --> gw\n  mobile --> gw\n  admin --> gw\n  gw --> svc\n  svc --> db\n"
+  "source": "block\n  columns 3\n  web[\"Web Storefront\"] mobile[\"Mobile App\"] admin[\"Admin Console\"]\n  space:3\n  gw[\"API Gateway\"]:3\n  block:svc:3\n    columns 3\n    order[\"Orders\"] pay[\"Payment\"] inv[\"Inventory\"]\n  end\n  db[(\"Order DB\")]:3\n  web --> gw\n  mobile --> gw\n  admin --> gw\n  gw --> svc\n  svc --> db\n"
  },
  {
   "id": "requirement",
   "title": "Requirement",
   "keyword": "requirementDiagram",
   "file": "diagrams/requirement.mmd",
-  "source": "requirementDiagram\n  requirement checkout_req {\n    id: 1\n    text: \"订单必须可在线支付\"\n    risk: high\n    verifymethod: test\n  }\n  functionalRequirement payment_req {\n    id: 1.1\n    text: \"银行卡支付需授权\"\n    risk: medium\n    verifymethod: test\n  }\n  performanceRequirement latency_req {\n    id: 1.2\n    text: \"支付 p95 小于 800ms\"\n    risk: low\n    verifymethod: analysis\n  }\n  element checkout_service {\n    type: service\n  }\n  checkout_req - contains -> payment_req\n  checkout_req - contains -> latency_req\n  checkout_service - satisfies -> payment_req\n"
+  "source": "requirementDiagram\n  requirement checkout_req {\n    id: 1\n    text: \"Orders must be payable online\"\n    risk: high\n    verifymethod: test\n  }\n  functionalRequirement payment_req {\n    id: 1.1\n    text: \"Card payments require authorization\"\n    risk: medium\n    verifymethod: test\n  }\n  performanceRequirement latency_req {\n    id: 1.2\n    text: \"Payment p95 under 800ms\"\n    risk: low\n    verifymethod: analysis\n  }\n  element checkout_service {\n    type: service\n  }\n  checkout_req - contains -> payment_req\n  checkout_req - contains -> latency_req\n  checkout_service - satisfies -> payment_req\n"
  },
  {
   "id": "packet",
   "title": "Packet",
   "keyword": "packet",
   "file": "diagrams/packet.mmd",
-  "source": "---\ntitle: \"订单事件报文头\"\n---\npacket\n0-7: \"版本\"\n8-15: \"类型\"\n16-31: \"长度\"\n32-63: \"订单 ID\"\n64-95: \"时间戳\"\n96-111: \"校验和\"\n112-127: \"保留\"\n"
+  "source": "---\ntitle: \"Order Event Message Header\"\n---\npacket\n0-7: \"Version\"\n8-15: \"Type\"\n16-31: \"Length\"\n32-63: \"Order ID\"\n64-95: \"Timestamp\"\n96-111: \"Checksum\"\n112-127: \"Reserved\"\n"
  },
  {
   "id": "kanban",
   "title": "Kanban",
   "keyword": "kanban",
   "file": "diagrams/kanban.mmd",
-  "source": "---\nconfig:\n  kanban:\n    ticketBaseUrl: 'https://tracker.example.com/browse/#TICKET#'\n---\nkanban\n  todo[待办]\n    t1[地址自动补全]@{ priority: 'Low' }\n    t2[分期付款接入]@{ ticket: SHOP-42, priority: 'High' }\n  doing[进行中]\n    t3[结账页重构]@{ assigned: 'lingfeng', priority: 'Very High' }\n  review[评审]\n    t4[支付回调幂等]@{ ticket: SHOP-38 }\n  done[完成]\n    t5[购物车持久化]\n"
+  "source": "---\nconfig:\n  kanban:\n    ticketBaseUrl: 'https://tracker.example.com/browse/#TICKET#'\n---\nkanban\n  todo[To do]\n    t1[Address autocomplete]@{ priority: 'Low' }\n    t2[Installment payments]@{ ticket: SHOP-42, priority: 'High' }\n  doing[In Progress]\n    t3[Checkout page rebuild]@{ assigned: 'lingfeng', priority: 'Very High' }\n  review[Review]\n    t4[Idempotent payment callbacks]@{ ticket: SHOP-38 }\n  done[Done]\n    t5[Persistent shopping cart]\n"
  },
  {
   "id": "architecture",
   "title": "Architecture",
   "keyword": "architecture-beta",
   "file": "diagrams/architecture.mmd",
-  "source": "architecture-beta\n  group edge(cloud)[边缘]\n  group core(server)[核心服务]\n  group data(database)[数据]\n  service cdn(internet)[CDN] in edge\n  service gw(server)[API 网关] in edge\n  service order(server)[订单] in core\n  service pay(server)[支付] in core\n  service db(database)[订单库] in data\n  service store(disk)[对象存储] in data\n  cdn:R --> L:gw\n  gw:R --> L:order\n  order:B --> T:pay\n  order:R --> L:db\n  pay:R --> L:store\n"
+  "source": "architecture-beta\n  group edge(cloud)[Edge]\n  group core(server)[Core Services]\n  group data(database)[Data]\n  service cdn(internet)[CDN] in edge\n  service gw(server)[API Gateway] in edge\n  service order(server)[Orders] in core\n  service pay(server)[Payment] in core\n  service db(database)[Order DB] in data\n  service store(disk)[Object Storage] in data\n  cdn:R --> L:gw\n  gw:R --> L:order\n  order:B --> T:pay\n  order:R --> L:db\n  pay:R --> L:store\n"
  },
  {
   "id": "radar",
   "title": "Radar",
   "keyword": "radar-beta",
   "file": "diagrams/radar.mmd",
-  "source": "radar-beta\n  title 支付方案对比\n  axis cost[\"成本\"], speed[\"速度\"], cover[\"覆盖\"]\n  axis risk[\"风控\"], ux[\"体验\"]\n  curve a[\"方案 A\"]{4, 3, 5, 3, 4}\n  curve b[\"方案 B\"]{2, 5, 3, 4, 3}\n  curve c[\"方案 C\"]{3, 4, 2, 5, 5}\n  max 5\n  graticule polygon\n"
+  "source": "radar-beta\n  title Payment Options Compared\n  axis cost[\"Cost\"], speed[\"Speed\"], cover[\"Coverage\"]\n  axis risk[\"Risk Control\"], ux[\"Experience\"]\n  curve a[\"Option A\"]{4, 3, 5, 3, 4}\n  curve b[\"Option B\"]{2, 5, 3, 4, 3}\n  curve c[\"Option C\"]{3, 4, 2, 5, 5}\n  max 5\n  graticule polygon\n"
  },
  {
   "id": "treemap",
   "title": "Treemap",
   "keyword": "treemap-beta",
   "file": "diagrams/treemap.mmd",
-  "source": "treemap-beta\n\"年度预算\"\n  \"研发\"\n    \"订单系统\": 420\n    \"支付\": 300\n    \"搜索\": 180\n  \"市场\"\n    \"广告\": 260\n    \"活动\": 120\n  \"运营\"\n    \"客服\": 150\n    \"仓储\": 210\n"
+  "source": "treemap-beta\n\"Annual Budget\"\n  \"Engineering\"\n    \"Order System\": 420\n    \"Payments\": 300\n    \"Search\": 180\n  \"Marketing\"\n    \"Ads\": 260\n    \"Campaigns\": 120\n  \"Operations\"\n    \"Support\": 150\n    \"Warehousing\": 210\n"
  },
  {
   "id": "swimlane",
   "title": "Swimlane",
   "keyword": "swimlane-beta",
   "file": "diagrams/swimlane.mmd",
-  "source": "swimlane-beta LR\n  subgraph Customer[\"顾客\"]\n    request[提交退货]\n    receive[收到退款]\n  end\n  subgraph Support[\"客服\"]\n    triage[审核申请]\n    answer[通知结果]\n  end\n  subgraph Warehouse[\"仓库\"]\n    check[验货]\n    restock[入库]\n  end\n  request --> triage\n  triage -->|需验货| check\n  triage -->|直接退| answer\n  check --> restock --> answer\n  answer --> receive\n"
+  "source": "swimlane-beta LR\n  subgraph Customer[\"Customer\"]\n    request[Request return]\n    receive[Refund received]\n  end\n  subgraph Support[\"Support\"]\n    triage[Review request]\n    answer[Notify outcome]\n  end\n  subgraph Warehouse[\"Warehouse\"]\n    check[Inspect item]\n    restock[Restock]\n  end\n  request --> triage\n  triage -->|Inspection required| check\n  triage -->|Refund directly| answer\n  check --> restock --> answer\n  answer --> receive\n"
  },
  {
   "id": "usecase",
   "title": "Use Case",
   "keyword": "usecase-beta",
   "file": "diagrams/usecase.mmd",
-  "source": "usecase-beta\ndirection LR\nactor Customer\nactor Support\nsystemBoundary Storefront\n  Browse(\"浏览商品\")\n  Checkout(\"结账\")\nend\nsystemBoundary Fulfilment\n  Track(\"跟踪物流\")\nend\nCustomer --> Browse\nCustomer --> Checkout\nCustomer --> Track\nSupport --> Track\nCheckout ..> : include Browse\n"
+  "source": "usecase-beta\ndirection LR\nactor Customer\nactor Support\nsystemBoundary Storefront\n  Browse(\"Browse products\")\n  Checkout(\"Checkout\")\nend\nsystemBoundary Fulfilment\n  Track(\"Track shipment\")\nend\nCustomer --> Browse\nCustomer --> Checkout\nCustomer --> Track\nSupport --> Track\nCheckout ..> : include Browse\n"
  },
  {
   "id": "agentflow",
   "title": "Agentflow",
   "keyword": "agentflow-beta",
   "file": "diagrams/agentflow.mmd",
-  "source": "agentflow-beta TB\n  flow intake[\"接单\"]\n    receive[\"接收订单\"]@{ shape: input }\n  end\n  flow processing[\"处理\"]\n    validate[\"校验\"]@{ shape: task }\n    price[\"定价\"]@{ shape: task }\n    validate --> price\n  end\n  flow output[\"输出\"]\n    publish[\"发布事件\"]@{ shape: action }\n  end\n  receive --> validate\n  price --> publish\n"
+  "source": "agentflow-beta TB\n  flow intake[\"Order Intake\"]\n    receive[\"Receive Order\"]@{ shape: input }\n  end\n  flow processing[\"Processing\"]\n    validate[\"Validate\"]@{ shape: task }\n    price[\"Price\"]@{ shape: task }\n    validate --> price\n  end\n  flow output[\"Output\"]\n    publish[\"Publish Event\"]@{ shape: action }\n  end\n  receive --> validate\n  price --> publish\n"
  },
  {
   "id": "eventmodeling",
@@ -201,28 +201,28 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "Railroad (EBNF)",
   "keyword": "railroad-ebnf-beta",
   "file": "diagrams/railroad.mmd",
-  "source": "railroad-ebnf-beta\ntitle \"订单号语法\"\norder_id = prefix \"-\" date \"-\" seq ;\nprefix = \"SO\" | \"RO\" ;\ndate = digit digit digit digit digit digit ;\nseq = digit+ ;\ndigit = \"0\" | \"1\" | \"2\" | \"3\" | \"4\" | \"5\" | \"6\" | \"7\" | \"8\" | \"9\" ;\n"
+  "source": "railroad-ebnf-beta\ntitle \"Order ID Syntax\"\norder_id = prefix \"-\" date \"-\" seq ;\nprefix = \"SO\" | \"RO\" ;\ndate = digit digit digit digit digit digit ;\nseq = digit+ ;\ndigit = \"0\" | \"1\" | \"2\" | \"3\" | \"4\" | \"5\" | \"6\" | \"7\" | \"8\" | \"9\" ;\n"
  },
  {
   "id": "treeview",
   "title": "Tree View",
   "keyword": "treeView-beta",
   "file": "diagrams/treeview.mmd",
-  "source": "treeView-beta\n  shop/\n    src/\n      checkout.ts :::highlight ## 结账入口\n      payment.ts ## 支付适配\n      cart/\n        cart.ts\n    tests/\n      checkout.test.ts\n    package.json\n    README.md\n"
+  "source": "treeView-beta\nshop/\n  src/\n    checkout.ts :::highlight ## Checkout entry point\n    payment.ts ## Payment adapter\n    cart/\n      cart.ts\n  tests/\n    checkout.test.ts\n  package.json\n  README.md\n"
  },
  {
   "id": "venn",
   "title": "Venn",
   "keyword": "venn-beta",
   "file": "diagrams/venn.mmd",
-  "source": "venn-beta\n  title 好功能的三要素\n  set Desirable[\"用户想要\"]\n  set Feasible[\"技术可行\"]\n  set Viable[\"商业可持续\"]\n  union Desirable,Feasible[\"可构建\"]\n  union Feasible,Viable[\"可持续\"]\n  union Desirable,Viable[\"有市场\"]\n  union Desirable,Feasible,Viable[\"上线\"]\n"
+  "source": "venn-beta\n  title Three Elements of a Good Feature\n  set Desirable[\"Users want it\"]\n  set Feasible[\"Technically feasible\"]\n  set Viable[\"Commercially viable\"]\n  union Desirable,Feasible[\"Buildable\"]\n  union Feasible,Viable[\"Sustainable\"]\n  union Desirable,Viable[\"Has a market\"]\n  union Desirable,Feasible,Viable[\"Ship it\"]\n"
  },
  {
   "id": "cynefin",
   "title": "Cynefin",
   "keyword": "cynefin-beta",
   "file": "diagrams/cynefin.mmd",
-  "source": "cynefin-beta\n  title 事故分类\n  complex\n    \"新支付渠道异常\"\n  complicated\n    \"数据库慢查询\"\n  clear\n    \"证书过期\"\n  chaotic\n    \"全站宕机\"\n  complex --> complicated : \"找到模式\"\n  complicated --> clear : \"写成手册\"\n  clear --> chaotic : \"疏忽\"\n  chaotic --> complex : \"止血\"\n"
+  "source": "cynefin-beta\n  title Incident Classification\n  complex\n    \"New payment channel errors\"\n  complicated\n    \"Slow database queries\"\n  clear\n    \"Expired certificate\"\n  chaotic\n    \"Site-wide outage\"\n  complex --> complicated : \"Find patterns\"\n  complicated --> clear : \"Write the playbook\"\n  clear --> chaotic : \"Complacency\"\n  chaotic --> complex : \"Stop the bleeding\"\n"
  },
  {
   "id": "wardley",
@@ -236,7 +236,7 @@ window.TWEAKPELE_DIAGRAMS = [
   "title": "Ishikawa",
   "keyword": "ishikawa-beta",
   "file": "diagrams/ishikawa.mmd",
-  "source": "ishikawa-beta\n  支付失败率升高\n  流程\n    重试过多\n    回调超时\n  人员\n    配置变更未评审\n  系统\n    网关\n      证书轮换\n      限流\n    数据库\n      连接池耗尽\n  环境\n    大促流量\n"
+  "source": "ishikawa-beta\nRising payment failure rate\nProcess\n  Excessive retries\n  Callback timeouts\nPeople\n  Unreviewed config changes\nSystems\n  Gateway\n    Certificate rotation\n    Rate limiting\n  Database\n    Connection pool exhaustion\nEnvironment\n  Promo traffic\n"
  },
  {
   "id": "info",

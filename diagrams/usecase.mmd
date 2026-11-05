@@ -3,11 +3,11 @@ direction LR
 actor Customer
 actor Support
 systemBoundary Storefront
-  Browse("浏览商品")
-  Checkout("结账")
+  Browse("Browse products")
+  Checkout("Checkout")
 end
 systemBoundary Fulfilment
-  Track("跟踪物流")
+  Track("Track shipment")
 end
 Customer --> Browse
 Customer --> Checkout

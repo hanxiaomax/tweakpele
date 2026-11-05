@@ -1,0 +1,30 @@
+{
+  "name": "tweakpele",
+  "version": "3.0.0",
+  "description": "tweakpele — Pele theme & render playground (React + esbuild)",
+  "main": "src/main.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hanxiaomax/tweakpele.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/hanxiaomax/tweakpele/issues"
+  },
+  "homepage": "https://github.com/hanxiaomax/tweakpele#readme",
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-icons": "5.7.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

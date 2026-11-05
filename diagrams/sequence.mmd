@@ -1,23 +1,23 @@
 sequenceDiagram
   autonumber
-  actor Customer as 顾客
-  participant Web as Web 商城
-  participant API as 订单 API
-  participant Inv as 库存
-  participant Bank as 支付网关
-  Customer->>Web: 提交结账
+  actor Customer as Customer
+  participant Web as Web Storefront
+  participant API as Order API
+  participant Inv as Inventory
+  participant Bank as Payment Gateway
+  Customer->>Web: Submit checkout
   Web->>API: POST /orders
   activate API
   API->>Inv: reserve(lines)
-  alt 库存不足
+  alt Out of stock
     Inv-->>API: Reject
     API-->>Web: 409 OutOfStock
-  else 库存 OK
+  else In stock
     Inv-->>API: Reserved
     API->>Bank: capture(total)
     Bank-->>API: Approved
     API-->>Web: 201 Created
   end
   deactivate API
-  Web-->>Customer: 下单结果
-  Note over Customer,Bank: 一笔订单，一次扣款
+  Web-->>Customer: Order result
+  Note over Customer,Bank: One order, one charge

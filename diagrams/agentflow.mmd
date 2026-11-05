@@ -1,14 +1,14 @@
 agentflow-beta TB
-  flow intake["接单"]
-    receive["接收订单"]@{ shape: input }
+  flow intake["Order Intake"]
+    receive["Receive Order"]@{ shape: input }
   end
-  flow processing["处理"]
-    validate["校验"]@{ shape: task }
-    price["定价"]@{ shape: task }
+  flow processing["Processing"]
+    validate["Validate"]@{ shape: task }
+    price["Price"]@{ shape: task }
     validate --> price
   end
-  flow output["输出"]
-    publish["发布事件"]@{ shape: action }
+  flow output["Output"]
+    publish["Publish Event"]@{ shape: action }
   end
   receive --> validate
   price --> publish
