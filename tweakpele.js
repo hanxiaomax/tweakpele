@@ -298,6 +298,37 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Toolbox collapse (persisted)
+  // ---------------------------------------------------------------------------
+  const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
+  function toolboxCollapsed() {
+    try { return localStorage.getItem(TOOLBOX_KEY) === '1'; } catch (_) { return false; }
+  }
+  function setToolboxCollapsed(collapsed, announce) {
+    document.body.classList.toggle('toolbox-off', collapsed);
+    try { localStorage.setItem(TOOLBOX_KEY, collapsed ? '1' : '0'); } catch (_) { /* private mode */ }
+    const btn = document.getElementById('btn-toolbox'), edge = document.getElementById('edge-toggle');
+    if (btn) {
+      btn.textContent = collapsed ? '展开面板' : '收起面板';
+      btn.title = collapsed ? '展开左侧工具箱 (T)' : '收起左侧工具箱 (T)';
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    }
+    if (edge) {
+      edge.textContent = collapsed ? '›' : '‹';
+      edge.title = collapsed ? '展开工具箱 (T)' : '收起工具箱 (T)';
+    }
+    if (announce) setStatus(collapsed ? '面板已收起（T 或边缘箭头展开）' : '面板已展开');
+  }
+  function toggleToolbox() {
+    setToolboxCollapsed(!document.body.classList.contains('toolbox-off'), true);
+  }
+  function setupToolboxToggle() {
+    document.getElementById('btn-toolbox').addEventListener('click', toggleToolbox);
+    document.getElementById('edge-toggle').addEventListener('click', toggleToolbox);
+    setToolboxCollapsed(toolboxCollapsed());
+  }
+
+  // ---------------------------------------------------------------------------
   // Theme (CSS vars)
   // ---------------------------------------------------------------------------
   function buildPeleCssBlock() {
@@ -666,7 +697,7 @@
 
     vp.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (e.target.closest('button, input, select, a, [data-pele-zoom]')) return;
+      if (e.target.closest('button, textarea, input, select, a, [data-pele-zoom]')) return;
       pts.set(e.pointerId, local(e));
       moved = false;
       if (pts.size === 1) drag = { ...local(e), cx: cam.x, cy: cam.y };
@@ -705,6 +736,7 @@
     vp.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
 
     vp.addEventListener('wheel', (e) => {
+      if (e.target.closest && e.target.closest('textarea')) return; // let the source editor scroll
       e.preventDefault();
       const p = local(e);
       if (e.shiftKey && !e.ctrlKey) { cam.x -= e.deltaY || e.deltaX; view.userMoved = true; applyCam(false); return; }
@@ -722,6 +754,7 @@
       if (e.target.closest && e.target.closest('input, select, textarea')) return;
       if (e.key === 'Escape') fitAll();
       else if (e.key === 'f' || e.key === 'F') fitAll();
+      else if (e.key === 't' || e.key === 'T') toggleToolbox();
       else if (e.key === '+' || e.key === '=') zoomCenter(1.25);
       else if (e.key === '-' || e.key === '_') zoomCenter(0.8);
       else if (e.key === 'ArrowRight') stepFocus(1);
@@ -763,20 +796,83 @@
     }));
   }
 
+  // ---------------------------------------------------------------------------
+  // Per-frame source editor
+  // ---------------------------------------------------------------------------
+  function applySource(f, text, { fromInput = false } = {}) {
+    f.source = text;
+    f.dirty = text !== f.meta.source;
+    f.el.classList.toggle('edited', f.dirty);
+    if (!fromInput && f.edArea && document.activeElement !== f.edArea) f.edArea.value = text;
+    if (f.mount) {
+      try { f.mount.update(f.source, mountOptsFor(f, liveOptions())); }
+      catch (e) { console.error(e); f.errEl.textContent = String(e); }
+    }
+  }
+
+  function toggleEditor(f, force) {
+    const open = force !== undefined ? !!force : f.edEl.hidden;
+    f.edEl.hidden = !open;
+    f.edBtn.classList.toggle('open', open);
+    f.edBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      if (view.focused !== f.meta.id) focusFrame(f.meta.id); // editor is inside the scaled world — zoom in first
+      f.edArea.value = f.source;
+      f.edArea.focus();
+      setStatus(`编辑 ${f.meta.title} 源码（输入即重绘）`);
+    }
+  }
+
+  function setupEditor(f) {
+    f.edBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleEditor(f); });
+    f.edClose.addEventListener('click', () => toggleEditor(f, false));
+    f.edReset.addEventListener('click', () => {
+      applySource(f, f.meta.source);
+      showToast('已恢复本图初始源码');
+    });
+    f.edCopy.addEventListener('click', () => copyText(f.source, `${f.meta.title} 源码`));
+    f.edArea.addEventListener('input', () => {
+      clearTimeout(f._edTimer);
+      f._edTimer = setTimeout(() => applySource(f, f.edArea.value, { fromInput: true }), 300);
+    });
+    f.edArea.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); toggleEditor(f, false); }
+      else if (e.key === 'Tab') {
+        e.preventDefault();
+        const { selectionStart: s, selectionEnd: en } = f.edArea;
+        f.edArea.setRangeText('  ', s, en, 'end');
+        f.edArea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
   function buildFrames(list) {
     const base = liveOptions();
     for (const meta of list) {
       const el = document.createElement('section');
       el.className = 'frame'; el.dataset.frame = meta.id;
       el.innerHTML =
-        `<header class="frame-title" title="点击聚焦"><b>${meta.title}</b><code>${meta.file}</code><span class="meta"></span></header>` +
-        `<div class="frame-body"><div class="host" id="host-${meta.id}"></div><div class="frame-error"></div></div>`;
+        `<header class="frame-title" title="点击聚焦"><b>${meta.title}</b><code>${meta.file}</code><span class="meta"></span>` +
+        `<button type="button" class="title-btn" data-ed-toggle title="编辑本图 Mermaid 源码（实时重绘）" aria-expanded="false">✎ 编辑</button></header>` +
+        `<div class="frame-body"><div class="host" id="host-${meta.id}"></div><div class="frame-error"></div>` +
+        `<div class="frame-editor" hidden>` +
+        `<div class="editor-bar"><span class="editor-hint">Mermaid 源码 · 输入即重绘（Esc 收起）</span>` +
+        `<button type="button" class="secondary" data-ed-copy>复制源码</button>` +
+        `<button type="button" class="secondary" data-ed-reset>恢复本图</button>` +
+        `<button type="button" class="secondary" data-ed-close>收起</button></div>` +
+        `<textarea class="editor-area" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="${meta.title} Mermaid 源码"></textarea>` +
+        `</div></div>`;
       els.world.appendChild(el);
-      const f = { meta, el, source: meta.source, host: el.querySelector('.host'), titleEl: el.querySelector('.frame-title'),
-        meta_el: el.querySelector('.meta'), errEl: el.querySelector('.frame-error'), mount: null, result: null };
-      f.titleEl.addEventListener('click', () => {
+      const f = { meta, el, source: meta.source, dirty: false, host: el.querySelector('.host'), titleEl: el.querySelector('.frame-title'),
+        meta_el: el.querySelector('.meta'), errEl: el.querySelector('.frame-error'), mount: null, result: null,
+        edEl: el.querySelector('.frame-editor'), edArea: el.querySelector('.editor-area'),
+        edBtn: el.querySelector('[data-ed-toggle]'), edClose: el.querySelector('[data-ed-close]'),
+        edReset: el.querySelector('[data-ed-reset]'), edCopy: el.querySelector('[data-ed-copy]') };
+      f.titleEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-ed-toggle]')) return;
         if (view.mode === 'focus' && view.focused === meta.id) fitAll(); else focusFrame(meta.id);
       });
+      setupEditor(f);
       frames.push(f);
       const opt = document.createElement('option');
       opt.value = meta.id; opt.textContent = meta.title;
@@ -814,6 +910,7 @@
     applyTheme();
     els.outOpts.textContent = JSON.stringify(exportOptions(), null, 2);
     setupCanvas();
+    setupToolboxToggle();
     const list = await loadDiagrams();
     buildFrames(list);
 
@@ -825,10 +922,11 @@
       applyLayoutOptions();
     });
     $('btn-dark').addEventListener('click', () => setTheme(DARK, '已加载深色样例'));
-    setStatus(`${frames.length} 张图 · ${VAR_META.length} 个变量 · ${ALL_OPTS.length} 个渲染参数`);
+    setStatus(`${frames.length} 张图 · ${VAR_META.length} 个变量 · ${ALL_OPTS.length} 个渲染参数 · 每图 ✎ 可编辑`);
     window.tweakpele = { frames, cam, view, fitAll, focusFrame, zoomAt, optVals: () => optVals, theme: () => theme,
       setOpt(groupTitle, key, v) { const o = ALL_OPTS.find((x) => x.group === groupTitle && x.key === key); optVals[o.id] = v; syncOptInputs(); onOptChange(o); },
-      buildPeleCssBlock, exportOptions, ALL_OPTS };
+      setSource(id, text) { const f = frames.find((x) => x.meta.id === id); if (!f) return; toggleEditor(f, true); applySource(f, text); },
+      toggleToolbox, toggleEditor, buildPeleCssBlock, exportOptions, ALL_OPTS };
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

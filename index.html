@@ -12,6 +12,7 @@
   <header class="topbar">
     <h1>tweakpele <small>Pele 主题 + 渲染参数 · 全图表无限画板</small></h1>
     <div class="actions">
+      <button type="button" id="btn-toolbox" title="收起/展开左侧工具箱 (T)" aria-expanded="true">收起面板</button>
       <button type="button" id="btn-copy" title="复制当前 .pele { ... } CSS">复制 .pele CSS</button>
       <button type="button" id="btn-copy-opts" title="复制当前 mount/render 选项 JSON">复制渲染参数</button>
       <button type="button" class="secondary" id="btn-factory">重置 factory</button>
@@ -54,11 +55,12 @@
         <button type="button" class="secondary" id="btn-prev" title="上一个 (←)">‹</button>
         <button type="button" class="secondary" id="btn-next" title="下一个 (→)">›</button>
         <button type="button" class="secondary" id="btn-overview" title="返回总览 (Esc)">返回总览</button>
-        <span class="hint">拖拽平移 · 滚轮/捏合缩放 · 点标题聚焦 · Esc 返回</span>
+        <span class="hint">拖拽平移 · 滚轮/捏合缩放 · 点标题聚焦 · ✎ 编辑源码 · T 收起面板 · Esc 返回</span>
       </div>
       <div class="viewport theme-root" id="theme-root" tabindex="0">
         <div class="world" id="world"></div>
       </div>
+      <button type="button" class="edge-toggle" id="edge-toggle" title="收起工具箱 (T)" aria-label="收起或展开工具箱">‹</button>
     </section>
   </main>
 

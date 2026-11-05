@@ -36,6 +36,16 @@ button:active { transform: translateY(1px); }
 
 .layout { flex: 1; display: grid; grid-template-columns: minmax(320px, 380px) 1fr; min-height: 0; }
 
+/* ---------- toolbox collapse ---------- */
+body.toolbox-off .layout { grid-template-columns: 1fr; }
+body.toolbox-off .toolbox { display: none; }
+.edge-toggle {
+  position: absolute; left: 0; top: 50%; z-index: 5; transform: translateY(-50%);
+  width: 15px; height: 72px; padding: 0; border-left: none; border-radius: 0 7px 7px 0;
+  font-size: 12px; line-height: 1; opacity: .55;
+}
+.edge-toggle:hover { opacity: 1; }
+
 /* ---------- toolbox ---------- */
 .toolbox { overflow: auto; border-right: 1px solid var(--chrome-border); background: var(--chrome-panel); min-height: 0; }
 .section { border-bottom: 1px solid var(--chrome-border); }
@@ -81,7 +91,7 @@ input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--chrome-a
 }
 
 /* ---------- board ---------- */
-.board-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.board-panel { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .board-toolbar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 10px;
   border-bottom: 1px solid var(--chrome-border); background: var(--chrome-panel);
@@ -119,9 +129,37 @@ input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--chrome-a
 .frame-title code { font-size: 11px; color: var(--pele-muted, #555); font-family: var(--pele-font-mono, monospace); }
 .frame-title .meta { margin-left: auto; font-size: 11px; color: var(--pele-muted, #555); font-family: var(--pele-font-mono, monospace); }
 .frame-title:hover b { color: var(--pele-accent, #e06a1a); }
+.frame-title .title-btn {
+  flex: none; margin-left: 8px; padding: 2px 8px; font-size: 11px; font-weight: 600; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--pele-border, #000) 40%, transparent);
+  border-radius: 5px; background: color-mix(in srgb, var(--pele-surface, #fff) 92%, transparent);
+  color: var(--pele-fg, #000); font-family: inherit;
+}
+.frame-title .title-btn:hover { border-color: var(--pele-accent, #e06a1a); color: var(--pele-accent, #e06a1a); }
+.frame-title .title-btn.open { background: var(--pele-accent, #e06a1a); border-color: var(--pele-accent, #e06a1a); color: var(--pele-bg, #fff); }
+.frame.edited .frame-title b::after { content: " ●"; color: var(--pele-accent, #e06a1a); font-size: 11px; }
 .frame-body { position: relative; padding: 12px; }
 .host { width: 100%; }
 .frame.fixed-h .host { overflow: hidden; }
+
+/* ---------- per-frame source editor ---------- */
+.frame-editor { margin-top: 10px; border: 1px solid color-mix(in srgb, var(--pele-border, #000) 45%, transparent); border-radius: 6px; overflow: hidden; }
+.editor-bar {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px; flex-wrap: wrap;
+  background: color-mix(in srgb, var(--pele-surface-alt, #eee) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--pele-border, #000) 25%, transparent);
+}
+.editor-bar .secondary { padding: 2px 8px; font-size: 11px; }
+.editor-hint { color: var(--pele-muted, #555); font-size: 11px; margin-right: auto; }
+.editor-area {
+  display: block; width: 100%; min-height: 132px; max-height: 46vh; resize: vertical;
+  padding: 8px 10px; border: none; outline: none;
+  background: color-mix(in srgb, var(--pele-surface, #fff) 96%, transparent);
+  color: var(--pele-fg, #000);
+  font: 12px/1.5 var(--pele-font-mono, ui-monospace, "Noto Sans Mono", monospace);
+  white-space: pre; overflow: auto;
+}
+.editor-area:focus { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pele-accent, #e06a1a) 55%, transparent); }
 
 .frame.fit-contain .host svg.pele { width: 100% !important; height: 100% !important; max-width: none !important; display: block; }
 .host svg.pele { display: block; margin: 0 auto; }
@@ -136,4 +174,5 @@ input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--chrome-a
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; grid-template-rows: minmax(260px, 40vh) 1fr; }
+  body.toolbox-off .layout { grid-template-rows: 1fr; }
 }
