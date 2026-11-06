@@ -17,7 +17,7 @@ import {
   VAR_META, FACTORY, DARK, THEME_PRESETS, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
-import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, detectDiagramType } from './lib.js';
+import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, detectDiagramType, sortDiagramsSpatially } from './lib.js';
 import { useTweakpeleBridge } from './bridge.js';
 
 const LIB_KEY = 'tweakpele.library.v1';
@@ -27,6 +27,7 @@ const THEME_KEY = 'tweakpele.siteTheme';
 const SPLIT_KEY = 'tweakpele.split.v1';
 const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
 const VIEW_KEY = 'tweakpele.viewMode';
+const POS_KEY = 'tweakpele.canvasPos.v1';
 
 function seedLibrary() {
   return (window.TWEAKPELE_DIAGRAMS || []).map((m) => ({
@@ -50,6 +51,9 @@ export default function App() {
   });
   const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => v === true);
   const [viewMode, setViewMode] = usePersistedState(VIEW_KEY, (v) => (v === 'canvas' ? 'canvas' : 'gallery'));
+  const [canvasPositions, setCanvasPositions] = usePersistedState(POS_KEY, (v) => (
+    v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+  ));
   const [focusedId, setFocusedId] = useState(null);
   const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (Number.isFinite(v) ? clamp(v, 16, 84) : 42));
   const [remeasureTick, setRemeasureTick] = useState(0);
@@ -232,14 +236,19 @@ export default function App() {
 
   const focusDiagram = useCallback((id) => setFocusedId(id), []);
   const clearFocus = useCallback(() => setFocusedId(null), []);
+  // Canvas focus carousel: top→bottom, left→right by saved positions. Gallery keeps library order.
+  const focusOrder = useMemo(() => {
+    if (viewMode === 'canvas') return sortDiagramsSpatially(diagrams, canvasPositions);
+    return diagrams;
+  }, [viewMode, diagrams, canvasPositions]);
   const focusStep = useCallback((dir) => {
-    if (!diagrams.length) return;
-    const i = diagrams.findIndex((d) => d.id === focusedId);
+    if (!focusOrder.length) return;
+    const i = focusOrder.findIndex((d) => d.id === focusedId);
     let next;
-    if (i < 0) next = dir > 0 ? 0 : diagrams.length - 1;
-    else next = (i + dir + diagrams.length) % diagrams.length;
-    setFocusedId(diagrams[next].id);
-  }, [diagrams, focusedId]);
+    if (i < 0) next = dir > 0 ? 0 : focusOrder.length - 1;
+    else next = (i + dir + focusOrder.length) % focusOrder.length;
+    setFocusedId(focusOrder[next].id);
+  }, [focusOrder, focusedId]);
   const focusPrev = useCallback(() => focusStep(-1), [focusStep]);
   const focusNext = useCallback(() => focusStep(1), [focusStep]);
 
@@ -301,6 +310,12 @@ export default function App() {
     const src = findDiagram(id);
     if (!src) return;
     setDiagrams((list) => list.filter((x) => x.id !== id));
+    setCanvasPositions((pos) => {
+      if (!pos || !(id in pos)) return pos;
+      const next = { ...pos };
+      delete next[id];
+      return next;
+    });
     if (focusedId === id) setFocusedId(null);
     if (route.view === 'edit' && route.id === id) backToGallery();
     notify(`Deleted “${src.title}”`);
@@ -349,8 +364,8 @@ export default function App() {
   }, [diagrams, vars, optVals, mountOptions, onVarChange, onOptChange]);
 
   const current = route.view === 'edit' ? findDiagram(route.id) : null;
-  const focusedIdx = focusedId ? diagrams.findIndex((d) => d.id === focusedId) : -1;
-  const focusedDiagram = focusedIdx >= 0 ? diagrams[focusedIdx] : null;
+  const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
+  const focusedDiagram = focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
   // Editor → open diagram; gallery → focused diagram. Drives toolbox type filter.
   const activeForType = route.view === 'edit' ? current : focusedDiagram;
   const activeDiagramType = useMemo(
@@ -414,6 +429,7 @@ export default function App() {
                 ) : (
                   <Canvas
                     diagrams={diagrams} canvasOptions={canvasOptions}
+                    positions={canvasPositions} onPositionsChange={setCanvasPositions}
                     onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                     onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
                     onFrameMenu={cardMenu} onBoardMenu={boardMenu}
@@ -425,7 +441,7 @@ export default function App() {
                   key={focusedDiagram.id}
                   diagram={focusedDiagram}
                   options={focusedOptions}
-                  index={focusedIdx} total={diagrams.length}
+                  index={focusedIdx} total={focusOrder.length}
                   onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}

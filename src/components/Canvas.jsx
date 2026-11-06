@@ -16,7 +16,81 @@ const PAD = 24;
 const FALLBACK_W = 640;
 const FALLBACK_H = 280;
 
-const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize }) {
+/** Pack diagrams into a COLS-wide grid using measured (or fallback) sizes. */
+export function layoutCanvasGrid(diagrams, sizesMap) {
+  const map = {};
+  let y = PAD;
+  for (let r = 0; r * COLS < diagrams.length; r++) {
+    const row = diagrams.slice(r * COLS, r * COLS + COLS);
+    let x = PAD;
+    let rowH = 0;
+    for (const d of row) {
+      const sz = sizesMap.get(d.id);
+      const w = sz?.w || FALLBACK_W;
+      const h = sz?.h || FALLBACK_H;
+      map[d.id] = { x, y };
+      x += w + GAP;
+      rowH = Math.max(rowH, h);
+    }
+    y += rowH + GAP;
+  }
+  return map;
+}
+
+/** Ensure every diagram has an {x,y}; new ones append below existing. */
+export function ensureCanvasPositions(diagrams, sizesMap, existing) {
+  const prev = existing && typeof existing === 'object' ? existing : {};
+  const next = {};
+  const ids = new Set(diagrams.map((d) => d.id));
+  for (const [id, p] of Object.entries(prev)) {
+    if (!ids.has(id)) continue;
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    next[id] = { x: p.x, y: p.y };
+  }
+
+  const missing = diagrams.filter((d) => !next[d.id]);
+  if (!missing.length) {
+    const same = Object.keys(next).length === Object.keys(prev).length
+      && Object.keys(next).every((id) => prev[id] && prev[id].x === next[id].x && prev[id].y === next[id].y);
+    return same ? prev : next;
+  }
+
+  // Fresh board: full grid for everyone (missing === all).
+  if (Object.keys(next).length === 0) {
+    return layoutCanvasGrid(diagrams, sizesMap);
+  }
+
+  let maxBottom = PAD;
+  for (const d of diagrams) {
+    const p = next[d.id];
+    if (!p) continue;
+    const h = sizesMap.get(d.id)?.h || FALLBACK_H;
+    maxBottom = Math.max(maxBottom, p.y + h);
+  }
+  let x = PAD;
+  let y = maxBottom + GAP;
+  let rowH = 0;
+  let col = 0;
+  for (const d of missing) {
+    const w = sizesMap.get(d.id)?.w || FALLBACK_W;
+    const h = sizesMap.get(d.id)?.h || FALLBACK_H;
+    if (col >= COLS) {
+      col = 0;
+      x = PAD;
+      y += rowH + GAP;
+      rowH = 0;
+    }
+    next[d.id] = { x, y };
+    x += w + GAP;
+    rowH = Math.max(rowH, h);
+    col += 1;
+  }
+  return next;
+}
+
+const Frame = memo(function Frame({
+  d, options, dragging, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize,
+}) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
 
@@ -38,12 +112,12 @@ const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, o
   return (
     <article
       ref={shellRef}
-      className={'canvas-frame' + (dirty ? ' edited' : '')}
+      className={'canvas-frame' + (dirty ? ' edited' : '') + (dragging ? ' dragging' : '')}
       data-frame={d.id}
       onDoubleClick={(e) => { e.stopPropagation(); onFocus(d.id); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onFrameMenu(e, d); }}
     >
-      <header className="canvas-frame-title">
+      <header className="canvas-frame-title" data-frame-drag={d.id}>
         <b>{d.title}</b>
         <code>{d.keyword || ''}</code>
         <span className="card-actions" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
@@ -67,16 +141,28 @@ const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, o
 });
 
 export default function Canvas({
-  diagrams, canvasOptions, onFocus, onFocusPrev, onFocusNext,
+  diagrams, canvasOptions, positions, onPositionsChange,
+  onFocus, onFocusPrev, onFocusNext,
   onOpen, onDuplicate, onDelete, onFrameMenu, onBoardMenu,
 }) {
   const vpRef = useRef(null);
   const camRef = useRef({ x: 40, y: 40, s: 1 });
   const userMovedRef = useRef(false);
   const sizesRef = useRef(new Map());
+  const [localPos, setLocalPos] = useState(() => positions || {});
+  const positionsRef = useRef(localPos);
   const [cam, setCam] = useState({ x: 40, y: 40, s: 1 });
   const [layoutTick, setLayoutTick] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [draggingId, setDraggingId] = useState(null);
+
+  // Mirror parent positions except while a frame drag is in flight.
+  useEffect(() => {
+    if (draggingId) return;
+    const next = positions || {};
+    positionsRef.current = next;
+    setLocalPos(next);
+  }, [positions, draggingId]);
 
   const applyCam = useCallback((next, animate) => {
     camRef.current = next;
@@ -88,37 +174,61 @@ export default function Canvas({
     }
   }, []);
 
-  const positions = useMemo(() => {
+  // Seed / prune persisted positions whenever the diagram set (or measured sizes) change.
+  useEffect(() => {
+    if (draggingId) return;
+    const ensured = ensureCanvasPositions(diagrams, sizesRef.current, positionsRef.current);
+    const prev = positionsRef.current || {};
+    const same = Object.keys(ensured).length === Object.keys(prev).length
+      && Object.keys(ensured).every((id) => prev[id] && prev[id].x === ensured[id].x && prev[id].y === ensured[id].y);
+    if (!same) {
+      positionsRef.current = ensured;
+      setLocalPos(ensured);
+      onPositionsChange?.(ensured);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagrams, layoutTick, onPositionsChange, draggingId]);
+
+  const freshBoardRef = useRef(Object.keys(positions || {}).length === 0);
+  useEffect(() => {
+    if (!freshBoardRef.current) return;
+    if (layoutTick < 1) return;
+    if (!diagrams.length) return;
+    if (!diagrams.every((d) => sizesRef.current.has(d.id))) return;
+    freshBoardRef.current = false;
+    const packed = layoutCanvasGrid(diagrams, sizesRef.current);
+    positionsRef.current = packed;
+    setLocalPos(packed);
+    onPositionsChange?.(packed);
+  }, [diagrams, layoutTick, onPositionsChange]);
+
+  const resolved = useMemo(() => {
     const map = new Map();
-    let y = PAD;
-    for (let r = 0; r * COLS < diagrams.length; r++) {
-      const row = diagrams.slice(r * COLS, r * COLS + COLS);
-      let x = PAD;
-      let rowH = 0;
-      for (const d of row) {
-        const sz = sizesRef.current.get(d.id);
-        const w = sz?.w || FALLBACK_W;
-        const h = sz?.h || FALLBACK_H;
-        map.set(d.id, { x, y, w, h });
-        x += w + GAP;
-        rowH = Math.max(rowH, h);
-      }
-      y += rowH + GAP;
+    const pos = localPos || {};
+    for (const d of diagrams) {
+      const p = pos[d.id];
+      const sz = sizesRef.current.get(d.id);
+      map.set(d.id, {
+        x: p && Number.isFinite(p.x) ? p.x : PAD,
+        y: p && Number.isFinite(p.y) ? p.y : PAD,
+        w: sz?.w || FALLBACK_W,
+        h: sz?.h || FALLBACK_H,
+      });
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diagrams, layoutTick]);
+  }, [diagrams, localPos, layoutTick]);
 
   const worldBounds = useCallback(() => {
     if (!diagrams.length) return { x: 0, y: 0, w: 1, h: 1 };
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const d of diagrams) {
-      const p = positions.get(d.id) || { x: PAD, y: PAD, w: FALLBACK_W, h: FALLBACK_H };
+      const p = resolved.get(d.id) || { x: PAD, y: PAD, w: FALLBACK_W, h: FALLBACK_H };
       x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
       x1 = Math.max(x1, p.x + p.w); y1 = Math.max(y1, p.y + p.h);
     }
     return { x: x0, y: y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
-  }, [diagrams, positions]);
+  }, [diagrams, resolved]);
 
   const fitRect = useCallback((r, margin, animate) => {
     const vp = vpRef.current;
@@ -160,7 +270,6 @@ export default function Canvas({
     sizeTimer.current = setTimeout(() => setLayoutTick((t) => t + 1), 48);
   }, []);
 
-  // Auto-fit the overview until the user moves it. Focus never changes this camera.
   const followCamera = useCallback((animate = false) => {
     if (userMovedRef.current) return;
     fitRect(worldBounds(), 36, animate);
@@ -168,24 +277,60 @@ export default function Canvas({
   const followCameraRef = useRef(followCamera);
   followCameraRef.current = followCamera;
 
-  // Keep the overview fitted while its layout settles.
   useLayoutEffect(() => { followCamera(); }, [followCamera]);
+
+  const moveFrame = useCallback((id, x, y) => {
+    const cur = positionsRef.current || {};
+    const next = { ...cur, [id]: { x, y } };
+    positionsRef.current = next;
+    setLocalPos(next);
+  }, []);
+
+  const commitPositions = useCallback(() => {
+    onPositionsChange?.(positionsRef.current || {});
+  }, [onPositionsChange]);
 
   useEffect(() => {
     const vp = vpRef.current;
     if (!vp) return;
     const pts = new Map();
-    let drag = null;
+    let drag = null;       // canvas pan
+    let frameDrag = null;  // { id, ox, oy } offset in world space
     let pinch = null;
     let moved = false;
+
     const local = (e) => {
       const r = vp.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
+    const toWorld = (p) => {
+      const c = camRef.current;
+      return { x: (p.x - c.x) / c.s, y: (p.y - c.y) / c.s };
+    };
 
     const onDown = (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (e.target.closest('button, a, input, textarea, select, [data-pele-zoom], .ctxmenu')) return;
+      if (e.target.closest('button, a, input, textarea, select, [data-pele-zoom], .ctxmenu, .card-actions')) return;
+
+      // Prefer dragging a frame from its title bar (or any [data-frame-drag]).
+      const handle = e.target.closest('[data-frame-drag]');
+      const frameEl = handle || null;
+      if (frameEl) {
+        const id = frameEl.getAttribute('data-frame-drag');
+        const pos = positionsRef.current?.[id];
+        if (id && pos) {
+          const w = toWorld(local(e));
+          frameDrag = { id, ox: w.x - pos.x, oy: w.y - pos.y };
+          moved = false;
+          setDraggingId(id);
+          try { vp.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+          e.stopPropagation();
+          return;
+        }
+      }
+
+      // Also allow dragging from the frame chrome (not the diagram body) via data-frame on article —
+      // only title has data-frame-drag; body clicks still pan so Pele isn't hard to select.
       pts.set(e.pointerId, local(e));
       moved = false;
       if (pts.size === 1) {
@@ -199,6 +344,20 @@ export default function Canvas({
       }
     };
     const onMove = (e) => {
+      if (frameDrag) {
+        const w = toWorld(local(e));
+        const x = w.x - frameDrag.ox;
+        const y = w.y - frameDrag.oy;
+        if (!moved) {
+          const pos = positionsRef.current?.[frameDrag.id];
+          if (pos && Math.hypot(x - pos.x, y - pos.y) < 3 / Math.max(camRef.current.s, 0.001)) return;
+          moved = true;
+          vp.classList.add('dragging-frame');
+          userMovedRef.current = true; // stop auto-fit fighting the user
+        }
+        moveFrame(frameDrag.id, x, y);
+        return;
+      }
       if (!pts.has(e.pointerId)) return;
       const p = local(e);
       pts.set(e.pointerId, p);
@@ -220,6 +379,13 @@ export default function Canvas({
       }
     };
     const end = (e) => {
+      if (frameDrag) {
+        frameDrag = null;
+        setDraggingId(null);
+        vp.classList.remove('dragging-frame');
+        commitPositions();
+        return;
+      }
       pts.delete(e.pointerId);
       if (pts.size < 2) pinch = null;
       if (pts.size === 0) { drag = null; vp.classList.remove('panning'); }
@@ -257,7 +423,7 @@ export default function Canvas({
       vp.removeEventListener('click', onClickCapture, true);
       vp.removeEventListener('wheel', onWheel);
     };
-  }, [applyCam, zoomAt]);
+  }, [applyCam, zoomAt, moveFrame, commitPositions]);
 
   return (
     <section
@@ -293,12 +459,17 @@ export default function Canvas({
           </div>
         )}
         {diagrams.map((d) => {
-          const p = positions.get(d.id) || { x: PAD, y: PAD };
+          const p = resolved.get(d.id) || { x: PAD, y: PAD };
           return (
-            <div key={d.id} className="canvas-frame-slot" style={{ left: p.x, top: p.y }}>
+            <div
+              key={d.id}
+              className={'canvas-frame-slot' + (draggingId === d.id ? ' dragging' : '')}
+              style={{ left: p.x, top: p.y }}
+            >
               <Frame
                 d={d}
                 options={canvasOptions}
+                dragging={draggingId === d.id}
                 onOpen={onOpen}
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
@@ -311,7 +482,7 @@ export default function Canvas({
         })}
       </div>
       <div className="canvas-hint">
-        Drag to pan · scroll to zoom · double-click to focus (Pele zoom) · ←/→ · Esc/F exit · right-click empty to create
+        Drag title to move · empty space to pan · scroll to zoom · double-click to focus · ←/→ by position · Esc/F exit
       </div>
     </section>
   );

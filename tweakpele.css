@@ -537,6 +537,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .canvas-frame-title b { font-size: 12.5px; }
 .canvas-frame-title code { font-size: 10.5px; color: var(--ui-muted); margin-right: auto; }
+
+.canvas-frame-title[data-frame-drag] { cursor: grab; user-select: none; touch-action: none; }
+.canvas-frame.dragging, .canvas-frame-slot.dragging { z-index: 3; }
+.canvas-frame.dragging { box-shadow: 0 12px 28px color-mix(in srgb, var(--ui-ink) 18%, transparent); border-color: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-border)); }
+.canvas-viewport.dragging-frame { cursor: grabbing; }
+.canvas-viewport.dragging-frame .canvas-frame-title[data-frame-drag] { cursor: grabbing; }
 .canvas-frame-body {
   padding: 14px; overflow: visible; /* never crop — full natural Pele size */
 }

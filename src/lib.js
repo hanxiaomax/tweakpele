@@ -192,3 +192,27 @@ export function fuzzyMatch(query, parts) {
   if (!String(query || '').trim()) return true;
   return parts.some((p) => fuzzyScore(query, p) > 0);
 }
+
+/** Sort diagrams top-to-bottom, left-to-right by canvas positions (y then x).
+ *  Missing positions keep their relative input order after positioned ones. */
+export function sortDiagramsSpatially(diagrams, positions) {
+  const pos = positions && typeof positions === 'object' ? positions : {};
+  return diagrams
+    .map((d, i) => {
+      const p = pos[d.id];
+      const x = p && Number.isFinite(p.x) ? p.x : null;
+      const y = p && Number.isFinite(p.y) ? p.y : null;
+      return { d, i, x, y, has: x !== null && y !== null };
+    })
+    .sort((a, b) => {
+      if (a.has && b.has) {
+        if (a.y !== b.y) return a.y - b.y;
+        if (a.x !== b.x) return a.x - b.x;
+        return a.i - b.i;
+      }
+      if (a.has !== b.has) return a.has ? -1 : 1;
+      return a.i - b.i;
+    })
+    .map(({ d }) => d);
+}
+
