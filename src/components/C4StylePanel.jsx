@@ -26,7 +26,7 @@ function ColorField({ label, value, onChange, onClear, paletteTokens }) {
   return (
     <div className="c4-color-field">
       <span className="c4-field-label">{label}</span>
-      <div className="c4-color-stack">
+      <div className="c4-color-picker-panel">
         <span className="c4-color-controls">
           <input
             type="color"

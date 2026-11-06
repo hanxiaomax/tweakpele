@@ -10,6 +10,12 @@ export function isTypeSpecific(kinds, type) {
   return Boolean(type && Array.isArray(kinds) && kinds.includes(type));
 }
 
+/** True when kinds are global-only (only 'all' / empty) — sidebar toolbox territory. */
+export function isGlobalOnly(kinds) {
+  const list = kinds && kinds.length ? kinds : ['all'];
+  return list.every((k) => k === 'all');
+}
+
 /** VAR_META entries that specifically apply to `type` (e.g. series colors for pie). */
 export function typeSpecificVars(type) {
   return type ? VAR_META.filter((m) => isTypeSpecific(m.kinds, type)) : [];

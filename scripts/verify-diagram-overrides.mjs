@@ -5,10 +5,21 @@
 import assert from 'node:assert/strict';
 import { VAR_META, ALL_OPTS, buildMountOptions } from '../src/constants.js';
 import {
-  isTypeSpecific, typeSpecificVars, typeSpecificOpts, hasTypeSpecificFields,
+  isTypeSpecific, isGlobalOnly, typeSpecificVars, typeSpecificOpts, hasTypeSpecificFields,
   mergeDiagramVars, mergeDiagramOptVals, buildDiagramMountOptions, varsStyleFrom,
   overrideKeyCount,
 } from '../src/diagramOverrides.js';
+
+
+// --- isGlobalOnly: sidebar shows only pure-global kinds ---
+assert.equal(isGlobalOnly(['all']), true);
+assert.equal(isGlobalOnly(undefined), true);
+assert.equal(isGlobalOnly(['all', 'flowchart']), false);
+assert.equal(isGlobalOnly(['pie']), false);
+assert.ok(VAR_META.filter((m) => isGlobalOnly(m.kinds)).every((m) => !m.name.startsWith('--pele-series-')), 'series vars are not global-only');
+assert.ok(ALL_OPTS.filter((o) => isGlobalOnly(o.kinds)).every((o) => !o.kinds || o.kinds.every((k) => k === 'all')), 'global opts kinds');
+assert.ok(ALL_OPTS.some((o) => o.key === 'fontSize' && isGlobalOnly(o.kinds)), 'fontSize stays global');
+assert.ok(ALL_OPTS.some((o) => o.key === 'curve' && !isGlobalOnly(o.kinds)), 'curve is type-specific');
 
 // --- isTypeSpecific: explicit membership only, 'all' never qualifies ---
 assert.equal(isTypeSpecific(['all'], 'pie'), false);

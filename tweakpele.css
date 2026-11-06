@@ -158,6 +158,7 @@ body.dragging-split .editor-split * { pointer-events: none; }
 details:not([open]) > .panel-head::before { transform: rotate(-90deg); }
 .panel-head .count { font-weight: 500; color: var(--ui-muted); font-size: 11px; margin-left: 6px; }
 
+.list-filter-bar .list-filter-search { width: 100%; flex: 1 1 auto; }
 .list-filter-bar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   padding: 8px 12px; position: sticky; top: 36px; z-index: 1;
@@ -694,19 +695,24 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: start;
   font-size: 12px; color: var(--ui-muted);
 }
-.c4-color-stack { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.c4-color-picker-panel {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: 6px; border: 1px solid var(--ui-border); border-radius: 8px;
+  background: var(--ui-panel);
+}
 .c4-color-controls { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .c4-color-controls input[type="color"] {
   width: 28px; height: 28px; padding: 0; border: 1px solid var(--ui-border);
-  border-radius: 6px; background: var(--ui-panel); cursor: pointer; flex: none;
+  border-radius: 6px; background: var(--ui-panel-2, var(--ui-panel)); cursor: pointer; flex: none;
 }
 .c4-color-controls input[type="text"] {
   flex: 1 1 auto; min-width: 0; height: 28px; border: 1px solid var(--ui-border);
-  border-radius: 6px; background: var(--ui-panel); color: var(--ui-text);
+  border-radius: 6px; background: var(--ui-panel-2, var(--ui-panel)); color: var(--ui-text);
   padding: 0 7px; font: 11.5px var(--ui-mono);
 }
 .c4-palette-swatches {
-  display: flex; flex-wrap: wrap; gap: 3px; padding: 1px 0;
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 0 0;
+  border-top: 1px solid var(--ui-border-soft);
 }
 .c4-swatch {
   width: 14px; height: 14px; border-radius: 3px; padding: 0;

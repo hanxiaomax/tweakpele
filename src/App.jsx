@@ -17,7 +17,7 @@ import {
   VAR_META, FACTORY, DARK, THEME_PRESETS, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
-import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, detectDiagramType, sortDiagramsSpatially } from './lib.js';
+import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, sortDiagramsSpatially } from './lib.js';
 import { useTweakpeleBridge } from './bridge.js';
 import {
   buildDiagramMountOptions, mergeDiagramVars, varsStyleFrom,
@@ -53,7 +53,7 @@ export default function App() {
     }
     return seedLibrary();
   });
-  const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => v === true);
+  const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => (v === false ? false : true));
   const [viewMode, setViewMode] = usePersistedState(VIEW_KEY, (v) => (v === 'canvas' ? 'canvas' : 'gallery'));
   const [canvasPositions, setCanvasPositions] = usePersistedState(POS_KEY, (v) => (
     v && typeof v === 'object' && !Array.isArray(v) ? v : {}
@@ -495,11 +495,6 @@ export default function App() {
   const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
   const focusedDiagram = focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
   // Editor → open diagram; gallery → focused diagram. Drives toolbox type filter.
-  const activeForType = route.view === 'edit' ? current : focusedDiagram;
-  const activeDiagramType = useMemo(
-    () => detectDiagramType(activeForType?.source, activeForType?.keyword),
-    [activeForType?.source, activeForType?.keyword],
-  );
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';
 
   return (
@@ -538,7 +533,6 @@ export default function App() {
           vars={vars} onVarChange={onVarChange} onApplyPreset={applyThemePreset}
           optVals={optVals} onOptChange={onOptChange} onOptReset={onOptReset}
           cssBlock={cssBlock} optionsJson={optionsJson}
-          diagramType={activeDiagramType}
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}

@@ -1,9 +1,9 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   VAR_META, OPT_GROUPS, THEME_PRESETS, matchThemePreset,
-  DIAGRAM_KINDS, matchesDiagramKind,
 } from '../constants.js';
 import { fuzzyMatch, fuzzyScore } from '../lib.js';
+import { isGlobalOnly } from '../diagramOverrides.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v).trim());
 function expandHex(hex) {
@@ -155,10 +155,7 @@ const OptRow = memo(function OptRow({ o, value, onChange, onReset }) {
   );
 });
 
-function ListFilterBar({
-  search, onSearch, searchPlaceholder,
-  typeFilter, onTypeFilter, autoType, kinds,
-}) {
+function ListSearchBar({ search, onSearch, searchPlaceholder }) {
   return (
     <div className="list-filter-bar">
       <input
@@ -169,50 +166,29 @@ function ListFilterBar({
         onChange={(e) => onSearch(e.target.value)}
         aria-label={searchPlaceholder}
       />
-      <select
-        className="list-filter-type"
-        value={typeFilter}
-        onChange={(e) => onTypeFilter(e.target.value)}
-        aria-label="Filter by diagram type"
-        title={autoType ? `Auto: ${autoType}` : 'All diagram types'}
-      >
-        <option value="all">All types</option>
-        {kinds.map((k) => (
-          <option key={k} value={k}>{k}{autoType === k ? ' · focused' : ''}</option>
-        ))}
-      </select>
-      {autoType && typeFilter === autoType && (
-        <span className="list-filter-auto" title="Filter follows focused / edited diagram">auto</span>
-      )}
-      {typeFilter !== 'all' && typeFilter !== autoType && (
-        <button type="button" className="list-filter-clear" onClick={() => onTypeFilter(autoType || 'all')}>
-          {autoType ? 'Reset auto' : 'Clear'}
-        </button>
-      )}
     </div>
   );
 }
 
 export default function Toolbox({
   vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset,
-  cssBlock, optionsJson, diagramType = null,
+  cssBlock, optionsJson,
 }) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
   const active = matchThemePreset(vars);
 
   const [varQuery, setVarQuery] = useState('');
   const [optQuery, setOptQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
 
-  // When focusing / editing a Mermaid of a known type, auto-apply that type filter.
-  useEffect(() => {
-    if (diagramType) setTypeFilter(diagramType);
-    else setTypeFilter('all');
-  }, [diagramType]);
+  // Sidebar only shows global-only tokens/options; type-specific ones live in DiagramTypePanel.
+  const globalVars = useMemo(() => VAR_META.filter((m) => isGlobalOnly(m.kinds)), []);
+  const globalOptCount = useMemo(
+    () => OPT_GROUPS.reduce((n, g) => n + g.items.filter((o) => isGlobalOnly(o.kinds || g.kinds)).length, 0),
+    [],
+  );
 
   const filteredVars = useMemo(() => {
-    const scored = VAR_META
-      .filter((meta) => matchesDiagramKind(meta.kinds, typeFilter))
+    const scored = globalVars
       .map((meta) => {
         const hay = [meta.label, meta.name, meta.hint, meta.name.replace(/^--pele-/, '')];
         if (!fuzzyMatch(varQuery, hay)) return null;
@@ -222,14 +198,14 @@ export default function Toolbox({
       .filter(Boolean);
     scored.sort((a, b) => b.score - a.score);
     return scored.map((s) => s.meta);
-  }, [varQuery, typeFilter]);
+  }, [varQuery, globalVars]);
 
   const filteredGroups = useMemo(() => {
     return OPT_GROUPS.map((g) => {
       const items = g.items
-        .filter((o) => matchesDiagramKind(o.kinds || g.kinds, typeFilter))
+        .filter((o) => isGlobalOnly(o.kinds || g.kinds))
         .map((o) => {
-          const hay = [o.key, o.hint, o.group, g.title, g.note, (o.path || []).join('.'), (o.kinds || []).join(' ')];
+          const hay = [o.key, o.hint, o.group, g.title, g.note, (o.path || []).join('.')];
           if (!fuzzyMatch(optQuery, hay)) return null;
           const score = Math.max(...hay.map((h) => fuzzyScore(optQuery, h)));
           return { o, score };
@@ -238,7 +214,7 @@ export default function Toolbox({
       items.sort((a, b) => b.score - a.score);
       return { ...g, items: items.map((x) => x.o) };
     }).filter((g) => g.items.length > 0);
-  }, [optQuery, typeFilter]);
+  }, [optQuery]);
 
   const visibleOptCount = filteredGroups.reduce((n, g) => n + g.items.length, 0);
 
@@ -263,16 +239,12 @@ export default function Toolbox({
       <details className="section" open>
         <summary className="panel-head">
           CSS variables
-          <span className="count">{filteredVars.length}/{VAR_META.length}</span>
+          <span className="count">{filteredVars.length}/{globalVars.length}</span>
         </summary>
-        <ListFilterBar
+        <ListSearchBar
           search={varQuery}
           onSearch={setVarQuery}
-          searchPlaceholder="Search CSS vars…"
-          typeFilter={typeFilter}
-          onTypeFilter={setTypeFilter}
-          autoType={diagramType}
-          kinds={DIAGRAM_KINDS}
+          searchPlaceholder="Search global CSS vars…"
         />
         <div className="vars-list">
           {filteredVars.length === 0 ? (
@@ -285,28 +257,21 @@ export default function Toolbox({
       <details className="section" open>
         <summary className="panel-head">
           Render options
-          <span className="count">{visibleOptCount} shown · Pele / Mermaid</span>
+          <span className="count">{visibleOptCount}/{globalOptCount} global · Pele / Mermaid</span>
         </summary>
-        <ListFilterBar
+        <ListSearchBar
           search={optQuery}
           onSearch={setOptQuery}
-          searchPlaceholder="Search render options…"
-          typeFilter={typeFilter}
-          onTypeFilter={setTypeFilter}
-          autoType={diagramType}
-          kinds={DIAGRAM_KINDS}
+          searchPlaceholder="Search global render options…"
         />
         <div className="opts-list">
           {filteredGroups.length === 0 ? (
-            <div className="list-empty">No render options match this type / search.</div>
+            <div className="list-empty">No global render options match.</div>
           ) : filteredGroups.map((g) => (
             <div key={g.title}>
               <div className="opt-group">
                 {g.title}
                 {g.note && <small>{g.note}</small>}
-                {g.kinds && !g.kinds.includes('all') && (
-                  <small className="opt-group-kinds">{g.kinds.join(' · ')}</small>
-                )}
               </div>
               {g.items.map((o) => (
                 <OptRow key={o.id} o={o} value={optValue(o)} onChange={onOptChange} onReset={onOptReset} />
