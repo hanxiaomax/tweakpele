@@ -566,6 +566,95 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .canvas-empty { position: absolute; left: 40px; top: 40px; width: 320px; }
 
+
+/* ---------------- C4 interactive color editor ---------------- */
+.preview-pane.c4-interactive,
+.focused-view-body.c4-interactive {
+  position: relative;
+  cursor: crosshair;
+}
+.preview-pane .c4-style-panel,
+.focused-view-body .c4-style-panel {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 5;
+  width: min(340px, calc(100% - 20px));
+  max-height: min(420px, calc(100% - 20px));
+  overflow: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--ui-shadow);
+  color: var(--ui-text);
+  pointer-events: auto;
+  cursor: default;
+}
+.c4-style-panel.compact { width: min(320px, calc(100% - 16px)); }
+.c4-style-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 10px 4px; border-bottom: 1px solid var(--ui-border-soft);
+}
+.c4-style-head svg { width: 15px; height: 15px; color: var(--ui-accent); flex: none; }
+.c4-style-head b { font-size: 12.5px; }
+.c4-style-hint {
+  flex: 1 1 120px; min-width: 0; font-size: 10.5px; color: var(--ui-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.c4-style-tabs {
+  display: flex; gap: 0; padding: 0 8px; border-bottom: 1px solid var(--ui-border-soft);
+}
+.c4-style-tabs button {
+  flex: 1; border: none; background: transparent; color: var(--ui-muted);
+  padding: 7px 6px; font-weight: 600; font-size: 12px;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.c4-style-tabs button.active {
+  color: var(--ui-accent); border-bottom-color: var(--ui-accent);
+}
+.c4-style-tabs button:hover { color: var(--ui-text); }
+.c4-style-body { display: flex; flex-direction: column; gap: 7px; padding: 8px 10px 10px; }
+.c4-style-empty { margin: 4px 0; color: var(--ui-muted); font-size: 12px; }
+.c4-style-select {
+  display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center;
+  font-size: 12px; color: var(--ui-muted);
+}
+.c4-style-select select {
+  width: 100%; height: 28px; border: 1px solid var(--ui-border); border-radius: 6px;
+  background: var(--ui-panel); color: var(--ui-text); padding: 0 6px;
+}
+.c4-color-field {
+  display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center;
+  font-size: 12px; color: var(--ui-muted);
+}
+.c4-color-controls { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.c4-color-controls input[type="color"] {
+  width: 28px; height: 28px; padding: 0; border: 1px solid var(--ui-border);
+  border-radius: 6px; background: var(--ui-panel); cursor: pointer; flex: none;
+}
+.c4-color-controls input[type="text"] {
+  flex: 1 1 auto; min-width: 0; height: 28px; border: 1px solid var(--ui-border);
+  border-radius: 6px; background: var(--ui-panel); color: var(--ui-text);
+  padding: 0 7px; font: 11.5px var(--ui-mono);
+}
+.c4-style-actions { display: flex; justify-content: flex-end; padding-top: 2px; }
+.c4-style-actions .btn { font-size: 11.5px; padding: 4px 10px; font-weight: 600; }
+
+/* Selection ring on Pele C4 nodes / edges */
+g.c4-selected {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+g.pele-edge.c4-selected {
+  filter: drop-shadow(0 0 1.5px var(--ui-accent));
+  outline: none;
+}
+g.pele-edge.c4-selected path {
+  stroke: var(--ui-accent) !important;
+  stroke-width: 2.25;
+}
+
 /* ---------------- narrow screens ---------------- */
 @media (max-width: 980px) {
   .layout { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 38vh) 1fr; }

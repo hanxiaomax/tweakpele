@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
+import C4StylePanel from './C4StylePanel.jsx';
 import { IconButton } from './ui.jsx';
 import { clamp } from '../lib.js';
+import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
 
 /**
  * Split editor view: left = Mermaid source, right = live Pele preview
  * (Pele native zoom via the mount `zoom` option). Not an overlay — a full view.
+ * C4 diagrams get an interactive color panel (UpdateElementStyle / UpdateRelStyle).
  */
 export default function EditorView({
   diagram, mountOptions, split, onSplitChange,
@@ -15,23 +18,37 @@ export default function EditorView({
 }) {
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
+  const [c4Sel, setC4Sel] = useState(null);
   const areaRef = useRef(null);
   const splitRef = useRef(null);
+  const previewRef = useRef(null);
   const ctlRef = useRef(null);
   const timerRef = useRef(null);
   const idRef = useRef(diagram.id);
+
+  const c4 = isC4Source(diagram.source);
 
   // switching diagrams: drop local edits state for the previous one
   if (idRef.current !== diagram.id) {
     idRef.current = diagram.id;
     setText(diagram.source);
     setStatus(null);
+    setC4Sel(null);
   }
 
-  // external source changes (reset / restore) land in the textarea unless it's focused
+  // external source changes (reset / restore / C4 panel) land in the textarea unless it's focused
   useEffect(() => {
     if (diagram.source !== text && document.activeElement !== areaRef.current) setText(diagram.source);
   }, [diagram.source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep SVG selection highlight in sync after re-render
+  useEffect(() => {
+    if (!c4) return;
+    const root = previewRef.current;
+    if (!root) return;
+    const t = requestAnimationFrame(() => applySelectionHighlight(root, c4Sel));
+    return () => cancelAnimationFrame(t);
+  }, [c4, c4Sel, diagram.source, status]);
 
   const applyText = (value, fromInput) => {
     setText(value);
@@ -72,6 +89,19 @@ export default function EditorView({
     window.addEventListener('pointerup', up);
   };
 
+  const onPreviewClick = (e) => {
+    if (!c4) return;
+    // Ignore Pele zoom chrome clicks
+    if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel, input, select, label')) return;
+    const model = parseC4Model(diagram.source);
+    const sel = selectionFromSvgTarget(e.target, model);
+    if (sel) {
+      e.preventDefault();
+      e.stopPropagation();
+      setC4Sel(sel);
+    }
+  };
+
   const dirty = diagram.source !== diagram.original;
 
   return (
@@ -91,7 +121,7 @@ export default function EditorView({
           <IconButton Icon={Maximize} label="Reset preview zoom"
             onClick={() => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } }} />
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
-            onClick={() => { onResetSource(diagram.id); notify('Source reset'); }} />
+            onClick={() => { onResetSource(diagram.id); notify('Source reset'); setC4Sel(null); }} />
           <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"
             onClick={() => onCopySource(diagram)} />
         </span>
@@ -106,7 +136,10 @@ export default function EditorView({
           />
         </div>
         <div className="splitter" onPointerDown={startDrag} title="Drag to resize · double-click to reset" onDoubleClick={() => onSplitChange(42)} role="separator" aria-orientation="vertical" />
-        <div className="preview-pane" title="Pele native zoom: wheel / pinch, +− overlay, +/− keys, double-click to fit">
+        <div className={'preview-pane' + (c4 ? ' c4-interactive' : '')} ref={previewRef}
+          title={c4 ? 'Click a C4 shape or arrow to edit colors · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +− overlay, +/− keys, double-click to fit'}
+          onClick={onPreviewClick}
+        >
           <PeleHost
             source={diagram.source}
             options={mountOptions}
@@ -118,6 +151,8 @@ export default function EditorView({
                 ok: true, diagramId: diagram.id, info,
                 mermaidType: r.mermaidType, width: r.width, height: r.height,
               });
+              // re-apply highlight after Pele redraw
+              requestAnimationFrame(() => applySelectionHighlight(previewRef.current, c4Sel));
             }}
             onError={(e) => {
               const error = String(e && e.message ? e.message : e);
@@ -125,6 +160,14 @@ export default function EditorView({
               onRenderFeedback?.({ ok: false, diagramId: diagram.id, error });
             }}
           />
+          {c4 && (
+            <C4StylePanel
+              source={diagram.source}
+              selection={c4Sel}
+              onSelect={setC4Sel}
+              onChangeSource={(next) => onChangeSource(diagram.id, next)}
+            />
+          )}
         </div>
       </div>
     </section>

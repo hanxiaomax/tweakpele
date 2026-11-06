@@ -445,6 +445,7 @@ export default function App() {
                   onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}
+                  onChangeSource={changeSource}
                 />
               )}
             </div>
