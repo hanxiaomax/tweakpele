@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /** Icon-only button (React Icons / Lucide). Always labelled for a11y. */
 export function IconButton({ Icon, label, onClick, kind, disabled, className }) {
@@ -17,6 +17,8 @@ export function IconButton({ Icon, label, onClick, kind, disabled, className }) 
 /** Right-click menu. `menu` = { x, y, items: [{label, Icon, onClick, danger}] } | null */
 export function ContextMenu({ menu, onClose }) {
   const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+
   useEffect(() => {
     if (!menu) return;
     // Ignore presses inside the menu so item onClick can fire (capture would otherwise unmount first).
@@ -43,12 +45,37 @@ export function ContextMenu({ menu, onClose }) {
       document.removeEventListener('scroll', onScroll, true);
     };
   }, [menu, onClose]);
+
+  // Reset position when a new menu opens so layout effect remeasures.
+  useEffect(() => {
+    if (!menu) setPos(null);
+    else setPos({ left: menu.x, top: menu.y });
+  }, [menu]);
+
+  useLayoutEffect(() => {
+    if (!menu || !ref.current) return;
+    const el = ref.current;
+    const w = el.offsetWidth || 200;
+    const h = el.offsetHeight || (40 + menu.items.length * 30);
+    const pad = 8;
+    let x = menu.x;
+    let y = menu.y;
+    // Shift left if overflowing the right edge.
+    if (x + w + pad > window.innerWidth) x = Math.max(pad, window.innerWidth - w - pad);
+    // Flip above the cursor if overflowing the bottom; never jump solely because y is small.
+    if (y + h + pad > window.innerHeight) {
+      const above = y - h;
+      y = above >= pad ? above : Math.max(pad, window.innerHeight - h - pad);
+    }
+    if (x < pad) x = pad;
+    if (y < pad) y = pad;
+    setPos({ left: Math.round(x), top: Math.round(y) });
+  }, [menu]);
+
   if (!menu) return null;
-  const clamp = (v, sz, total) => Math.max(8, Math.min(v - sz - 8 > 0 ? v : total - sz - 8, total - sz - 8));
-  const style = {
-    left: 0, top: 0,
-    transform: `translate(${Math.round(clamp(menu.x, 200, innerWidth))}px, ${Math.round(clamp(menu.y, 40 + menu.items.length * 30, innerHeight))}px)`,
-  };
+  const style = pos
+    ? { left: pos.left, top: pos.top }
+    : { left: menu.x, top: menu.y };
   return (
     <div className="ctxmenu" ref={ref} style={style} role="menu" onContextMenu={(e) => e.preventDefault()}>
       {menu.items.map((it, i) => (

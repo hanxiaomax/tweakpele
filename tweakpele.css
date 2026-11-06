@@ -281,11 +281,69 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .preview-pane .pele-host svg.pele { max-width: none; }
 .editor-missing { margin: auto; text-align: center; }
 
+/* ---------------- focus overlay ---------------- */
+.focus-overlay {
+  position: fixed; inset: 0; z-index: 32;
+  display: grid; place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 48%, transparent);
+}
+.focus-overlay-panel {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  width: min(1100px, calc(100vw - 48px));
+  height: calc(100vh - 48px);
+  background: var(--pele-bg, #fff); color: var(--pele-fg, #000);
+  border: 1px solid color-mix(in srgb, var(--pele-border, #000) 45%, transparent);
+  border-radius: calc(var(--pele-radius, 6px) + 4px);
+  box-shadow: var(--ui-shadow), 0 24px 64px rgba(0,0,0,.28);
+  overflow: hidden;
+  font-family: var(--pele-font, inherit);
+}
+.focus-overlay-title {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pele-border, #000) 22%, transparent);
+  background: color-mix(in srgb, var(--pele-surface, var(--pele-bg, #fff)) 92%, transparent);
+}
+.focus-overlay-title b {
+  font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.focus-overlay-title code {
+  font-size: 11px; color: var(--pele-muted, #555);
+  font-family: var(--pele-font-mono, monospace); white-space: nowrap;
+}
+.focus-overlay-actions {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex: none;
+}
+.focus-overlay-count { font-size: 11.5px; margin: 0 4px; white-space: nowrap; }
+.focus-overlay-panel .ibtn {
+  width: 28px; height: 28px; border-radius: 5px;
+  border-color: color-mix(in srgb, var(--pele-border, #000) 35%, transparent);
+  background: color-mix(in srgb, var(--pele-surface, #fff) 85%, transparent);
+  color: var(--pele-fg, #000);
+}
+.focus-overlay-panel .ibtn svg { width: 14px; height: 14px; }
+.focus-overlay-panel .ibtn:hover {
+  border-color: var(--pele-accent, #d9641a); color: var(--pele-accent, #d9641a);
+}
+.focus-overlay-panel .ibtn.danger:hover {
+  border-color: var(--pele-error, #b8450c); color: var(--pele-error, #b8450c);
+}
+.focus-overlay-body {
+  flex: 1; min-height: 0; overflow: auto; padding: 20px;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.focus-overlay-body .pele-host-wrap,
+.focus-overlay-body .pele-host {
+  width: max-content; max-width: none; height: auto; margin: 0 auto;
+}
+.focus-overlay-body .pele-host svg.pele { max-width: none; margin: 0 auto; }
+
 /* ---------------- context menu / dialog / toast ---------------- */
 .ctxmenu {
   position: fixed; left: 0; top: 0; z-index: 40; min-width: 180px; padding: 4px;
   border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-panel-2);
-  box-shadow: var(--ui-shadow); will-change: transform;
+  box-shadow: var(--ui-shadow);
 }
 .ctxitem {
   display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 10px;

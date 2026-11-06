@@ -11,6 +11,7 @@ import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
 import EditorView from './components/EditorView.jsx';
+import FocusOverlay from './components/FocusOverlay.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import {
   VAR_META, FACTORY, DARK, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
@@ -262,6 +263,8 @@ export default function App() {
   }, [diagrams, vars, optVals, mountOptions, onVarChange, onOptChange]);
 
   const current = route.view === 'edit' ? findDiagram(route.id) : null;
+  const focusedIdx = focusedId ? diagrams.findIndex((d) => d.id === focusedId) : -1;
+  const focusedDiagram = focusedIdx >= 0 ? diagrams[focusedIdx] : null;
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';
 
   return (
@@ -337,6 +340,21 @@ export default function App() {
               />
             : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
                <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}
+          {focusedDiagram && route.view !== 'edit' && (
+            <FocusOverlay
+              diagram={focusedDiagram}
+              options={viewMode === 'gallery' ? galleryOptions : canvasOptions}
+              index={focusedIdx}
+              total={diagrams.length}
+              onClose={clearFocus}
+              onPrev={focusPrev}
+              onNext={focusNext}
+              onEdit={openEditor}
+              onDuplicate={duplicateDiagram}
+              onDelete={deleteDiagram}
+              onMenu={cardMenu}
+            />
+          )}
         </div>
       </main>
 
