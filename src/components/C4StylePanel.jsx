@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LuPalette as Palette, LuX as X } from 'react-icons/lu';
 import {
-  parseC4Model, upsertElementStyle, upsertRelStyle, isC4Source,
+  parseC4Model, upsertElementStyle, upsertRelStyle, upsertLayoutConfig, isC4Source,
 } from '../c4.js';
+import { VAR_META } from '../constants.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v || '').trim());
 function expandHex(hex) {
@@ -12,42 +13,107 @@ function expandHex(hex) {
   return h || '#888888';
 }
 
-function ColorField({ label, value, onChange, onClear }) {
+const VAR_REF_RE = /^var\(\s*(--pele-[\w-]+)\s*\)$/i;
+
+function parseVarRef(value) {
+  const m = String(value || '').trim().match(VAR_REF_RE);
+  return m ? m[1] : null;
+}
+
+function ColorField({ label, value, onChange, onClear, paletteTokens }) {
   const hex = isHexColor(value) ? expandHex(value) : '#888888';
+  const selectedToken = parseVarRef(value);
   return (
-    <label className="c4-color-field">
-      <span>{label}</span>
-      <span className="c4-color-controls">
+    <div className="c4-color-field">
+      <span className="c4-field-label">{label}</span>
+      <div className="c4-color-stack">
+        <span className="c4-color-controls">
+          <input
+            type="color"
+            aria-label={`${label} color`}
+            value={hex}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <input
+            type="text"
+            spellCheck="false"
+            autoComplete="off"
+            placeholder="#hex or var(--pele-…)"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <button type="button" className="ibtn ghost tiny" title={`Clear ${label}`} aria-label={`Clear ${label}`}
+            onClick={onClear} disabled={!value}>✕</button>
+        </span>
+        {paletteTokens && paletteTokens.length > 0 && (
+          <div className="c4-palette-swatches" role="list" aria-label={`${label} palette tokens`}>
+            {paletteTokens.map((tok) => {
+              const active = selectedToken === tok.name;
+              return (
+                <button
+                  key={tok.name}
+                  type="button"
+                  role="listitem"
+                  className={'c4-swatch' + (active ? ' active' : '')}
+                  title={`${tok.label} · ${tok.name}`}
+                  aria-label={`Use ${tok.name}`}
+                  aria-pressed={active}
+                  style={{ background: tok.value || '#888' }}
+                  onClick={() => onChange(`var(${tok.name})`)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NumberField({ label, value, onChange, onClear, placeholder }) {
+  return (
+    <label className="c4-number-field">
+      <span className="c4-field-label">{label}</span>
+      <span className="c4-number-controls">
         <input
-          type="color"
-          aria-label={`${label} color`}
-          value={hex}
+          type="number"
+          step="1"
+          placeholder={placeholder || '0'}
+          value={value == null || value === '' ? '' : value}
           onChange={(e) => onChange(e.target.value)}
-        />
-        <input
-          type="text"
-          spellCheck="false"
-          autoComplete="off"
-          placeholder="#hex or var(--pele-…)"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          aria-label={label}
         />
         <button type="button" className="ibtn ghost tiny" title={`Clear ${label}`} aria-label={`Clear ${label}`}
-          onClick={onClear} disabled={!value}>✕</button>
+          onClick={onClear} disabled={value == null || value === ''}>✕</button>
       </span>
     </label>
   );
 }
 
 /**
- * Interactive C4 UpdateElementStyle / UpdateRelStyle editor.
+ * Interactive C4 UpdateElementStyle / UpdateRelStyle / UpdateLayoutConfig editor.
  * selection: {type:'element', alias} | {type:'rel', from, to, key} | null
+ * vars: current global Pele CSS variable map (for palette swatches)
  */
 export default function C4StylePanel({
-  source, onChangeSource, selection, onSelect, compact = false,
+  source, onChangeSource, selection, onSelect, compact = false, vars = null,
 }) {
   const model = useMemo(() => parseC4Model(source), [source]);
-  const [mode, setMode] = useState(selection?.type === 'rel' ? 'rel' : 'element');
+  const [mode, setMode] = useState(
+    selection?.type === 'rel' ? 'rel' : (selection?.type === 'element' ? 'element' : 'element'),
+  );
+
+  const paletteTokens = useMemo(() => {
+    const map = vars || {};
+    return VAR_META
+      .filter((m) => m.kind === 'color')
+      .map((m) => ({
+        name: m.name,
+        label: m.label || m.name,
+        value: map[m.name] || '',
+      }))
+      .filter((t) => t.value);
+  }, [vars]);
 
   useEffect(() => {
     if (selection?.type === 'rel') setMode('rel');
@@ -65,6 +131,7 @@ export default function C4StylePanel({
   const activeRel = model.rels.find((r) => r.key === relKey) || model.rels[0];
   const elStyle = (elAlias && model.elStyles[elAlias]) || {};
   const relStyle = (activeRel && model.relStyles[activeRel.key]) || {};
+  const layout = model.layoutConfig || {};
 
   const pickElement = (alias) => {
     onSelect?.({ type: 'element', alias });
@@ -93,13 +160,25 @@ export default function C4StylePanel({
     if (!activeRel) return;
     onChangeSource(upsertRelStyle(source, activeRel.from, activeRel.to, {}));
   };
+  const setLayout = (patch) => {
+    const next = { ...layout, ...patch };
+    onChangeSource(upsertLayoutConfig(source, next));
+  };
+  const clearLayout = () => {
+    onChangeSource(upsertLayoutConfig(source, {}));
+  };
+
+  const elHasStyle = !!(elStyle.bgColor || elStyle.fontColor || elStyle.borderColor);
+  const relHasStyle = !!(relStyle.textColor || relStyle.lineColor
+    || relStyle.offsetX || relStyle.offsetY);
+  const layoutHas = !!(layout.c4ShapeInRow || layout.c4BoundaryInRow);
 
   return (
-    <aside className={'c4-style-panel' + (compact ? ' compact' : '')} aria-label="C4 color editor">
+    <aside className={'c4-style-panel' + (compact ? ' compact' : '')} aria-label="C4 style editor">
       <header className="c4-style-head">
         <Palette aria-hidden="true" />
-        <b>C4 colors</b>
-        <span className="c4-style-hint">Click a shape or arrow · writes Update*Style into source</span>
+        <b>C4 style</b>
+        <span className="c4-style-hint">Click shape/arrow · palette → var(--pele-…)</span>
         {selection && (
           <button type="button" className="ibtn ghost tiny" title="Clear selection" aria-label="Clear selection"
             onClick={() => onSelect?.(null)}>
@@ -114,10 +193,13 @@ export default function C4StylePanel({
           onClick={() => setMode('element')}>Elements</button>
         <button type="button" role="tab" aria-selected={mode === 'rel'}
           className={mode === 'rel' ? 'active' : ''}
-          onClick={() => setMode('rel')}>Relationships</button>
+          onClick={() => setMode('rel')}>Rels</button>
+        <button type="button" role="tab" aria-selected={mode === 'layout'}
+          className={mode === 'layout' ? 'active' : ''}
+          onClick={() => setMode('layout')}>Layout</button>
       </div>
 
-      {mode === 'element' ? (
+      {mode === 'element' && (
         <div className="c4-style-body">
           {model.elements.length === 0 ? (
             <p className="c4-style-empty">No C4 elements found in source.</p>
@@ -137,22 +219,23 @@ export default function C4StylePanel({
                   ))}
                 </select>
               </label>
-              <ColorField label="Background" value={elStyle.bgColor}
+              <ColorField label="Background" value={elStyle.bgColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ bgColor: v })} onClear={() => setEl({ bgColor: '' })} />
-              <ColorField label="Font" value={elStyle.fontColor}
+              <ColorField label="Font" value={elStyle.fontColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ fontColor: v })} onClear={() => setEl({ fontColor: '' })} />
-              <ColorField label="Border" value={elStyle.borderColor}
+              <ColorField label="Border" value={elStyle.borderColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ borderColor: v })} onClear={() => setEl({ borderColor: '' })} />
               <div className="c4-style-actions">
-                <button type="button" className="btn" onClick={clearEl}
-                  disabled={!(elStyle.bgColor || elStyle.fontColor || elStyle.borderColor)}>
+                <button type="button" className="btn" onClick={clearEl} disabled={!elHasStyle}>
                   Clear element styles
                 </button>
               </div>
             </>
           )}
         </div>
-      ) : (
+      )}
+
+      {mode === 'rel' && (
         <div className="c4-style-body">
           {model.rels.length === 0 ? (
             <p className="c4-style-empty">No C4 relationships found in source.</p>
@@ -175,18 +258,38 @@ export default function C4StylePanel({
                   ))}
                 </select>
               </label>
-              <ColorField label="Text" value={relStyle.textColor}
+              <ColorField label="Text" value={relStyle.textColor} paletteTokens={paletteTokens}
                 onChange={(v) => setRel({ textColor: v })} onClear={() => setRel({ textColor: '' })} />
-              <ColorField label="Line" value={relStyle.lineColor}
+              <ColorField label="Line" value={relStyle.lineColor} paletteTokens={paletteTokens}
                 onChange={(v) => setRel({ lineColor: v })} onClear={() => setRel({ lineColor: '' })} />
+              <NumberField label="Offset X" value={relStyle.offsetX} placeholder="0"
+                onChange={(v) => setRel({ offsetX: v })} onClear={() => setRel({ offsetX: '' })} />
+              <NumberField label="Offset Y" value={relStyle.offsetY} placeholder="0"
+                onChange={(v) => setRel({ offsetY: v })} onClear={() => setRel({ offsetY: '' })} />
               <div className="c4-style-actions">
-                <button type="button" className="btn" onClick={clearRel}
-                  disabled={!(relStyle.textColor || relStyle.lineColor)}>
+                <button type="button" className="btn" onClick={clearRel} disabled={!relHasStyle}>
                   Clear relationship styles
                 </button>
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {mode === 'layout' && (
+        <div className="c4-style-body">
+          <p className="c4-style-empty">Diagram-wide UpdateLayoutConfig (defaults 4 / 2).</p>
+          <NumberField label="Shapes / row" value={layout.c4ShapeInRow} placeholder="4"
+            onChange={(v) => setLayout({ c4ShapeInRow: v })}
+            onClear={() => setLayout({ c4ShapeInRow: '' })} />
+          <NumberField label="Bounds / row" value={layout.c4BoundaryInRow} placeholder="2"
+            onChange={(v) => setLayout({ c4BoundaryInRow: v })}
+            onClear={() => setLayout({ c4BoundaryInRow: '' })} />
+          <div className="c4-style-actions">
+            <button type="button" className="btn" onClick={clearLayout} disabled={!layoutHas}>
+              Clear layout config
+            </button>
+          </div>
         </div>
       )}
     </aside>

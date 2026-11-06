@@ -9,12 +9,12 @@ import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlig
 /**
  * Split editor view: left = Mermaid source, right = live Pele preview
  * (Pele native zoom via the mount `zoom` option). Not an overlay — a full view.
- * C4 diagrams get an interactive color panel (UpdateElementStyle / UpdateRelStyle).
+ * C4 diagrams get an interactive style panel (UpdateElementStyle / UpdateRelStyle / Layout).
  */
 export default function EditorView({
   diagram, mountOptions, split, onSplitChange,
   onBack, onChangeTitle, onChangeSource, onResetSource, onCopySource, notify,
-  onRenderFeedback,
+  onRenderFeedback, vars,
 }) {
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
@@ -137,7 +137,7 @@ export default function EditorView({
         </div>
         <div className="splitter" onPointerDown={startDrag} title="Drag to resize · double-click to reset" onDoubleClick={() => onSplitChange(42)} role="separator" aria-orientation="vertical" />
         <div className={'preview-pane' + (c4 ? ' c4-interactive' : '')} ref={previewRef}
-          title={c4 ? 'Click a C4 shape or arrow to edit colors · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +− overlay, +/− keys, double-click to fit'}
+          title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +− overlay, +/− keys, double-click to fit'}
           onClick={onPreviewClick}
         >
           <PeleHost
@@ -166,6 +166,7 @@ export default function EditorView({
               selection={c4Sel}
               onSelect={setC4Sel}
               onChangeSource={(next) => onChangeSource(diagram.id, next)}
+              vars={vars}
             />
           )}
         </div>

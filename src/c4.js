@@ -1,6 +1,6 @@
 /**
  * C4 Mermaid helpers: detect diagrams, list elements/rels, and
- * sync UpdateElementStyle / UpdateRelStyle lines in source text.
+ * sync UpdateElementStyle / UpdateRelStyle / UpdateLayoutConfig in source text.
  */
 
 const C4_HEADERS = /^(C4Context|C4Container|C4Component|C4Dynamic|C4Deployment)\b/i;
@@ -33,6 +33,11 @@ const REL_RE = new RegExp(
 
 const UPDATE_EL_RE = /^\s*UpdateElementStyle\s*\(\s*([A-Za-z_][\w-]*)\s*(?:,([\s\S]*))?\)\s*$/i;
 const UPDATE_REL_RE = /^\s*UpdateRelStyle\s*\(\s*([A-Za-z_][\w-]*)\s*,\s*([A-Za-z_][\w-]*)\s*(?:,([\s\S]*))?\)\s*$/i;
+const UPDATE_LAYOUT_RE = /^\s*UpdateLayoutConfig\s*\(\s*([\s\S]*?)\s*\)\s*$/i;
+
+const LAYOUT_KEYS = ['c4ShapeInRow', 'c4BoundaryInRow'];
+const REL_STYLE_KEYS = ['textColor', 'lineColor', 'offsetX', 'offsetY'];
+const EL_STYLE_KEYS = ['bgColor', 'fontColor', 'borderColor'];
 
 /** True when source is a Mermaid C4 diagram. */
 export function isC4Source(source) {
@@ -96,11 +101,26 @@ export function parseStyleArgs(tail, namedKeys, positionalKeys) {
   return out;
 }
 
+/** Parse UpdateLayoutConfig from source (last wins). */
+export function parseLayoutConfig(source) {
+  let layout = {};
+  for (const raw of String(source || '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('%%')) continue;
+    const m = line.match(UPDATE_LAYOUT_RE);
+    if (m) {
+      layout = parseStyleArgs(m[1] || '', LAYOUT_KEYS, LAYOUT_KEYS);
+    }
+  }
+  return layout;
+}
+
 export function parseC4Model(source) {
   const elements = [];
   const rels = [];
   const elStyles = {};
   const relStyles = {};
+  let layoutConfig = {};
   const seenEl = new Set();
   const seenRel = new Set();
 
@@ -111,7 +131,7 @@ export function parseC4Model(source) {
     let m = line.match(UPDATE_EL_RE);
     if (m) {
       const alias = m[1];
-      elStyles[alias] = parseStyleArgs(m[2] || '', ['bgColor', 'fontColor', 'borderColor'], ['bgColor', 'fontColor', 'borderColor']);
+      elStyles[alias] = parseStyleArgs(m[2] || '', EL_STYLE_KEYS, EL_STYLE_KEYS);
       continue;
     }
     m = line.match(UPDATE_REL_RE);
@@ -120,8 +140,13 @@ export function parseC4Model(source) {
       relStyles[key] = {
         from: m[1],
         to: m[2],
-        ...parseStyleArgs(m[3] || '', ['textColor', 'lineColor', 'offsetX', 'offsetY'], ['textColor', 'lineColor', 'offsetX', 'offsetY']),
+        ...parseStyleArgs(m[3] || '', REL_STYLE_KEYS, REL_STYLE_KEYS),
       };
+      continue;
+    }
+    m = line.match(UPDATE_LAYOUT_RE);
+    if (m) {
+      layoutConfig = parseStyleArgs(m[1] || '', LAYOUT_KEYS, LAYOUT_KEYS);
       continue;
     }
 
@@ -147,12 +172,13 @@ export function parseC4Model(source) {
     }
   }
 
-  return { elements, rels, elStyles, relStyles };
+  return { elements, rels, elStyles, relStyles, layoutConfig };
 }
 
 function quoteStyleValue(v) {
   const s = String(v);
   if (/^#[0-9A-Fa-f]{3,8}$/.test(s) || /^[A-Za-z][\w-]*$/.test(s)) return `"${s}"`;
+  if (/^-?\d+(\.\d+)?$/.test(s)) return `"${s}"`;
   return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
@@ -174,7 +200,7 @@ function isStyleEmpty(style, keys) {
  */
 export function upsertElementStyle(source, alias, style) {
   const lines = String(source || '').split(/\r?\n/);
-  const empty = isStyleEmpty(style, ['bgColor', 'fontColor', 'borderColor']);
+  const empty = isStyleEmpty(style, EL_STYLE_KEYS);
   const stmt = empty
     ? null
     : `UpdateElementStyle(${alias}, ${formatNamed([
@@ -201,15 +227,17 @@ export function upsertElementStyle(source, alias, style) {
   return next.join('\n').replace(/\s+$/, '') + (next.length ? '\n' : '');
 }
 
-/** Replace or append UpdateRelStyle for from→to. */
+/** Replace or append UpdateRelStyle for from→to (colors + label offsets). */
 export function upsertRelStyle(source, from, to, style) {
   const lines = String(source || '').split(/\r?\n/);
-  const empty = isStyleEmpty(style, ['textColor', 'lineColor']);
+  const empty = isStyleEmpty(style, REL_STYLE_KEYS);
   const stmt = empty
     ? null
     : `UpdateRelStyle(${from}, ${to}, ${formatNamed([
       ['textColor', style.textColor],
       ['lineColor', style.lineColor],
+      ['offsetX', style.offsetX],
+      ['offsetY', style.offsetY],
     ])})`;
 
   let found = false;
@@ -217,6 +245,38 @@ export function upsertRelStyle(source, from, to, style) {
   for (const line of lines) {
     const m = line.trim().match(UPDATE_REL_RE);
     if (m && m[1] === from && m[2] === to) {
+      found = true;
+      if (stmt) next.push(stmt);
+      continue;
+    }
+    next.push(line);
+  }
+  if (!found && stmt) {
+    while (next.length && next[next.length - 1].trim() === '') next.pop();
+    next.push(stmt);
+  }
+  return next.join('\n').replace(/\s+$/, '') + (next.length ? '\n' : '');
+}
+
+/**
+ * Replace or append UpdateLayoutConfig.
+ * Pass empty/null fields to remove the statement.
+ */
+export function upsertLayoutConfig(source, layout) {
+  const lines = String(source || '').split(/\r?\n/);
+  const empty = isStyleEmpty(layout, LAYOUT_KEYS);
+  const stmt = empty
+    ? null
+    : `UpdateLayoutConfig(${formatNamed([
+      ['c4ShapeInRow', layout.c4ShapeInRow],
+      ['c4BoundaryInRow', layout.c4BoundaryInRow],
+    ])})`;
+
+  let found = false;
+  const next = [];
+  for (const line of lines) {
+    const m = line.trim().match(UPDATE_LAYOUT_RE);
+    if (m) {
       found = true;
       if (stmt) next.push(stmt);
       continue;

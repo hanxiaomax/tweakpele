@@ -446,6 +446,7 @@ export default function App() {
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}
                   onChangeSource={changeSource}
+                  vars={vars}
                 />
               )}
             </div>
@@ -460,6 +461,7 @@ export default function App() {
                 onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
                 notify={notify}
                 onRenderFeedback={(fb) => { bridge.pushFeedback?.(fb); }}
+                vars={vars}
               />
             : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
                <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}

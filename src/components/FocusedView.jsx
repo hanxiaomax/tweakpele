@@ -13,7 +13,7 @@ import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlig
 export default function FocusedView({
   diagram, options, index, total,
   onClose, onPrev, onNext, onEdit, onDuplicate, onDelete, onMenu,
-  onChangeSource,
+  onChangeSource, vars,
 }) {
   const ctlRef = useRef(null);
   const bodyRef = useRef(null);
@@ -72,7 +72,7 @@ export default function FocusedView({
       <div
         className={'focused-view-body' + (c4 ? ' c4-interactive' : '')}
         ref={bodyRef}
-        title={c4 ? 'Click a C4 shape or arrow to edit colors · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +/− overlay, +/− keys, double-click to fit'}
+        title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +/− overlay, +/− keys, double-click to fit'}
         onClick={onBodyClick}
       >
         <PeleHost
@@ -90,6 +90,7 @@ export default function FocusedView({
             selection={c4Sel}
             onSelect={setC4Sel}
             onChangeSource={(next) => onChangeSource(diagram.id, next)}
+            vars={vars}
           />
         )}
       </div>
