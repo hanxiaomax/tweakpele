@@ -5,32 +5,32 @@
  */
 
 export const VAR_META = [
-  { name: '--pele-bg', hint: 'page background', kind: 'color' },
-  { name: '--pele-fg', hint: 'primary foreground', kind: 'color' },
-  { name: '--pele-fg-on-light', hint: 'text on light fills', kind: 'color' },
-  { name: '--pele-fg-on-dark', hint: 'text on dark fills', kind: 'color' },
-  { name: '--pele-muted', hint: 'muted text', kind: 'color' },
-  { name: '--pele-line', hint: 'edges & arrows', kind: 'color' },
-  { name: '--pele-surface', hint: 'node surface', kind: 'color' },
-  { name: '--pele-surface-alt', hint: 'subgraph & alt surface', kind: 'color' },
-  { name: '--pele-border', hint: 'borders', kind: 'color' },
-  { name: '--pele-accent', hint: 'accent', kind: 'color' },
-  { name: '--pele-critical', hint: 'critical', kind: 'color' },
-  { name: '--pele-error', hint: 'error', kind: 'color' },
-  { name: '--pele-font', hint: 'body font stack', kind: 'text' },
-  { name: '--pele-font-mono', hint: 'mono font stack', kind: 'text' },
-  { name: '--pele-title-weight', hint: 'title weight', kind: 'text' },
-  { name: '--pele-heading-weight', hint: 'heading weight', kind: 'text' },
-  { name: '--pele-bold-weight', hint: 'bold weight', kind: 'text' },
-  { name: '--pele-radius', hint: 'corner radius', kind: 'text' },
-  { name: '--pele-series-1', hint: 'chart series 1', kind: 'color' },
-  { name: '--pele-series-2', hint: 'chart series 2', kind: 'color' },
-  { name: '--pele-series-3', hint: 'chart series 3', kind: 'color' },
-  { name: '--pele-series-4', hint: 'chart series 4', kind: 'color' },
-  { name: '--pele-series-5', hint: 'chart series 5', kind: 'color' },
-  { name: '--pele-series-6', hint: 'chart series 6', kind: 'color' },
-  { name: '--pele-series-7', hint: 'chart series 7', kind: 'color' },
-  { name: '--pele-series-8', hint: 'chart series 8', kind: 'color' },
+  { name: '--pele-bg', hint: 'page background', kind: 'color', label: 'Background', kinds: ['all'] },
+  { name: '--pele-fg', hint: 'primary foreground', kind: 'color', label: 'Foreground', kinds: ['all'] },
+  { name: '--pele-fg-on-light', hint: 'text on light fills', kind: 'color', label: 'FG on light', kinds: ['all'] },
+  { name: '--pele-fg-on-dark', hint: 'text on dark fills', kind: 'color', label: 'FG on dark', kinds: ['all'] },
+  { name: '--pele-muted', hint: 'muted text', kind: 'color', label: 'Muted', kinds: ['all'] },
+  { name: '--pele-line', hint: 'edges & arrows', kind: 'color', label: 'Line', kinds: ['all'] },
+  { name: '--pele-surface', hint: 'node surface', kind: 'color', label: 'Surface', kinds: ['all'] },
+  { name: '--pele-surface-alt', hint: 'subgraph & alt surface', kind: 'color', label: 'Surface alt', kinds: ['all'] },
+  { name: '--pele-border', hint: 'borders', kind: 'color', label: 'Border', kinds: ['all'] },
+  { name: '--pele-accent', hint: 'accent', kind: 'color', label: 'Accent', kinds: ['all'] },
+  { name: '--pele-critical', hint: 'critical', kind: 'color', label: 'Critical', kinds: ['all'] },
+  { name: '--pele-error', hint: 'error', kind: 'color', label: 'Error', kinds: ['all'] },
+  { name: '--pele-font', hint: 'body font stack', kind: 'text', label: 'Font', kinds: ['all'] },
+  { name: '--pele-font-mono', hint: 'mono font stack', kind: 'text', label: 'Mono font', kinds: ['all'] },
+  { name: '--pele-title-weight', hint: 'title weight', kind: 'text', label: 'Title weight', kinds: ['all'] },
+  { name: '--pele-heading-weight', hint: 'heading weight', kind: 'text', label: 'Heading weight', kinds: ['all'] },
+  { name: '--pele-bold-weight', hint: 'bold weight', kind: 'text', label: 'Bold weight', kinds: ['all'] },
+  { name: '--pele-radius', hint: 'corner radius', kind: 'text', label: 'Radius', kinds: ['all'] },
+  { name: '--pele-series-1', hint: 'chart series 1', kind: 'color', label: 'Series 1', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-2', hint: 'chart series 2', kind: 'color', label: 'Series 2', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-3', hint: 'chart series 3', kind: 'color', label: 'Series 3', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-4', hint: 'chart series 4', kind: 'color', label: 'Series 4', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-5', hint: 'chart series 5', kind: 'color', label: 'Series 5', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-6', hint: 'chart series 6', kind: 'color', label: 'Series 6', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-7', hint: 'chart series 7', kind: 'color', label: 'Series 7', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
+  { name: '--pele-series-8', hint: 'chart series 8', kind: 'color', label: 'Series 8', kinds: ['pie','xyChart','gantt','sankey','radar','quadrantChart','treemap','venn','journey'] },
 ];
 
 /** Light "paper" preset — Pele factory look. */
@@ -1415,149 +1415,171 @@ export const REMEASURE_VARS = new Set([
 // value === undefined → option not passed (Pele default).
 // ---------------------------------------------------------------------------
 const L = (key, kind, extra) => ({ key, kind, ...extra });
+
+/** Canonical diagram kinds used by toolbox type filters. */
+export const DIAGRAM_KINDS = [
+  'flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'gitGraph',
+  'mindmap', 'timeline', 'sankey', 'xyChart', 'quadrantChart', 'kanban',
+  'architecture', 'radar', 'packet', 'treemap', 'railroad', 'treeView',
+  'cynefin', 'usecase', 'agentflow', 'block', 'journey', 'swimlane', 'c4',
+  'requirement', 'venn', 'wardley', 'ishikawa', 'eventmodeling', 'info',
+];
+
 export const OPT_GROUPS = [
   {
-    title: 'RenderOptions', note: 'pele.mount(el, text, options)',
+    title: 'RenderOptions', note: 'pele.mount(el, text, options)', kinds: ['all'],
     items: [
-      L('fontFamily', 'font', { path: ['fontFamily'], cssVar: '--pele-font', hint: 'label font (measure + draw, synced with --pele-font)',
+      L('fontFamily', 'font', { path: ['fontFamily'], cssVar: '--pele-font', kinds: ['all'], hint: 'label font (measure + draw, synced with --pele-font)',
         presets: ['"Noto Sans", "Noto Sans CJK SC", sans-serif', 'system-ui, sans-serif', 'Georgia, "Noto Serif CJK SC", serif', '"Noto Sans Mono", monospace', '-apple-system, BlinkMacSystemFont, "Inter Variable", Inter, "Segoe UI", Helvetica, Arial, sans-serif'] }),
-      L('fontFamilyMono', 'font', { path: ['fontFamilyMono'], cssVar: '--pele-font-mono', hint: 'mono font (synced with --pele-font-mono)',
+      L('fontFamilyMono', 'font', { path: ['fontFamilyMono'], cssVar: '--pele-font-mono', kinds: ['all'], hint: 'mono font (synced with --pele-font-mono)',
         presets: ['"Noto Sans Mono", "DejaVu Sans Mono", monospace', 'ui-monospace, monospace', '"DejaVu Sans Mono", monospace'] }),
-      L('fontSize', 'num', { path: ['fontSize'], min: 8, max: 32, step: 1, def: 16, hint: 'base font size px (default 16)' }),
-      L('padding', 'num', { path: ['padding'], min: 0, max: 80, step: 1, def: 8, factory: 16, hint: 'diagram padding px' }),
-      L('maxWidth', 'num', { path: ['maxWidth'], min: 160, max: 2000, step: 10, hint: 'override available width; unset = follow the card / pane' }),
-      L('responsive', 'bool', { path: ['responsive'], def: true, hint: 'false = fixed pixel size, never shrink' }),
-      L('autoDirection', 'bool', { path: ['autoDirection'], def: true, hint: 'allow LR→TB flip in narrow containers' }),
-      L('directionBreakpoint', 'num', { path: ['directionBreakpoint'], min: 0, max: 2000, step: 10, def: 640, hint: 'autoDirection width threshold px' }),
-      L('monospace', 'checks', { path: ['monospace'], values: ['members', 'attributes', 'files', 'messages'], hint: 'measure/draw with the mono font: class members / ER attributes / tree files / sequence messages' }),
-      L('now', 'date', { path: ['now'], hint: 'reference time for the Gantt "today" marker' }),
-      L('zoom', 'enum', { path: ['zoom'], values: ['false', 'auto', 'true'], factory: 'true', required: true, hint: 'Pele native zoom in the preview pane: +/− overlay, wheel & pinch pan-zoom, +/− keys' }),
+      L('fontSize', 'num', { path: ['fontSize'], min: 8, max: 32, step: 1, def: 16, kinds: ['all'], hint: 'base font size px (default 16)' }),
+      L('padding', 'num', { path: ['padding'], min: 0, max: 80, step: 1, def: 8, factory: 16, kinds: ['all'], hint: 'diagram padding px' }),
+      L('maxWidth', 'num', { path: ['maxWidth'], min: 160, max: 2000, step: 10, kinds: ['all'], hint: 'override available width; unset = follow the card / pane' }),
+      L('responsive', 'bool', { path: ['responsive'], def: true, kinds: ['all'], hint: 'false = fixed pixel size, never shrink' }),
+      L('autoDirection', 'bool', { path: ['autoDirection'], def: true, kinds: ['all', 'flowchart'], hint: 'allow LR→TB flip in narrow containers' }),
+      L('directionBreakpoint', 'num', { path: ['directionBreakpoint'], min: 0, max: 2000, step: 10, def: 640, kinds: ['all', 'flowchart'], hint: 'autoDirection width threshold px' }),
+      L('monospace', 'checks', { path: ['monospace'], values: ['members', 'attributes', 'files', 'messages'], kinds: ['class', 'er', 'treeView', 'sequence'], hint: 'measure/draw with the mono font: class members / ER attributes / tree files / sequence messages' }),
+      L('now', 'date', { path: ['now'], kinds: ['gantt'], hint: 'reference time for the Gantt "today" marker' }),
+      L('zoom', 'enum', { path: ['zoom'], values: ['false', 'auto', 'true'], factory: 'true', required: true, kinds: ['all'], hint: 'Pele native zoom in the preview pane: +/− overlay, wheel & pinch pan-zoom, +/− keys' }),
     ],
   },
   {
-    title: 'config.flowchart', note: 'flowchart · state · swimlane (curve)',
+    title: 'config.flowchart', note: 'flowchart · state · swimlane (curve)', kinds: ['flowchart', 'state', 'swimlane'],
     items: [
-      L('curve', 'enum', { path: ['config', 'flowchart', 'curve'], values: ['rounded', 'linear', 'step', 'stepBefore', 'stepAfter'], hint: 'edge shape (also state / swimlane)' }),
-      L('nodeSpacing', 'num', { path: ['config', 'flowchart', 'nodeSpacing'], min: 4, max: 200, step: 2, def: 40 }),
-      L('rankSpacing', 'num', { path: ['config', 'flowchart', 'rankSpacing'], min: 4, max: 240, step: 2, def: 48 }),
-      L('wrappingWidth', 'num', { path: ['config', 'flowchart', 'wrappingWidth'], min: 30, max: 500, step: 5, def: 200, hint: 'node label wrap width' }),
+      L('curve', 'enum', { path: ['config', 'flowchart', 'curve'], values: ['rounded', 'linear', 'step', 'stepBefore', 'stepAfter'], kinds: ['flowchart', 'state', 'swimlane'], hint: 'edge shape (also state / swimlane)' }),
+      L('nodeSpacing', 'num', { path: ['config', 'flowchart', 'nodeSpacing'], min: 4, max: 200, step: 2, def: 40, kinds: ['flowchart'] }),
+      L('rankSpacing', 'num', { path: ['config', 'flowchart', 'rankSpacing'], min: 4, max: 240, step: 2, def: 48, kinds: ['flowchart'] }),
+      L('wrappingWidth', 'num', { path: ['config', 'flowchart', 'wrappingWidth'], min: 30, max: 500, step: 5, def: 200, kinds: ['flowchart'], hint: 'node label wrap width' }),
     ],
   },
-  { title: 'config.class', items: [
-    L('nodeSpacing', 'num', { path: ['config', 'class', 'nodeSpacing'], min: 4, max: 200, step: 2 }),
-    L('rankSpacing', 'num', { path: ['config', 'class', 'rankSpacing'], min: 4, max: 240, step: 2 }),
+  { title: 'config.class', kinds: ['class'], items: [
+    L('nodeSpacing', 'num', { path: ['config', 'class', 'nodeSpacing'], min: 4, max: 200, step: 2, kinds: ['class'] }),
+    L('rankSpacing', 'num', { path: ['config', 'class', 'rankSpacing'], min: 4, max: 240, step: 2, kinds: ['class'] }),
   ] },
-  { title: 'config.state', items: [
-    L('nodeSpacing', 'num', { path: ['config', 'state', 'nodeSpacing'], min: 4, max: 200, step: 2 }),
-    L('rankSpacing', 'num', { path: ['config', 'state', 'rankSpacing'], min: 4, max: 240, step: 2 }),
+  { title: 'config.state', kinds: ['state'], items: [
+    L('nodeSpacing', 'num', { path: ['config', 'state', 'nodeSpacing'], min: 4, max: 200, step: 2, kinds: ['state'] }),
+    L('rankSpacing', 'num', { path: ['config', 'state', 'rankSpacing'], min: 4, max: 240, step: 2, kinds: ['state'] }),
   ] },
-  { title: 'config.er', items: [
-    L('nodeSpacing', 'num', { path: ['config', 'er', 'nodeSpacing'], min: 4, max: 200, step: 2 }),
-    L('rankSpacing', 'num', { path: ['config', 'er', 'rankSpacing'], min: 4, max: 240, step: 2 }),
+  { title: 'config.er', kinds: ['er'], items: [
+    L('nodeSpacing', 'num', { path: ['config', 'er', 'nodeSpacing'], min: 4, max: 200, step: 2, kinds: ['er'] }),
+    L('rankSpacing', 'num', { path: ['config', 'er', 'rankSpacing'], min: 4, max: 240, step: 2, kinds: ['er'] }),
   ] },
-  { title: 'config.sequence', items: [
-    L('mirrorActors', 'bool', { path: ['config', 'sequence', 'mirrorActors'], def: true, hint: 'repeat actors at the bottom' }),
-    L('actorMargin', 'num', { path: ['config', 'sequence', 'actorMargin'], min: 4, max: 200, step: 2, def: 40 }),
-    L('width', 'num', { path: ['config', 'sequence', 'width'], min: 40, max: 300, step: 2, def: 64, hint: 'actor box min width' }),
-    L('height', 'num', { path: ['config', 'sequence', 'height'], min: 20, max: 160, step: 2, hint: 'actor box height' }),
-    L('messageMargin', 'num', { path: ['config', 'sequence', 'messageMargin'], min: 0, max: 120, step: 2 }),
-    L('noteMargin', 'num', { path: ['config', 'sequence', 'noteMargin'], min: 0, max: 60, step: 1 }),
-    L('messageAlign', 'enum', { path: ['config', 'sequence', 'messageAlign'], values: ['center', 'left', 'right'] }),
+  { title: 'config.sequence', kinds: ['sequence'], items: [
+    L('mirrorActors', 'bool', { path: ['config', 'sequence', 'mirrorActors'], def: true, kinds: ['sequence'], hint: 'repeat actors at the bottom' }),
+    L('actorMargin', 'num', { path: ['config', 'sequence', 'actorMargin'], min: 4, max: 200, step: 2, def: 40, kinds: ['sequence'] }),
+    L('width', 'num', { path: ['config', 'sequence', 'width'], min: 40, max: 300, step: 2, def: 64, kinds: ['sequence'], hint: 'actor box min width' }),
+    L('height', 'num', { path: ['config', 'sequence', 'height'], min: 20, max: 160, step: 2, kinds: ['sequence'], hint: 'actor box height' }),
+    L('messageMargin', 'num', { path: ['config', 'sequence', 'messageMargin'], min: 0, max: 120, step: 2, kinds: ['sequence'] }),
+    L('noteMargin', 'num', { path: ['config', 'sequence', 'noteMargin'], min: 0, max: 60, step: 1, kinds: ['sequence'] }),
+    L('messageAlign', 'enum', { path: ['config', 'sequence', 'messageAlign'], values: ['center', 'left', 'right'], kinds: ['sequence'] }),
   ] },
-  { title: 'config.gantt', items: [
-    L('barHeight', 'num', { path: ['config', 'gantt', 'barHeight'], min: 4, max: 80, step: 1 }),
-    L('barGap', 'num', { path: ['config', 'gantt', 'barGap'], min: 0, max: 40, step: 1 }),
-    L('fontSize', 'num', { path: ['config', 'gantt', 'fontSize'], min: 6, max: 32, step: 1 }),
-    L('sectionFontSize', 'num', { path: ['config', 'gantt', 'sectionFontSize'], min: 6, max: 32, step: 1 }),
-    L('topPadding', 'num', { path: ['config', 'gantt', 'topPadding'], min: 0, max: 160, step: 2 }),
-    L('leftPadding', 'num', { path: ['config', 'gantt', 'leftPadding'], min: 0, max: 400, step: 5 }),
-    L('rightPadding', 'num', { path: ['config', 'gantt', 'rightPadding'], min: 0, max: 300, step: 5 }),
-    L('numberSectionStyles', 'num', { path: ['config', 'gantt', 'numberSectionStyles'], min: 1, max: 8, step: 1 }),
-    L('useWidth', 'num', { path: ['config', 'gantt', 'useWidth'], min: 300, max: 2000, step: 10, hint: 'chart draw width' }),
-    L('topAxis', 'bool', { path: ['config', 'gantt', 'topAxis'], def: false }),
-    L('displayMode', 'enum', { path: ['config', 'gantt', 'displayMode'], values: ['', 'compact'] }),
+  { title: 'config.gantt', kinds: ['gantt'], items: [
+    L('barHeight', 'num', { path: ['config', 'gantt', 'barHeight'], min: 4, max: 80, step: 1, kinds: ['gantt'] }),
+    L('barGap', 'num', { path: ['config', 'gantt', 'barGap'], min: 0, max: 40, step: 1, kinds: ['gantt'] }),
+    L('fontSize', 'num', { path: ['config', 'gantt', 'fontSize'], min: 6, max: 32, step: 1, kinds: ['gantt'] }),
+    L('sectionFontSize', 'num', { path: ['config', 'gantt', 'sectionFontSize'], min: 6, max: 32, step: 1, kinds: ['gantt'] }),
+    L('topPadding', 'num', { path: ['config', 'gantt', 'topPadding'], min: 0, max: 160, step: 2, kinds: ['gantt'] }),
+    L('leftPadding', 'num', { path: ['config', 'gantt', 'leftPadding'], min: 0, max: 400, step: 5, kinds: ['gantt'] }),
+    L('rightPadding', 'num', { path: ['config', 'gantt', 'rightPadding'], min: 0, max: 300, step: 5, kinds: ['gantt'] }),
+    L('numberSectionStyles', 'num', { path: ['config', 'gantt', 'numberSectionStyles'], min: 1, max: 8, step: 1, kinds: ['gantt'] }),
+    L('useWidth', 'num', { path: ['config', 'gantt', 'useWidth'], min: 300, max: 2000, step: 10, kinds: ['gantt'], hint: 'chart draw width' }),
+    L('topAxis', 'bool', { path: ['config', 'gantt', 'topAxis'], def: false, kinds: ['gantt'] }),
+    L('displayMode', 'enum', { path: ['config', 'gantt', 'displayMode'], values: ['', 'compact'], kinds: ['gantt'] }),
   ] },
-  { title: 'config.pie', items: [
-    L('textPosition', 'num', { path: ['config', 'pie', 'textPosition'], min: 0, max: 1, step: 0.05, hint: 'sector label radial position' }),
+  { title: 'config.pie', kinds: ['pie'], items: [
+    L('textPosition', 'num', { path: ['config', 'pie', 'textPosition'], min: 0, max: 1, step: 0.05, kinds: ['pie'], hint: 'sector label radial position' }),
   ] },
-  { title: 'config.gitGraph', items: [
-    L('showBranches', 'bool', { path: ['config', 'gitGraph', 'showBranches'], def: true }),
-    L('showCommitLabel', 'bool', { path: ['config', 'gitGraph', 'showCommitLabel'], def: true }),
-    L('rotateCommitLabel', 'bool', { path: ['config', 'gitGraph', 'rotateCommitLabel'], def: true }),
+  { title: 'config.gitGraph', kinds: ['gitGraph'], items: [
+    L('showBranches', 'bool', { path: ['config', 'gitGraph', 'showBranches'], def: true, kinds: ['gitGraph'] }),
+    L('showCommitLabel', 'bool', { path: ['config', 'gitGraph', 'showCommitLabel'], def: true, kinds: ['gitGraph'] }),
+    L('rotateCommitLabel', 'bool', { path: ['config', 'gitGraph', 'rotateCommitLabel'], def: true, kinds: ['gitGraph'] }),
   ] },
-  { title: 'config.xyChart', items: [
-    L('width', 'num', { path: ['config', 'xyChart', 'width'], min: 200, max: 1600, step: 10, def: 700 }),
-    L('height', 'num', { path: ['config', 'xyChart', 'height'], min: 150, max: 1200, step: 10, def: 500 }),
-    L('chartOrientation', 'enum', { path: ['config', 'xyChart', 'chartOrientation'], values: ['vertical', 'horizontal'] }),
-    L('showDataLabel', 'bool', { path: ['config', 'xyChart', 'showDataLabel'], def: false }),
+  { title: 'config.xyChart', kinds: ['xyChart'], items: [
+    L('width', 'num', { path: ['config', 'xyChart', 'width'], min: 200, max: 1600, step: 10, def: 700, kinds: ['xyChart'] }),
+    L('height', 'num', { path: ['config', 'xyChart', 'height'], min: 150, max: 1200, step: 10, def: 500, kinds: ['xyChart'] }),
+    L('chartOrientation', 'enum', { path: ['config', 'xyChart', 'chartOrientation'], values: ['vertical', 'horizontal'], kinds: ['xyChart'] }),
+    L('showDataLabel', 'bool', { path: ['config', 'xyChart', 'showDataLabel'], def: false, kinds: ['xyChart'] }),
   ] },
-  { title: 'config.quadrantChart', items: [
-    L('chartWidth', 'num', { path: ['config', 'quadrantChart', 'chartWidth'], min: 200, max: 1200, step: 10, def: 500 }),
-    L('chartHeight', 'num', { path: ['config', 'quadrantChart', 'chartHeight'], min: 200, max: 1200, step: 10, def: 500 }),
-    L('pointRadius', 'num', { path: ['config', 'quadrantChart', 'pointRadius'], min: 1, max: 20, step: 1 }),
-    L('quadrantPadding', 'num', { path: ['config', 'quadrantChart', 'quadrantPadding'], min: 0, max: 60, step: 1 }),
+  { title: 'config.quadrantChart', kinds: ['quadrantChart'], items: [
+    L('chartWidth', 'num', { path: ['config', 'quadrantChart', 'chartWidth'], min: 200, max: 1200, step: 10, def: 500, kinds: ['quadrantChart'] }),
+    L('chartHeight', 'num', { path: ['config', 'quadrantChart', 'chartHeight'], min: 200, max: 1200, step: 10, def: 500, kinds: ['quadrantChart'] }),
+    L('pointRadius', 'num', { path: ['config', 'quadrantChart', 'pointRadius'], min: 1, max: 20, step: 1, kinds: ['quadrantChart'] }),
+    L('quadrantPadding', 'num', { path: ['config', 'quadrantChart', 'quadrantPadding'], min: 0, max: 60, step: 1, kinds: ['quadrantChart'] }),
   ] },
-  { title: 'config.sankey', items: [
-    L('showValues', 'bool', { path: ['config', 'sankey', 'showValues'], def: true }),
-    L('nodeWidth', 'num', { path: ['config', 'sankey', 'nodeWidth'], min: 2, max: 60, step: 1, def: 10 }),
-    L('nodePadding', 'num', { path: ['config', 'sankey', 'nodePadding'], min: 0, max: 80, step: 1 }),
-    L('nodeAlignment', 'enum', { path: ['config', 'sankey', 'nodeAlignment'], values: ['justify', 'left', 'right', 'center'] }),
-    L('linkColor', 'enum', { path: ['config', 'sankey', 'linkColor'], values: ['gradient', 'source', 'target'] }),
-    L('width', 'num', { path: ['config', 'sankey', 'width'], min: 200, max: 1600, step: 10 }),
-    L('height', 'num', { path: ['config', 'sankey', 'height'], min: 150, max: 1200, step: 10, def: 400 }),
+  { title: 'config.sankey', kinds: ['sankey'], items: [
+    L('showValues', 'bool', { path: ['config', 'sankey', 'showValues'], def: true, kinds: ['sankey'] }),
+    L('nodeWidth', 'num', { path: ['config', 'sankey', 'nodeWidth'], min: 2, max: 60, step: 1, def: 10, kinds: ['sankey'] }),
+    L('nodePadding', 'num', { path: ['config', 'sankey', 'nodePadding'], min: 0, max: 80, step: 1, kinds: ['sankey'] }),
+    L('nodeAlignment', 'enum', { path: ['config', 'sankey', 'nodeAlignment'], values: ['justify', 'left', 'right', 'center'], kinds: ['sankey'] }),
+    L('linkColor', 'enum', { path: ['config', 'sankey', 'linkColor'], values: ['gradient', 'source', 'target'], kinds: ['sankey'] }),
+    L('width', 'num', { path: ['config', 'sankey', 'width'], min: 200, max: 1600, step: 10, kinds: ['sankey'] }),
+    L('height', 'num', { path: ['config', 'sankey', 'height'], min: 150, max: 1200, step: 10, def: 400, kinds: ['sankey'] }),
   ] },
-  { title: 'config.radar', items: [
-    L('width', 'num', { path: ['config', 'radar', 'width'], min: 200, max: 1200, step: 10 }),
-    L('height', 'num', { path: ['config', 'radar', 'height'], min: 200, max: 1200, step: 10 }),
+  { title: 'config.radar', kinds: ['radar'], items: [
+    L('width', 'num', { path: ['config', 'radar', 'width'], min: 200, max: 1200, step: 10, kinds: ['radar'] }),
+    L('height', 'num', { path: ['config', 'radar', 'height'], min: 200, max: 1200, step: 10, kinds: ['radar'] }),
   ] },
-  { title: 'config.packet', items: [
-    L('bitsPerRow', 'num', { path: ['config', 'packet', 'bitsPerRow'], min: 8, max: 64, step: 8, def: 32 }),
-    L('bitWidth', 'num', { path: ['config', 'packet', 'bitWidth'], min: 8, max: 60, step: 1 }),
-    L('rowHeight', 'num', { path: ['config', 'packet', 'rowHeight'], min: 16, max: 80, step: 1 }),
-    L('showBits', 'bool', { path: ['config', 'packet', 'showBits'], def: true }),
+  { title: 'config.packet', kinds: ['packet'], items: [
+    L('bitsPerRow', 'num', { path: ['config', 'packet', 'bitsPerRow'], min: 8, max: 64, step: 8, def: 32, kinds: ['packet'] }),
+    L('bitWidth', 'num', { path: ['config', 'packet', 'bitWidth'], min: 8, max: 60, step: 1, kinds: ['packet'] }),
+    L('rowHeight', 'num', { path: ['config', 'packet', 'rowHeight'], min: 16, max: 80, step: 1, kinds: ['packet'] }),
+    L('showBits', 'bool', { path: ['config', 'packet', 'showBits'], def: true, kinds: ['packet'] }),
   ] },
-  { title: 'config.treemap', items: [
-    L('diagramPadding', 'num', { path: ['config', 'treemap', 'diagramPadding'], min: 0, max: 60, step: 1, def: 8 }),
-    L('padding', 'num', { path: ['config', 'treemap', 'padding'], min: 0, max: 30, step: 1 }),
-    L('showValues', 'bool', { path: ['config', 'treemap', 'showValues'], def: true }),
+  { title: 'config.treemap', kinds: ['treemap'], items: [
+    L('diagramPadding', 'num', { path: ['config', 'treemap', 'diagramPadding'], min: 0, max: 60, step: 1, def: 8, kinds: ['treemap'] }),
+    L('padding', 'num', { path: ['config', 'treemap', 'padding'], min: 0, max: 30, step: 1, kinds: ['treemap'] }),
+    L('showValues', 'bool', { path: ['config', 'treemap', 'showValues'], def: true, kinds: ['treemap'] }),
   ] },
-  { title: 'config.railroad', items: [
-    L('arcRadius', 'num', { path: ['config', 'railroad', 'arcRadius'], min: 0, max: 30, step: 1 }),
-    L('verticalSeparation', 'num', { path: ['config', 'railroad', 'verticalSeparation'], min: 2, max: 60, step: 1 }),
-    L('horizontalSeparation', 'num', { path: ['config', 'railroad', 'horizontalSeparation'], min: 2, max: 60, step: 1 }),
-    L('strokeWidth', 'num', { path: ['config', 'railroad', 'strokeWidth'], min: 0.5, max: 6, step: 0.5 }),
+  { title: 'config.railroad', kinds: ['railroad'], items: [
+    L('arcRadius', 'num', { path: ['config', 'railroad', 'arcRadius'], min: 0, max: 30, step: 1, kinds: ['railroad'] }),
+    L('verticalSeparation', 'num', { path: ['config', 'railroad', 'verticalSeparation'], min: 2, max: 60, step: 1, kinds: ['railroad'] }),
+    L('horizontalSeparation', 'num', { path: ['config', 'railroad', 'horizontalSeparation'], min: 2, max: 60, step: 1, kinds: ['railroad'] }),
+    L('strokeWidth', 'num', { path: ['config', 'railroad', 'strokeWidth'], min: 0.5, max: 6, step: 0.5, kinds: ['railroad'] }),
   ] },
-  { title: 'config.treeView', items: [
-    L('rowIndent', 'num', { path: ['config', 'treeView', 'rowIndent'], min: 4, max: 80, step: 1 }),
-    L('lineThickness', 'num', { path: ['config', 'treeView', 'lineThickness'], min: 0.5, max: 6, step: 0.5 }),
+  { title: 'config.treeView', kinds: ['treeView'], items: [
+    L('rowIndent', 'num', { path: ['config', 'treeView', 'rowIndent'], min: 4, max: 80, step: 1, kinds: ['treeView'] }),
+    L('lineThickness', 'num', { path: ['config', 'treeView', 'lineThickness'], min: 0.5, max: 6, step: 0.5, kinds: ['treeView'] }),
   ] },
-  { title: 'config.architecture', items: [
-    L('iconSize', 'num', { path: ['config', 'architecture', 'iconSize'], min: 20, max: 140, step: 2 }),
-    L('padding', 'num', { path: ['config', 'architecture', 'padding'], min: 0, max: 100, step: 2 }),
+  { title: 'config.architecture', kinds: ['architecture'], items: [
+    L('iconSize', 'num', { path: ['config', 'architecture', 'iconSize'], min: 20, max: 140, step: 2, kinds: ['architecture'] }),
+    L('padding', 'num', { path: ['config', 'architecture', 'padding'], min: 0, max: 100, step: 2, kinds: ['architecture'] }),
   ] },
-  { title: 'config.cynefin', items: [
-    L('boundaryAmplitude', 'num', { path: ['config', 'cynefin', 'boundaryAmplitude'], min: 0, max: 40, step: 1, hint: 'domain boundary wobble' }),
-    L('width', 'num', { path: ['config', 'cynefin', 'width'], min: 300, max: 1400, step: 10 }),
+  { title: 'config.cynefin', kinds: ['cynefin'], items: [
+    L('boundaryAmplitude', 'num', { path: ['config', 'cynefin', 'boundaryAmplitude'], min: 0, max: 40, step: 1, kinds: ['cynefin'], hint: 'domain boundary wobble' }),
+    L('width', 'num', { path: ['config', 'cynefin', 'width'], min: 300, max: 1400, step: 10, kinds: ['cynefin'] }),
   ] },
-  { title: 'config.usecase', items: [
-    L('nodeSpacing', 'num', { path: ['config', 'usecase', 'nodeSpacing'], min: 4, max: 200, step: 2 }),
-    L('rankSpacing', 'num', { path: ['config', 'usecase', 'rankSpacing'], min: 4, max: 240, step: 2 }),
+  { title: 'config.usecase', kinds: ['usecase'], items: [
+    L('nodeSpacing', 'num', { path: ['config', 'usecase', 'nodeSpacing'], min: 4, max: 200, step: 2, kinds: ['usecase'] }),
+    L('rankSpacing', 'num', { path: ['config', 'usecase', 'rankSpacing'], min: 4, max: 240, step: 2, kinds: ['usecase'] }),
   ] },
-  { title: 'config.agentflow', items: [
-    L('rankSpacing', 'num', { path: ['config', 'agentflow', 'rankSpacing'], min: 4, max: 240, step: 2 }),
+  { title: 'config.agentflow', kinds: ['agentflow'], items: [
+    L('rankSpacing', 'num', { path: ['config', 'agentflow', 'rankSpacing'], min: 4, max: 240, step: 2, kinds: ['agentflow'] }),
   ] },
-  { title: 'config.mindmap', items: [
-    L('maxNodeWidth', 'num', { path: ['config', 'mindmap', 'maxNodeWidth'], min: 40, max: 500, step: 5, def: 200 }),
+  { title: 'config.mindmap', kinds: ['mindmap'], items: [
+    L('maxNodeWidth', 'num', { path: ['config', 'mindmap', 'maxNodeWidth'], min: 40, max: 500, step: 5, def: 200, kinds: ['mindmap'] }),
   ] },
-  { title: 'config.kanban', items: [
-    L('sectionWidth', 'num', { path: ['config', 'kanban', 'sectionWidth'], min: 80, max: 500, step: 5 }),
+  { title: 'config.kanban', kinds: ['kanban'], items: [
+    L('sectionWidth', 'num', { path: ['config', 'kanban', 'sectionWidth'], min: 80, max: 500, step: 5, kinds: ['kanban'] }),
   ] },
-  { title: 'config.block', items: [
-    L('padding', 'num', { path: ['config', 'block', 'padding'], min: 0, max: 60, step: 1 }),
+  { title: 'config.block', kinds: ['block'], items: [
+    L('padding', 'num', { path: ['config', 'block', 'padding'], min: 0, max: 60, step: 1, kinds: ['block'] }),
   ] },
 ];
 export const ALL_OPTS = [];
-OPT_GROUPS.forEach((g, gi) => g.items.forEach((o, oi) => { o.id = `g${gi}-${o.key}-${oi}`; o.group = g.title; ALL_OPTS.push(o); }));
+OPT_GROUPS.forEach((g, gi) => g.items.forEach((o, oi) => {
+  o.id = `g${gi}-${o.key}-${oi}`;
+  o.group = g.title;
+  if (!o.kinds) o.kinds = g.kinds || ['all'];
+  ALL_OPTS.push(o);
+}));
+
+/** True when an option/var applies to the active diagram kind filter. */
+export function matchesDiagramKind(kinds, filter) {
+  if (!filter || filter === 'all') return true;
+  const list = kinds && kinds.length ? kinds : ['all'];
+  return list.includes('all') || list.includes(filter);
+}
 
 export function factoryOpts() {
   const v = {};

@@ -17,7 +17,7 @@ import {
   VAR_META, FACTORY, DARK, THEME_PRESETS, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
-import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId } from './lib.js';
+import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, detectDiagramType } from './lib.js';
 import { useTweakpeleBridge } from './bridge.js';
 
 const LIB_KEY = 'tweakpele.library.v1';
@@ -351,6 +351,12 @@ export default function App() {
   const current = route.view === 'edit' ? findDiagram(route.id) : null;
   const focusedIdx = focusedId ? diagrams.findIndex((d) => d.id === focusedId) : -1;
   const focusedDiagram = focusedIdx >= 0 ? diagrams[focusedIdx] : null;
+  // Editor → open diagram; gallery → focused diagram. Drives toolbox type filter.
+  const activeForType = route.view === 'edit' ? current : focusedDiagram;
+  const activeDiagramType = useMemo(
+    () => detectDiagramType(activeForType?.source, activeForType?.keyword),
+    [activeForType?.source, activeForType?.keyword],
+  );
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';
 
   return (
@@ -389,6 +395,7 @@ export default function App() {
           vars={vars} onVarChange={onVarChange} onApplyPreset={applyThemePreset}
           optVals={optVals} onOptChange={onOptChange} onOptReset={onOptReset}
           cssBlock={cssBlock} optionsJson={optionsJson}
+          diagramType={activeDiagramType}
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}

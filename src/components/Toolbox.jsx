@@ -1,5 +1,9 @@
-import { memo } from 'react';
-import { VAR_META, OPT_GROUPS, THEME_PRESETS, matchThemePreset } from '../constants.js';
+import { memo, useEffect, useMemo, useState } from 'react';
+import {
+  VAR_META, OPT_GROUPS, THEME_PRESETS, matchThemePreset,
+  DIAGRAM_KINDS, matchesDiagramKind,
+} from '../constants.js';
+import { fuzzyMatch, fuzzyScore } from '../lib.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v).trim());
 function expandHex(hex) {
@@ -47,10 +51,12 @@ const PresetCard = memo(function PresetCard({ preset, selected, onSelect }) {
 });
 
 const VarRow = memo(function VarRow({ meta, value, onChange }) {
+  const short = meta.label || meta.name.replace(/^--pele-/, '');
   return (
     <div className="var-row">
       <div className="var-meta">
-        <span className="var-name">{meta.name}</span>
+        <span className="var-label">{short}</span>
+        <span className="var-name" title={meta.name}>{meta.name}</span>
         <span className="var-hint">{meta.hint}</span>
       </div>
       <div className="var-controls">
@@ -126,11 +132,17 @@ const OptRow = memo(function OptRow({ o, value, onChange, onReset }) {
   }
   const modified = o.kind !== 'font' && value !== undefined && value !== o.factory;
   const def = o.def !== undefined ? ` · default ${o.def}` : '';
+  const pathHint = o.path ? o.path.join('.') : o.key;
+  const kindTag = (o.kinds && !o.kinds.includes('all'))
+    ? o.kinds.join(', ')
+    : 'all';
   return (
     <div className={'opt-row' + (o.kind === 'font' || o.kind === 'checks' ? ' wide' : '') + (modified ? ' set' : '')}>
-      <label className="opt-name">{o.key}
-        <span className="opt-hint">{(o.path ? o.path.join('.') : o.key) + def}</span>
+      <label className="opt-name">
+        <span className="opt-key">{o.key}</span>
+        <span className="opt-hint">{pathHint}{def}</span>
         {o.hint && <span className="opt-hint">{o.hint}</span>}
+        <span className="opt-kind-tag" title="Affects diagram kinds">{kindTag}</span>
       </label>
       <div className="opt-ctl">
         {ctl}
@@ -143,9 +155,93 @@ const OptRow = memo(function OptRow({ o, value, onChange, onReset }) {
   );
 });
 
-export default function Toolbox({ vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset, cssBlock, optionsJson }) {
+function ListFilterBar({
+  search, onSearch, searchPlaceholder,
+  typeFilter, onTypeFilter, autoType, kinds,
+}) {
+  return (
+    <div className="list-filter-bar">
+      <input
+        type="search"
+        className="list-filter-search"
+        placeholder={searchPlaceholder}
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        aria-label={searchPlaceholder}
+      />
+      <select
+        className="list-filter-type"
+        value={typeFilter}
+        onChange={(e) => onTypeFilter(e.target.value)}
+        aria-label="Filter by diagram type"
+        title={autoType ? `Auto: ${autoType}` : 'All diagram types'}
+      >
+        <option value="all">All types</option>
+        {kinds.map((k) => (
+          <option key={k} value={k}>{k}{autoType === k ? ' · focused' : ''}</option>
+        ))}
+      </select>
+      {autoType && typeFilter === autoType && (
+        <span className="list-filter-auto" title="Filter follows focused / edited diagram">auto</span>
+      )}
+      {typeFilter !== 'all' && typeFilter !== autoType && (
+        <button type="button" className="list-filter-clear" onClick={() => onTypeFilter(autoType || 'all')}>
+          {autoType ? 'Reset auto' : 'Clear'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function Toolbox({
+  vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset,
+  cssBlock, optionsJson, diagramType = null,
+}) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
   const active = matchThemePreset(vars);
+
+  const [varQuery, setVarQuery] = useState('');
+  const [optQuery, setOptQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  // When focusing / editing a Mermaid of a known type, auto-apply that type filter.
+  useEffect(() => {
+    if (diagramType) setTypeFilter(diagramType);
+    else setTypeFilter('all');
+  }, [diagramType]);
+
+  const filteredVars = useMemo(() => {
+    const scored = VAR_META
+      .filter((meta) => matchesDiagramKind(meta.kinds, typeFilter))
+      .map((meta) => {
+        const hay = [meta.label, meta.name, meta.hint, meta.name.replace(/^--pele-/, '')];
+        if (!fuzzyMatch(varQuery, hay)) return null;
+        const score = Math.max(...hay.map((h) => fuzzyScore(varQuery, h)));
+        return { meta, score };
+      })
+      .filter(Boolean);
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map((s) => s.meta);
+  }, [varQuery, typeFilter]);
+
+  const filteredGroups = useMemo(() => {
+    return OPT_GROUPS.map((g) => {
+      const items = g.items
+        .filter((o) => matchesDiagramKind(o.kinds || g.kinds, typeFilter))
+        .map((o) => {
+          const hay = [o.key, o.hint, o.group, g.title, g.note, (o.path || []).join('.'), (o.kinds || []).join(' ')];
+          if (!fuzzyMatch(optQuery, hay)) return null;
+          const score = Math.max(...hay.map((h) => fuzzyScore(optQuery, h)));
+          return { o, score };
+        })
+        .filter(Boolean);
+      items.sort((a, b) => b.score - a.score);
+      return { ...g, items: items.map((x) => x.o) };
+    }).filter((g) => g.items.length > 0);
+  }, [optQuery, typeFilter]);
+
+  const visibleOptCount = filteredGroups.reduce((n, g) => n + g.items.length, 0);
+
   return (
     <aside className="toolbox" aria-label="Toolbox">
       <details className="section" open>
@@ -165,19 +261,53 @@ export default function Toolbox({ vars, onVarChange, onApplyPreset, optVals, onO
         </div>
       </details>
       <details className="section" open>
-        <summary className="panel-head">CSS variables <span className="count">{VAR_META.length}</span></summary>
+        <summary className="panel-head">
+          CSS variables
+          <span className="count">{filteredVars.length}/{VAR_META.length}</span>
+        </summary>
+        <ListFilterBar
+          search={varQuery}
+          onSearch={setVarQuery}
+          searchPlaceholder="Search CSS vars…"
+          typeFilter={typeFilter}
+          onTypeFilter={setTypeFilter}
+          autoType={diagramType}
+          kinds={DIAGRAM_KINDS}
+        />
         <div className="vars-list">
-          {VAR_META.map((meta) => (
+          {filteredVars.length === 0 ? (
+            <div className="list-empty">No CSS variables match.</div>
+          ) : filteredVars.map((meta) => (
             <VarRow key={meta.name} meta={meta} value={vars[meta.name]} onChange={onVarChange} />
           ))}
         </div>
       </details>
       <details className="section" open>
-        <summary className="panel-head">Render options <span className="count">Pele / Mermaid API</span></summary>
+        <summary className="panel-head">
+          Render options
+          <span className="count">{visibleOptCount} shown · Pele / Mermaid</span>
+        </summary>
+        <ListFilterBar
+          search={optQuery}
+          onSearch={setOptQuery}
+          searchPlaceholder="Search render options…"
+          typeFilter={typeFilter}
+          onTypeFilter={setTypeFilter}
+          autoType={diagramType}
+          kinds={DIAGRAM_KINDS}
+        />
         <div className="opts-list">
-          {OPT_GROUPS.map((g) => (
+          {filteredGroups.length === 0 ? (
+            <div className="list-empty">No render options match this type / search.</div>
+          ) : filteredGroups.map((g) => (
             <div key={g.title}>
-              <div className="opt-group">{g.title}{g.note && <small>{g.note}</small>}</div>
+              <div className="opt-group">
+                {g.title}
+                {g.note && <small>{g.note}</small>}
+                {g.kinds && !g.kinds.includes('all') && (
+                  <small className="opt-group-kinds">{g.kinds.join(' · ')}</small>
+                )}
+              </div>
               {g.items.map((o) => (
                 <OptRow key={o.id} o={o} value={optValue(o)} onChange={onOptChange} onReset={onOptReset} />
               ))}

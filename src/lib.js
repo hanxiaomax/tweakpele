@@ -77,3 +77,118 @@ export function usePersistedState(key, init) {
 export function newId() {
   return `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
+
+/** Normalize a Mermaid keyword / first-token into a toolbox diagram kind. */
+const KIND_ALIASES = {
+  flowchart: 'flowchart', graph: 'flowchart',
+  sequencediagram: 'sequence', sequence: 'sequence',
+  classdiagram: 'class', class: 'class',
+  statediagram: 'state', 'statediagram-v2': 'state', state: 'state',
+  erdiagram: 'er', er: 'er',
+  gantt: 'gantt',
+  pie: 'pie',
+  gitgraph: 'gitGraph',
+  mindmap: 'mindmap',
+  timeline: 'timeline',
+  sankey: 'sankey', 'sankey-beta': 'sankey',
+  xychart: 'xyChart', 'xychart-beta': 'xyChart',
+  quadrantchart: 'quadrantChart',
+  kanban: 'kanban',
+  architecture: 'architecture', 'architecture-beta': 'architecture',
+  radar: 'radar',
+  packet: 'packet', 'packet-beta': 'packet',
+  treemap: 'treemap', 'treemap-beta': 'treemap',
+  railroad: 'railroad', 'railroad-beta': 'railroad',
+  treeview: 'treeView', 'tree-view': 'treeView',
+  cynefin: 'cynefin', 'cynefin-beta': 'cynefin',
+  usecase: 'usecase', usecasediagram: 'usecase',
+  agentflow: 'agentflow', 'agentflow-beta': 'agentflow',
+  block: 'block', 'block-beta': 'block',
+  journey: 'journey',
+  swimlane: 'swimlane', 'swimlane-beta': 'swimlane',
+  requirement: 'requirement', requirementdiagram: 'requirement',
+  c4context: 'c4', c4container: 'c4', c4component: 'c4', c4dynamic: 'c4', c4deployment: 'c4',
+  venn: 'venn', 'venn-beta': 'venn',
+  wardley: 'wardley',
+  ishikawa: 'ishikawa',
+  eventmodeling: 'eventmodeling',
+  info: 'info',
+};
+
+export function normalizeDiagramKind(raw) {
+  if (!raw) return null;
+  const k = String(raw).trim().toLowerCase();
+  if (!k) return null;
+  if (KIND_ALIASES[k]) return KIND_ALIASES[k];
+  const stripped = k.replace(/-beta$/, '').replace(/diagram$/, '');
+  return KIND_ALIASES[stripped] || KIND_ALIASES[k.replace(/-beta$/, '')] || null;
+}
+
+/** Detect Mermaid diagram kind from keyword and/or source text. */
+export function detectDiagramType(source, keyword) {
+  const fromKw = normalizeDiagramKind(keyword);
+  if (fromKw) return fromKw;
+  if (!source) return null;
+  for (const raw of String(source).split(/\r?\n/)) {
+    let line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('%%')) continue;
+    if (line === '---' || line.startsWith('---')) continue;
+    // Mermaid init / frontmatter directives
+    if (line.startsWith('%%{') || line.startsWith('%%}')) continue;
+    const m = line.match(/^([A-Za-z][A-Za-z0-9_-]*)/);
+    if (!m) continue;
+    const kind = normalizeDiagramKind(m[1]);
+    if (kind) return kind;
+  }
+  return null;
+}
+
+/** Strip separators so "node spac" matches nodeSpacing. */
+function normFuzzy(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * Lightweight fuzzy score for toolbox search.
+ * 0 = no match; higher is better. Empty query matches everything (score 1).
+ */
+export function fuzzyScore(query, text) {
+  const rawQ = String(query || '').trim().toLowerCase();
+  if (!rawQ) return 1;
+  const rawT = String(text || '').toLowerCase();
+  if (!rawT) return 0;
+  if (rawT === rawQ) return 100;
+  if (rawT.startsWith(rawQ)) return 80;
+  const idx = rawT.indexOf(rawQ);
+  if (idx >= 0) return 60 - Math.min(idx, 40);
+
+  const q = normFuzzy(rawQ);
+  const t = normFuzzy(rawT);
+  if (!q) return 1;
+  if (!t) return 0;
+  if (t === q) return 90;
+  if (t.startsWith(q)) return 70;
+  const nidx = t.indexOf(q);
+  if (nidx >= 0) return 50 - Math.min(nidx, 30);
+
+  // subsequence match on normalized strings
+  let ti = 0;
+  let score = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const ch = q[qi];
+    let found = -1;
+    for (let j = ti; j < t.length; j++) {
+      if (t[j] === ch) { found = j; break; }
+    }
+    if (found < 0) return 0;
+    score += found === ti ? 2 : 1;
+    ti = found + 1;
+  }
+  return Math.max(1, score);
+}
+
+export function fuzzyMatch(query, parts) {
+  if (!String(query || '').trim()) return true;
+  return parts.some((p) => fuzzyScore(query, p) > 0);
+}
