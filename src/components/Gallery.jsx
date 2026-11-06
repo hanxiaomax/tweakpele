@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuPlus as Plus, LuFocus as Focus,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
@@ -6,13 +6,22 @@ import {
 import PeleHost from './PeleHost.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
-import { detectDiagramType } from '../lib.js';
+import { detectDiagramType, clamp, usePersistedState } from '../lib.js';
 import { hasTypeSpecificFields } from '../diagramOverrides.js';
 
-const Card = memo(function Card({ d, optionsFor, styleApi, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
+const GALLERY_COLS_KEY = 'tweakpele.galleryCols.v1';
+const COL_MIN = 1;
+const COL_MAX = 6;
+/** Wheel delta accumulated before stepping one column (trackpad-friendly). */
+const WHEEL_STEP = 90;
+
+const Card = memo(function Card({
+  d, optionsFor, styleApi, showStylePanel,
+  onOpen, onDuplicate, onDelete, onFocus, onCardMenu,
+}) {
   const dirty = d.source !== d.original;
   const type = detectDiagramType(d.source, d.keyword);
-  const showTypePanel = !!styleApi && !!type && type !== 'c4' && hasTypeSpecificFields(type);
+  const showTypePanel = showStylePanel && !!styleApi && !!type && type !== 'c4' && hasTypeSpecificFields(type);
 
   return (
     <article
@@ -57,10 +66,44 @@ export default function Gallery({
   onOpen, onDuplicate, onDelete, onNew, onFocus, onFocusPrev, onFocusNext,
   onCardMenu, onBoardMenu,
 }) {
+  const [cols, setCols] = usePersistedState(GALLERY_COLS_KEY, (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? clamp(Math.round(n), COL_MIN, COL_MAX) : 3;
+  });
+  const rootRef = useRef(null);
+  const wheelAcc = useRef(0);
+  const single = cols === 1;
+
+  // Non-passive wheel so we can preventDefault (React's delegated onWheel is passive).
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return undefined;
+    const onWheel = (e) => {
+      if (e.target.closest && e.target.closest('input, textarea, select, button, a, .diagram-style-panel')) return;
+      const dy = e.deltaY;
+      if (!dy) return;
+      e.preventDefault();
+      wheelAcc.current += dy;
+      while (wheelAcc.current <= -WHEEL_STEP) {
+        wheelAcc.current += WHEEL_STEP;
+        setCols((c) => clamp(c - 1, COL_MIN, COL_MAX));
+      }
+      while (wheelAcc.current >= WHEEL_STEP) {
+        wheelAcc.current -= WHEEL_STEP;
+        setCols((c) => clamp(c + 1, COL_MIN, COL_MAX));
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [setCols]);
+
   return (
     <section
+      ref={rootRef}
       className="gallery"
       aria-label="Diagram gallery"
+      data-cols={cols}
+      style={{ '--gallery-cols': cols }}
       onContextMenu={(e) => {
         if (e.target.closest('[data-card]')) return;
         e.preventDefault();
@@ -72,13 +115,17 @@ export default function Gallery({
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onFocusPrev} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} />
           <span className="muted">
-            {`${diagrams.length} diagrams · click to focus`}
+            {`${diagrams.length} diagrams · ${cols} col${cols === 1 ? '' : 's'} · wheel zooms density`}
           </span>
         </div>
       )}
       {diagrams.length > 0 && (
         <div className="gallery-hint">
-          <span>Click a card to focus · Pele zoom in focus · ←/→ prev/next · Esc/F exit</span>
+          <span>
+            {single
+              ? '1×1 · type panel on cards · click to focus · wheel zooms out for more columns'
+              : 'Wheel zooms columns · type panel only at 1×1 · click to focus · Esc/F exit focus'}
+          </span>
           <span>Right-click empty space to create · Duplicate / Save as from the card menu</span>
         </div>
       )}
@@ -92,6 +139,7 @@ export default function Gallery({
       {diagrams.map((d) => (
         <Card
           key={d.id} d={d} optionsFor={optionsFor} styleApi={styleApi}
+          showStylePanel={single}
           onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete}
           onFocus={onFocus} onCardMenu={onCardMenu}
         />

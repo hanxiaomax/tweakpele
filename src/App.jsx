@@ -111,12 +111,17 @@ export default function App() {
     maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600),
     responsive: false,
   }), [debouncedMountOptions]);
-  // Focus: allow Pele.js native zoom/pan (wheel, pinch, +/− overlay). Gallery/canvas keep zoom off.
-  const focusedOptions = useMemo(() => ({
-    ...debouncedMountOptions,
-    zoom: debouncedMountOptions.zoom === false ? true : (debouncedMountOptions.zoom ?? true),
-    maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600),
-  }), [debouncedMountOptions]);
+  // Focus: Pele native zoom/pan. Host CSS fills the body so SVG is not mid-box clipped;
+  // keep FocusedView chrome (card) as-is — do not reintroduce scrim/overview dimming.
+  const focusedOptions = useMemo(() => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1600;
+    return {
+      ...debouncedMountOptions,
+      zoom: debouncedMountOptions.zoom === false ? true : (debouncedMountOptions.zoom ?? true),
+      maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600, Math.floor(vw * 1.25)),
+      responsive: false,
+    };
+  }, [debouncedMountOptions]);
   const varsStyle = useMemo(() => {
     const o = {};
     for (const { name } of VAR_META) o[name] = vars[name];
@@ -143,11 +148,15 @@ export default function App() {
       maxWidth: Math.max(Number(built.maxWidth) || 0, 1600),
       responsive: false,
     };
-    if (view === 'focused') return {
-      ...built,
-      zoom: built.zoom === false ? true : (built.zoom ?? true),
-      maxWidth: Math.max(Number(built.maxWidth) || 0, 1600),
-    };
+    if (view === 'focused') {
+      const vw = typeof window !== 'undefined' ? window.innerWidth : 1600;
+      return {
+        ...built,
+        zoom: built.zoom === false ? true : (built.zoom ?? true),
+        maxWidth: Math.max(Number(built.maxWidth) || 0, 1600, Math.floor(vw * 1.25)),
+        responsive: false,
+      };
+    }
     return built;
     // remeasureTick mirrors the shared mountOptions dependency (font/radius re-measure)
     // eslint-disable-next-line react-hooks/exhaustive-deps
