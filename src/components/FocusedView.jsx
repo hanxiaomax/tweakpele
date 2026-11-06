@@ -12,7 +12,7 @@ import { detectDiagramType } from '../lib.js';
 import { hasTypeSpecificFields } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
 
-/** Expand a diagram inside the current canvas/gallery workspace (not a separate page). */
+/** Expand a diagram inside the current view, retaining its card chrome. */
 export default function FocusedView({
   diagram, options, index, total,
   onClose, onPrev, onNext, onEdit, onDuplicate, onDelete, onMenu,
@@ -75,7 +75,7 @@ export default function FocusedView({
       <div
         className={'focused-view-body' + (c4 ? ' c4-interactive' : '')}
         ref={bodyRef}
-        title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele zoom fills the canvas: wheel / pinch, +/− overlay, +/− keys, double-click to fit'}
+        title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +/− overlay, +/− keys, double-click to fit'}
         onClick={onBodyClick}
         style={styleApi?.varsStyleFor?.(diagram.id)}
       >
