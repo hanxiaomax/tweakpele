@@ -11,7 +11,7 @@ import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
 import EditorView from './components/EditorView.jsx';
-import FocusOverlay from './components/FocusOverlay.jsx';
+import FocusedView from './components/FocusedView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import {
   VAR_META, FACTORY, DARK, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
@@ -157,7 +157,7 @@ export default function App() {
   const focusPrev = useCallback(() => focusStep(-1), [focusStep]);
   const focusNext = useCallback(() => focusStep(1), [focusStep]);
 
-  // global shortcuts: T = toolbox, Esc = back to gallery
+  // Global shortcuts: T toggles the toolbox; Esc/F exit focus; arrows step diagrams.
   useEffect(() => {
     const onKey = (e) => {
       const t = e.target;
@@ -308,22 +308,34 @@ export default function App() {
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
           {route.view === 'gallery' && (
             <div className="view-holder">
-              {viewMode === 'gallery' ? (
-                <Gallery
-                  diagrams={diagrams} galleryOptions={galleryOptions} focusedId={focusedId}
-                  onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                  onNew={() => setNewOpen(true)}
-                  onFocus={focusDiagram} onClearFocus={clearFocus}
-                  onFocusPrev={focusPrev} onFocusNext={focusNext}
-                  onCardMenu={cardMenu} onBoardMenu={boardMenu}
-                />
-              ) : (
-                <Canvas
-                  diagrams={diagrams} canvasOptions={canvasOptions} focusedId={focusedId}
-                  onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                  onFocus={focusDiagram} onClearFocus={clearFocus}
-                  onFocusPrev={focusPrev} onFocusNext={focusNext}
-                  onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+              {/* Keep overview geometry and state while focus occupies the same content slot. */}
+              <div className="overview-view" aria-hidden={!!focusedDiagram} inert={focusedDiagram ? '' : undefined}>
+                {viewMode === 'gallery' ? (
+                  <Gallery
+                    diagrams={diagrams} galleryOptions={galleryOptions}
+                    onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                    onNew={() => setNewOpen(true)}
+                    onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
+                    onCardMenu={cardMenu} onBoardMenu={boardMenu}
+                  />
+                ) : (
+                  <Canvas
+                    diagrams={diagrams} canvasOptions={canvasOptions}
+                    onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                    onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
+                    onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+                  />
+                )}
+              </div>
+              {focusedDiagram && (
+                <FocusedView
+                  key={focusedDiagram.id}
+                  diagram={focusedDiagram}
+                  options={viewMode === 'gallery' ? galleryOptions : canvasOptions}
+                  index={focusedIdx} total={diagrams.length}
+                  onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
+                  onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                  onMenu={cardMenu}
                 />
               )}
             </div>
@@ -340,21 +352,6 @@ export default function App() {
               />
             : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
                <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}
-          {focusedDiagram && route.view !== 'edit' && (
-            <FocusOverlay
-              diagram={focusedDiagram}
-              options={viewMode === 'gallery' ? galleryOptions : canvasOptions}
-              index={focusedIdx}
-              total={diagrams.length}
-              onClose={clearFocus}
-              onPrev={focusPrev}
-              onNext={focusNext}
-              onEdit={openEditor}
-              onDuplicate={duplicateDiagram}
-              onDelete={deleteDiagram}
-              onMenu={cardMenu}
-            />
-          )}
         </div>
       </main>
 

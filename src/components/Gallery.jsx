@@ -1,30 +1,21 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo } from 'react';
 import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuPlus as Plus, LuFocus as Focus,
-  LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuMaximize2 as Maximize2,
+  LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
 
-const Card = memo(function Card({ d, galleryOptions, focused, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
+const Card = memo(function Card({ d, galleryOptions, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
   const dirty = d.source !== d.original;
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (focused && ref.current) {
-      ref.current.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-    }
-  }, [focused]);
 
   return (
     <article
-      ref={ref}
-      className={'card' + (dirty ? ' edited' : '') + (focused ? ' focused' : '')}
+      className={'card' + (dirty ? ' edited' : '')}
       data-card={d.id}
       onClick={() => onFocus(d.id)}
-      onDoubleClick={() => onOpen(d.id)}
       onContextMenu={(e) => { e.preventDefault(); onCardMenu(e, d); }}
-      title={`Focus “${d.title}” · double-click to edit`}
+      title={`Focus “${d.title}”`}
     >
       <header className="card-title">
         <b>{d.title}</b>
@@ -44,16 +35,13 @@ const Card = memo(function Card({ d, galleryOptions, focused, onOpen, onDuplicat
 });
 
 export default function Gallery({
-  diagrams, galleryOptions, focusedId,
-  onOpen, onDuplicate, onDelete, onNew, onFocus, onClearFocus, onFocusPrev, onFocusNext,
+  diagrams, galleryOptions,
+  onOpen, onDuplicate, onDelete, onNew, onFocus, onFocusPrev, onFocusNext,
   onCardMenu, onBoardMenu,
 }) {
-  const idx = diagrams.findIndex((d) => d.id === focusedId);
-  const focused = idx >= 0 ? diagrams[idx] : null;
-
   return (
     <section
-      className={'gallery' + (focusedId ? ' focus-mode' : '')}
+      className="gallery"
       aria-label="Diagram gallery"
       onContextMenu={(e) => {
         if (e.target.closest('[data-card]')) return;
@@ -65,15 +53,14 @@ export default function Gallery({
         <div className="gallery-carousel" onClick={(e) => e.stopPropagation()}>
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onFocusPrev} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} />
-          <IconButton Icon={Maximize2} label="Clear focus / show all" onClick={onClearFocus} disabled={!focusedId} />
           <span className="muted">
-            {focusedId ? `${idx + 1} / ${diagrams.length} · ${focused?.title || ''}` : `${diagrams.length} diagrams · click to focus`}
+            {`${diagrams.length} diagrams · click to focus`}
           </span>
         </div>
       )}
       {diagrams.length > 0 && (
         <div className="gallery-hint">
-          <span>Click a card to focus · double-click to edit · ←/→ prev/next</span>
+          <span>Click a card to focus · ←/→ prev/next · Esc/F exit focus</span>
           <span>Right-click empty space to create · Duplicate / Save as from the card menu</span>
         </div>
       )}
@@ -86,7 +73,7 @@ export default function Gallery({
       )}
       {diagrams.map((d) => (
         <Card
-          key={d.id} d={d} galleryOptions={galleryOptions} focused={focusedId === d.id}
+          key={d.id} d={d} galleryOptions={galleryOptions}
           onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete}
           onFocus={onFocus} onCardMenu={onCardMenu}
         />

@@ -46,12 +46,6 @@ export function ContextMenu({ menu, onClose }) {
     };
   }, [menu, onClose]);
 
-  // Reset position when a new menu opens so layout effect remeasures.
-  useEffect(() => {
-    if (!menu) setPos(null);
-    else setPos({ left: menu.x, top: menu.y });
-  }, [menu]);
-
   useLayoutEffect(() => {
     if (!menu || !ref.current) return;
     const el = ref.current;
@@ -69,11 +63,11 @@ export function ContextMenu({ menu, onClose }) {
     }
     if (x < pad) x = pad;
     if (y < pad) y = pad;
-    setPos({ left: Math.round(x), top: Math.round(y) });
+    setPos({ menu, left: Math.round(x), top: Math.round(y) });
   }, [menu]);
 
   if (!menu) return null;
-  const style = pos
+  const style = pos?.menu === menu
     ? { left: pos.left, top: pos.top }
     : { left: menu.x, top: menu.y };
   return (

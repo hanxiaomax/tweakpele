@@ -16,7 +16,7 @@ const PAD = 24;
 const FALLBACK_W = 640;
 const FALLBACK_H = 280;
 
-const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize, focused }) {
+const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize }) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
 
@@ -38,7 +38,7 @@ const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, o
   return (
     <article
       ref={shellRef}
-      className={'canvas-frame' + (dirty ? ' edited' : '') + (focused ? ' focused' : '')}
+      className={'canvas-frame' + (dirty ? ' edited' : '')}
       data-frame={d.id}
       onDoubleClick={(e) => { e.stopPropagation(); onFocus(d.id); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onFrameMenu(e, d); }}
@@ -67,7 +67,7 @@ const Frame = memo(function Frame({ d, options, onOpen, onDuplicate, onDelete, o
 });
 
 export default function Canvas({
-  diagrams, canvasOptions, focusedId, onFocus, onClearFocus, onFocusPrev, onFocusNext,
+  diagrams, canvasOptions, onFocus, onFocusPrev, onFocusNext,
   onOpen, onDuplicate, onDelete, onFrameMenu, onBoardMenu,
 }) {
   const vpRef = useRef(null);
@@ -133,17 +133,9 @@ export default function Canvas({
   }, [applyCam]);
 
   const fitAll = useCallback((animate = true) => {
-    onClearFocus();
     if (animate !== false) userMovedRef.current = false;
     fitRect(worldBounds(), 36, animate !== false);
-  }, [fitRect, worldBounds, onClearFocus]);
-
-  const focusFrame = useCallback((id, animate = true) => {
-    const p = positions.get(id);
-    if (!p) return;
-    if (animate) userMovedRef.current = false;
-    fitRect({ x: p.x, y: p.y, w: p.w, h: p.h }, 28, animate);
-  }, [fitRect, positions]);
+  }, [fitRect, worldBounds]);
 
   const zoomAt = useCallback((px, py, factor, animate) => {
     const c = camRef.current;
@@ -168,23 +160,16 @@ export default function Canvas({
     sizeTimer.current = setTimeout(() => setLayoutTick((t) => t + 1), 48);
   }, []);
 
-  // Camera policy: keep the focused frame (or the whole world) in view unless the user panned away.
+  // Auto-fit the overview until the user moves it. Focus never changes this camera.
   const followCamera = useCallback((animate = false) => {
     if (userMovedRef.current) return;
-    if (focusedId) focusFrame(focusedId, animate);
-    else fitRect(worldBounds(), 36, animate);
-  }, [focusedId, focusFrame, fitRect, worldBounds]);
+    fitRect(worldBounds(), 36, animate);
+  }, [fitRect, worldBounds]);
   const followCameraRef = useRef(followCamera);
   followCameraRef.current = followCamera;
 
-  // Camera follows focus / overview when layout settles
+  // Keep the overview fitted while its layout settles.
   useLayoutEffect(() => { followCamera(); }, [followCamera]);
-
-  // When focusedId changes from outside, camera-follow (allow animate)
-  useEffect(() => {
-    userMovedRef.current = false;
-    if (focusedId) focusFrame(focusedId, true);
-  }, [focusedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const vp = vpRef.current;
@@ -274,10 +259,6 @@ export default function Canvas({
     };
   }, [applyCam, zoomAt]);
 
-  const label = focusedId
-    ? (diagrams.find((d) => d.id === focusedId)?.title || 'Focused')
-    : 'Overview';
-
   return (
     <section
       className="canvas-viewport"
@@ -296,8 +277,8 @@ export default function Canvas({
       <div className="canvas-toolbar" onPointerDown={(e) => e.stopPropagation()}>
         <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onFocusPrev} disabled={!diagrams.length} />
         <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} disabled={!diagrams.length} />
-        <span className="canvas-zoom-label" title={label}>{focusedId ? 'Focus' : `${Math.round(cam.s * 100)}%`}</span>
-        <IconButton Icon={Maximize2} label="Fit all (Esc / F)" onClick={() => fitAll(true)} />
+        <span className="canvas-zoom-label" title="Overview zoom">{Math.round(cam.s * 100)}%</span>
+        <IconButton Icon={Maximize2} label="Fit all" onClick={() => fitAll(true)} />
         <IconButton Icon={ZoomOut} label="Zoom out" onClick={() => zoomCenter(0.8)} />
         <IconButton Icon={ZoomIn} label="Zoom in" onClick={() => zoomCenter(1.25)} />
       </div>
@@ -324,14 +305,13 @@ export default function Canvas({
                 onFocus={onFocus}
                 onFrameMenu={onFrameMenu}
                 onSize={onSize}
-                focused={focusedId === d.id}
               />
             </div>
           );
         })}
       </div>
       <div className="canvas-hint">
-        Drag to pan · scroll to zoom · double-click a diagram to focus · ←/→ prev/next · Esc/F fit all · right-click empty to create
+        Drag to pan · scroll to zoom · double-click a diagram to focus · ←/→ prev/next · Esc/F exit focus · right-click empty to create
       </div>
     </section>
   );
