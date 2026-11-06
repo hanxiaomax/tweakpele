@@ -311,7 +311,7 @@ export default function Canvas({
         })}
       </div>
       <div className="canvas-hint">
-        Drag to pan · scroll to zoom · double-click a diagram to focus · ←/→ prev/next · Esc/F exit focus · right-click empty to create
+        Drag to pan · scroll to zoom · double-click to focus (Pele zoom) · ←/→ · Esc/F exit · right-click empty to create
       </div>
     </section>
   );

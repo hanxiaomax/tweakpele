@@ -93,38 +93,54 @@ button { font: inherit; cursor: pointer; }
 body.dragging-split { cursor: col-resize; user-select: none; }
 body.dragging-split .editor-split * { pointer-events: none; }
 
-/* ---------------- theme presets ---------------- */
+/* ---------------- theme presets (tweakcn-inspired picker) ---------------- */
 .theme-preset-grid {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px; padding: 10px 12px 12px;
 }
 .theme-preset {
-  display: flex; flex-direction: column; gap: 7px; align-items: stretch;
-  min-width: 0; padding: 8px; text-align: left;
-  border: 1px solid var(--ui-border); border-radius: 8px;
+  display: flex; flex-direction: column; gap: 0; align-items: stretch;
+  min-width: 0; padding: 0; text-align: left; overflow: hidden;
+  border: 1px solid var(--ui-border); border-radius: 10px;
   background: var(--ui-panel-2); color: var(--ui-text);
+  transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
 }
-.theme-preset:hover { border-color: var(--ui-accent); background: var(--ui-accent-soft); }
+.theme-preset:hover {
+  border-color: var(--ui-accent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
 .theme-preset.selected {
   border-color: var(--ui-accent);
   box-shadow: 0 0 0 2px var(--ui-accent-soft);
 }
+.theme-preset-preview {
+  display: block; height: 34px; width: 100%;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-border) 55%, transparent);
+}
 .theme-preset-swatches {
-  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 3px; height: 18px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0; height: 100%;
 }
 .theme-preset-swatches i {
-  display: block; min-width: 0; border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--ui-border) 70%, transparent);
+  display: block; min-width: 0; border-radius: 0;
+  border: none;
 }
 .theme-preset-meta {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  padding: 8px 9px 9px;
+}
+.theme-preset-meta-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0;
 }
 .theme-preset-meta b {
   font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.theme-preset-desc {
+  font-size: 10.5px; line-height: 1.35; color: var(--ui-muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .theme-preset-tone {
-  flex: none; font-size: 10px; font-weight: 600; letter-spacing: .02em;
+  flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
   color: var(--ui-muted); text-transform: uppercase;
 }
 .theme-preset-tone.dark { color: var(--ui-accent); }
@@ -361,8 +377,13 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .focused-view .ibtn.danger:hover {
   border-color: var(--pele-error, #b8450c); color: var(--pele-error, #b8450c);
 }
-.focused-view-body { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
-/* Auto margins center smaller diagrams without hiding the left edge of oversized ones. */
+.focused-view-body {
+  flex: 1; min-height: 0; overflow: auto; padding: 18px;
+  /* Match editor preview so Pele native zoom owns wheel / pinch / overlay. */
+  background-color: var(--pele-bg, #fff);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--pele-border, #000) 22%, transparent) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
 .focused-view-body .pele-host-wrap,
 .focused-view-body .pele-host {
   width: max-content; max-width: none; height: auto; margin: 0 auto;

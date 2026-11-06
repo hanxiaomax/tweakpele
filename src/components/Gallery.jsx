@@ -60,7 +60,7 @@ export default function Gallery({
       )}
       {diagrams.length > 0 && (
         <div className="gallery-hint">
-          <span>Click a card to focus · ←/→ prev/next · Esc/F exit focus</span>
+          <span>Click a card to focus · Pele zoom in focus · ←/→ prev/next · Esc/F exit</span>
           <span>Right-click empty space to create · Duplicate / Save as from the card menu</span>
         </div>
       )}

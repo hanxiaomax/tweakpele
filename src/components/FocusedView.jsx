@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
-  LuMinimize2 as Minimize2,
+  LuMinimize2 as Minimize2, LuMaximize2 as Maximize,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
@@ -11,6 +12,7 @@ export default function FocusedView({
   diagram, options, index, total,
   onClose, onPrev, onNext, onEdit, onDuplicate, onDelete, onMenu,
 }) {
+  const ctlRef = useRef(null);
   return (
     <article
       className="focused-view"
@@ -30,14 +32,23 @@ export default function FocusedView({
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onPrev} disabled={total <= 1} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onNext} disabled={total <= 1} />
           <span className="focused-view-count">{index + 1} / {total}</span>
+          <IconButton Icon={Maximize} label="Reset Pele zoom"
+            onClick={() => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } }} />
           <IconButton Icon={Pencil} label={`Edit ${diagram.title}`} onClick={() => onEdit(diagram.id)} />
           <IconButton Icon={Copy} label={`Duplicate ${diagram.title}`} onClick={() => onDuplicate(diagram.id)} />
           <IconButton Icon={Trash2} label={`Delete ${diagram.title}`} kind="danger" onClick={() => onDelete(diagram.id)} />
           <IconButton Icon={Minimize2} label="Exit focus (Esc / F)" onClick={onClose} />
         </span>
       </header>
-      <div className="focused-view-body">
-        <PeleHost source={diagram.source} options={options} />
+      <div
+        className="focused-view-body"
+        title="Pele native zoom: wheel / pinch, +/− overlay, +/− keys, double-click to fit"
+      >
+        <PeleHost
+          source={diagram.source}
+          options={options}
+          bindController={(c) => { ctlRef.current = c; }}
+        />
       </div>
     </article>
   );

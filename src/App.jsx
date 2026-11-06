@@ -83,6 +83,12 @@ export default function App() {
     maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600),
     responsive: false,
   }), [debouncedMountOptions]);
+  // Focus: allow Pele.js native zoom/pan (wheel, pinch, +/− overlay). Gallery/canvas keep zoom off.
+  const focusedOptions = useMemo(() => ({
+    ...debouncedMountOptions,
+    zoom: debouncedMountOptions.zoom === false ? true : (debouncedMountOptions.zoom ?? true),
+    maxWidth: Math.max(Number(debouncedMountOptions.maxWidth) || 0, 1600),
+  }), [debouncedMountOptions]);
   const varsStyle = useMemo(() => {
     const o = {};
     for (const { name } of VAR_META) o[name] = vars[name];
@@ -347,7 +353,7 @@ export default function App() {
                 <FocusedView
                   key={focusedDiagram.id}
                   diagram={focusedDiagram}
-                  options={viewMode === 'gallery' ? galleryOptions : canvasOptions}
+                  options={focusedOptions}
                   index={focusedIdx} total={diagrams.length}
                   onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}

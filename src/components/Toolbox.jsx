@@ -13,9 +13,8 @@ const SWATCH_KEYS = [
   '--pele-bg',
   '--pele-surface',
   '--pele-accent',
-  '--pele-fg',
   '--pele-series-1',
-  '--pele-border',
+  '--pele-fg',
 ];
 
 const PresetCard = memo(function PresetCard({ preset, selected, onSelect }) {
@@ -27,16 +26,21 @@ const PresetCard = memo(function PresetCard({ preset, selected, onSelect }) {
       title={preset.description || preset.label}
       onClick={() => onSelect(preset)}
     >
-      <span className="theme-preset-swatches" aria-hidden="true">
-        {SWATCH_KEYS.map((key) => (
-          <i key={key} style={{ background: preset.vars[key] }} />
-        ))}
+      <span className="theme-preset-preview" aria-hidden="true">
+        <span className="theme-preset-swatches">
+          {SWATCH_KEYS.map((key) => (
+            <i key={key} style={{ background: preset.vars[key] }} />
+          ))}
+        </span>
       </span>
       <span className="theme-preset-meta">
-        <b>{preset.label}</b>
-        <small className={'theme-preset-tone ' + (preset.tone || 'light')}>
-          {preset.tone === 'dark' ? 'Dark' : 'Light'}
-        </small>
+        <span className="theme-preset-meta-row">
+          <b>{preset.label}</b>
+          <small className={'theme-preset-tone ' + (preset.tone || 'light')}>
+            {preset.tone === 'dark' ? 'Dark' : 'Light'}
+          </small>
+        </span>
+        {preset.description ? <span className="theme-preset-desc">{preset.description}</span> : null}
       </span>
     </button>
   );
