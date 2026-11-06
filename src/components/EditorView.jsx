@@ -11,6 +11,7 @@ import { clamp } from '../lib.js';
 export default function EditorView({
   diagram, mountOptions, split, onSplitChange,
   onBack, onChangeTitle, onChangeSource, onResetSource, onCopySource, notify,
+  onRenderFeedback,
 }) {
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
@@ -110,8 +111,19 @@ export default function EditorView({
             source={diagram.source}
             options={mountOptions}
             bindController={(c) => { ctlRef.current = c; }}
-            onResult={(r) => setStatus({ info: `${r.mermaidType} · ${Math.round(r.width)}×${Math.round(r.height)} px` })}
-            onError={(e) => setStatus({ error: String(e && e.message ? e.message : e) })}
+            onResult={(r) => {
+              const info = `${r.mermaidType} · ${Math.round(r.width)}×${Math.round(r.height)} px`;
+              setStatus({ info });
+              onRenderFeedback?.({
+                ok: true, diagramId: diagram.id, info,
+                mermaidType: r.mermaidType, width: r.width, height: r.height,
+              });
+            }}
+            onError={(e) => {
+              const error = String(e && e.message ? e.message : e);
+              setStatus({ error });
+              onRenderFeedback?.({ ok: false, diagramId: diagram.id, error });
+            }}
           />
         </div>
       </div>

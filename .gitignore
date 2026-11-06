@@ -1,2 +1,4 @@
 node_modules/
 shots/
+dsh-plugin/node_modules/
+dsh-plugin/pnpm-lock.yaml

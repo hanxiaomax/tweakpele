@@ -18,6 +18,7 @@ import {
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
 import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId } from './lib.js';
+import { useTweakpeleBridge } from './bridge.js';
 
 const LIB_KEY = 'tweakpele.library.v1';
 const VARS_KEY = 'tweakpele.vars.v1';
@@ -53,6 +54,21 @@ export default function App() {
   const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (Number.isFinite(v) ? clamp(v, 16, 84) : 42));
   const [remeasureTick, setRemeasureTick] = useState(0);
   const route = useHashRoute();
+  const LAST_EDIT_KEY = 'tweakpele.lastEditId';
+
+  // Default mode = editor: first open with no hash lands in the split editor.
+  useEffect(() => {
+    if (location.hash) return;
+    if (!diagrams.length) return;
+    const last = loadJSON(LAST_EDIT_KEY, null);
+    const id = (last && diagrams.some((d) => d.id === last) ? last : null) || diagrams[0].id;
+    navigate({ view: 'edit', id });
+  }, [diagrams]);
+
+  useEffect(() => {
+    if (route.view === 'edit' && route.id) saveJSON(LAST_EDIT_KEY, route.id);
+  }, [route.view, route.id]);
+
   const [toastMsg, setToastMsg] = useState('');
   const [status, setStatus] = useState('');
   const [ctxMenu, setCtxMenu] = useState(null);
@@ -118,7 +134,55 @@ export default function App() {
     applyPresetVars(preset.vars);
     notify(`Applied ${preset.label}`);
     setStatus(`Theme · ${preset.label}`);
+    // bridge may not exist yet on first render of this callback identity; push in effect below via ref
+    try { window.__tweakpelePushTheme?.(preset.id); } catch (_) { /* ignore */ }
   }, [applyPresetVars, notify]);
+
+  const skipBridgePush = useRef(false);
+  const bridge = useTweakpeleBridge({
+    onRemoteState: (snap) => {
+      skipBridgePush.current = true;
+      if (Array.isArray(snap.diagrams) && snap.diagrams.length) {
+        setDiagrams(snap.diagrams.map((d) => ({
+          id: d.id,
+          title: d.title,
+          keyword: d.keyword || 'flowchart',
+          source: d.source,
+          original: d.original ?? d.source,
+          builtin: Boolean(d.builtin),
+        })));
+      }
+      if (snap.themePresetId) {
+        const preset = THEME_PRESETS.find((p) => p.id === snap.themePresetId);
+        if (preset) {
+          applyPresetVars(preset.vars);
+          setStatus(`Theme · ${preset.label} (bridge)`);
+        }
+      }
+      if (snap.mode === 'edit' && snap.activeId) navigate({ view: 'edit', id: snap.activeId });
+      else if (snap.mode === 'gallery') navigate({ view: 'gallery' });
+    },
+  });
+
+  useEffect(() => {
+    if (!bridge.enabled) return;
+    if (skipBridgePush.current) { skipBridgePush.current = false; return; }
+    if (bridge.isApplying()) return;
+    bridge.pushLocal({
+      diagrams,
+      activeId: route.view === 'edit' ? route.id : undefined,
+      mode: route.view === 'edit' ? 'edit' : 'gallery',
+    });
+  }, [diagrams, route.view, route.id, bridge.enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    window.__tweakpelePushTheme = (presetId) => {
+      if (!bridge.enabled || bridge.isApplying()) return;
+      bridge.pushLocal({ themePresetId: presetId });
+    };
+    return () => { delete window.__tweakpelePushTheme; };
+  }, [bridge.enabled, bridge.pushLocal]);
+
   const toggleTheme = () => {
     const next = siteTheme === 'light' ? 'dark' : 'light';
     setSiteTheme(next);
@@ -371,6 +435,7 @@ export default function App() {
                 onChangeSource={changeSource} onResetSource={resetSource}
                 onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
                 notify={notify}
+                onRenderFeedback={(fb) => { bridge.pushFeedback?.(fb); }}
               />
             : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
                <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}

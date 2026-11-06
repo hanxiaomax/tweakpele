@@ -1,0 +1,178 @@
+[
+  {
+    "id": "paper",
+    "label": "Paper"
+  },
+  {
+    "id": "dark-ink",
+    "label": "Dark Ink"
+  },
+  {
+    "id": "graphite",
+    "label": "Graphite"
+  },
+  {
+    "id": "ocean",
+    "label": "Ocean Breeze"
+  },
+  {
+    "id": "forest",
+    "label": "Nature"
+  },
+  {
+    "id": "violet",
+    "label": "Violet Bloom"
+  },
+  {
+    "id": "mocha",
+    "label": "Mocha Mousse"
+  },
+  {
+    "id": "contrast",
+    "label": "Neo Brutalism"
+  },
+  {
+    "id": "pastel",
+    "label": "Pastel Dreams"
+  },
+  {
+    "id": "terminal",
+    "label": "Perpetuity"
+  },
+  {
+    "id": "slate",
+    "label": "Clean Slate"
+  },
+  {
+    "id": "ember",
+    "label": "Amber Minimal"
+  },
+  {
+    "id": "modern-minimal",
+    "label": "Modern Minimal"
+  },
+  {
+    "id": "t3-chat",
+    "label": "T3 Chat"
+  },
+  {
+    "id": "twitter",
+    "label": "Twitter"
+  },
+  {
+    "id": "bubblegum",
+    "label": "Bubblegum"
+  },
+  {
+    "id": "amethyst-haze",
+    "label": "Amethyst Haze"
+  },
+  {
+    "id": "notebook",
+    "label": "Notebook"
+  },
+  {
+    "id": "doom-64",
+    "label": "Doom 64"
+  },
+  {
+    "id": "catppuccin",
+    "label": "Catppuccin"
+  },
+  {
+    "id": "kodama-grove",
+    "label": "Kodama Grove"
+  },
+  {
+    "id": "cosmic-night",
+    "label": "Cosmic Night"
+  },
+  {
+    "id": "tangerine",
+    "label": "Tangerine"
+  },
+  {
+    "id": "quantum-rose",
+    "label": "Quantum Rose"
+  },
+  {
+    "id": "bold-tech",
+    "label": "Bold Tech"
+  },
+  {
+    "id": "elegant-luxury",
+    "label": "Elegant Luxury"
+  },
+  {
+    "id": "supabase",
+    "label": "Supabase"
+  },
+  {
+    "id": "solar-dusk",
+    "label": "Solar Dusk"
+  },
+  {
+    "id": "claymorphism",
+    "label": "Claymorphism"
+  },
+  {
+    "id": "cyberpunk",
+    "label": "Cyberpunk"
+  },
+  {
+    "id": "caffeine",
+    "label": "Caffeine"
+  },
+  {
+    "id": "retro-arcade",
+    "label": "Retro Arcade"
+  },
+  {
+    "id": "midnight-bloom",
+    "label": "Midnight Bloom"
+  },
+  {
+    "id": "candyland",
+    "label": "Candyland"
+  },
+  {
+    "id": "northern-lights",
+    "label": "Northern Lights"
+  },
+  {
+    "id": "vintage-paper",
+    "label": "Vintage Paper"
+  },
+  {
+    "id": "sunset-horizon",
+    "label": "Sunset Horizon"
+  },
+  {
+    "id": "starry-night",
+    "label": "Starry Night"
+  },
+  {
+    "id": "claude",
+    "label": "Claude"
+  },
+  {
+    "id": "vercel",
+    "label": "Vercel"
+  },
+  {
+    "id": "darkmatter",
+    "label": "Darkmatter"
+  },
+  {
+    "id": "mono",
+    "label": "Mono"
+  },
+  {
+    "id": "soft-pop",
+    "label": "Soft Pop"
+  },
+  {
+    "id": "sage-garden",
+    "label": "Sage Garden"
+  }
+]

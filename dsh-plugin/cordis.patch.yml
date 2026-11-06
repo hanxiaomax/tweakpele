@@ -1,0 +1,10 @@
+# tweakpele bundle: Mermaid playground bridge + model-facing tools.
+# Editor mode is the default when the playground opens via the bridge URL.
+- insert:
+    - id: tweakpele
+      name: '@local/tweakpele'
+      config:
+        host: 127.0.0.1
+        port: 3847
+        autoStart: true
+        openBrowser: false

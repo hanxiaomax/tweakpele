@@ -30,7 +30,8 @@ export async function copyText(text) {
   }
 }
 
-/** Hash route: '#/' gallery · '#/edit/<id>' split editor. */
+/** Hash route: '#/' gallery · '#/edit/<id>' split editor.
+ *  Empty hash (first open) is redirected to editor by App — editor is the default mode. */
 export function parseHash() {
   const h = (location.hash || '').replace(/^#/, '');
   const m = h.match(/^\/edit\/(.+)$/);
