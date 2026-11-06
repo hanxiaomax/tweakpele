@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
+import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
-import { clamp } from '../lib.js';
+import { clamp, detectDiagramType } from '../lib.js';
+import { hasTypeSpecificFields } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
 
 /**
  * Split editor view: left = Mermaid source, right = live Pele preview
  * (Pele native zoom via the mount `zoom` option). Not an overlay — a full view.
- * C4 diagrams get an interactive style panel (UpdateElementStyle / UpdateRelStyle / Layout).
+ * C4 diagrams get an interactive style panel (UpdateElementStyle / UpdateRelStyle / Layout);
+ * other types get a per-diagram type-specific style panel (overrides on the global toolbox).
  */
 export default function EditorView({
   diagram, mountOptions, split, onSplitChange,
   onBack, onChangeTitle, onChangeSource, onResetSource, onCopySource, notify,
-  onRenderFeedback, vars,
+  onRenderFeedback, vars, styleApi,
 }) {
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
@@ -92,7 +95,7 @@ export default function EditorView({
   const onPreviewClick = (e) => {
     if (!c4) return;
     // Ignore Pele zoom chrome clicks
-    if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel, input, select, label')) return;
+    if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel, .diagram-style-panel, input, select, label')) return;
     const model = parseC4Model(diagram.source);
     const sel = selectionFromSvgTarget(e.target, model);
     if (sel) {
@@ -139,6 +142,7 @@ export default function EditorView({
         <div className={'preview-pane' + (c4 ? ' c4-interactive' : '')} ref={previewRef}
           title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +− overlay, +/− keys, double-click to fit'}
           onClick={onPreviewClick}
+          style={styleApi?.varsStyleFor?.(diagram.id)}
         >
           <PeleHost
             source={diagram.source}
@@ -169,6 +173,21 @@ export default function EditorView({
               vars={vars}
             />
           )}
+          {!c4 && styleApi && (() => {
+            const type = detectDiagramType(diagram.source, diagram.keyword);
+            if (!type || !hasTypeSpecificFields(type)) return null;
+            return (
+              <DiagramTypePanel
+                diagramType={type}
+                globalVars={styleApi.globalVars}
+                globalOptVals={styleApi.globalOptVals}
+                override={styleApi.overrides[diagram.id]}
+                onChangeOpt={(optId, v) => styleApi.setOpt(diagram.id, optId, v)}
+                onChangeVar={(name, v) => styleApi.setVar(diagram.id, name, v)}
+                onResetAll={() => styleApi.resetAll(diagram.id)}
+              />
+            );
+          })()}
         </div>
       </div>
     </section>

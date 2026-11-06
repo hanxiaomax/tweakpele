@@ -19,6 +19,9 @@ import {
 } from './constants.js';
 import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId, detectDiagramType, sortDiagramsSpatially } from './lib.js';
 import { useTweakpeleBridge } from './bridge.js';
+import {
+  buildDiagramMountOptions, mergeDiagramVars, varsStyleFrom,
+} from './diagramOverrides.js';
 
 const LIB_KEY = 'tweakpele.library.v1';
 const VARS_KEY = 'tweakpele.vars.v1';
@@ -28,6 +31,7 @@ const SPLIT_KEY = 'tweakpele.split.v1';
 const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
 const VIEW_KEY = 'tweakpele.viewMode';
 const POS_KEY = 'tweakpele.canvasPos.v1';
+const OVERRIDES_KEY = 'tweakpele.diagramOverrides.v1';
 
 function seedLibrary() {
   return (window.TWEAKPELE_DIAGRAMS || []).map((m) => ({
@@ -52,6 +56,10 @@ export default function App() {
   const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => v === true);
   const [viewMode, setViewMode] = usePersistedState(VIEW_KEY, (v) => (v === 'canvas' ? 'canvas' : 'gallery'));
   const [canvasPositions, setCanvasPositions] = usePersistedState(POS_KEY, (v) => (
+    v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+  ));
+  // Per-diagram style/render overrides: { [diagramId]: { opts: { [optId]: value }, vars: { [cssVar]: value } } }
+  const [diagramOverrides, setDiagramOverrides] = usePersistedState(OVERRIDES_KEY, (v) => (
     v && typeof v === 'object' && !Array.isArray(v) ? v : {}
   ));
   const [focusedId, setFocusedId] = useState(null);
@@ -115,6 +123,46 @@ export default function App() {
     return o;
   }, [vars]);
 
+  // Debounced raw inputs so per-diagram option rebuilds stay as calm as the shared bases.
+  const debouncedOptVals = useDebounced(optVals, 280);
+  const debouncedVars = useDebounced(vars, 280);
+
+  // Per-diagram mount options: diagrams with overrides get global + override merged
+  // (then the same view patch as the shared base); others reuse the shared object.
+  const optionsForDiagram = useCallback((id, view) => {
+    const base = view === 'gallery' ? galleryOptions
+      : view === 'canvas' ? canvasOptions
+        : view === 'focused' ? focusedOptions
+          : mountOptions;
+    const ov = diagramOverrides[id];
+    if (!ov || (!Object.keys(ov.opts || {}).length && !Object.keys(ov.vars || {}).length)) return base;
+    const built = buildDiagramMountOptions(debouncedOptVals, debouncedVars, ov);
+    if (view === 'gallery') return { ...built, zoom: false };
+    if (view === 'canvas') return {
+      ...built, zoom: false,
+      maxWidth: Math.max(Number(built.maxWidth) || 0, 1600),
+      responsive: false,
+    };
+    if (view === 'focused') return {
+      ...built,
+      zoom: built.zoom === false ? true : (built.zoom ?? true),
+      maxWidth: Math.max(Number(built.maxWidth) || 0, 1600),
+    };
+    return built;
+    // remeasureTick mirrors the shared mountOptions dependency (font/radius re-measure)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagramOverrides, debouncedOptVals, debouncedVars, galleryOptions, canvasOptions, focusedOptions, mountOptions, remeasureTick]);
+
+  // Scoped CSS custom properties for a diagram with var overrides (undefined = inherit global scope).
+  const varsStyleFor = useCallback((id) => {
+    const ov = diagramOverrides[id];
+    if (!ov || !Object.keys(ov.vars || {}).length) return undefined;
+    return varsStyleFrom(mergeDiagramVars(vars, ov.vars));
+  }, [vars, diagramOverrides]);
+
+  const galleryOptionsFor = useCallback((id) => optionsForDiagram(id, 'gallery'), [optionsForDiagram]);
+  const canvasOptionsFor = useCallback((id) => optionsForDiagram(id, 'canvas'), [optionsForDiagram]);
+
   // ------------------------------------------------------------------ effects
   useEffect(() => { document.documentElement.dataset.theme = siteTheme; }, [siteTheme]);
   useEffect(() => { saveJSON(LIB_KEY, { formatVersion: 1, diagrams }); }, [diagrams]);
@@ -163,6 +211,9 @@ export default function App() {
           setStatus(`Theme · ${preset.label} (bridge)`);
         }
       }
+      if (snap.diagramOverrides && typeof snap.diagramOverrides === 'object' && !Array.isArray(snap.diagramOverrides)) {
+        setDiagramOverrides(snap.diagramOverrides);
+      }
       if (snap.mode === 'edit' && snap.activeId) navigate({ view: 'edit', id: snap.activeId });
       else if (snap.mode === 'gallery') navigate({ view: 'gallery' });
     },
@@ -174,10 +225,11 @@ export default function App() {
     if (bridge.isApplying()) return;
     bridge.pushLocal({
       diagrams,
+      diagramOverrides,
       activeId: route.view === 'edit' ? route.id : undefined,
       mode: route.view === 'edit' ? 'edit' : 'gallery',
     });
-  }, [diagrams, route.view, route.id, bridge.enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [diagrams, diagramOverrides, route.view, route.id, bridge.enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     window.__tweakpelePushTheme = (presetId) => {
@@ -222,6 +274,59 @@ export default function App() {
     });
     setStatus(`${o.key} → default`);
   }, []);
+
+  // ------------------------------------------------------------------ per-diagram override actions
+  const setDiagramOverride = useCallback((id, mutate) => {
+    setDiagramOverrides((prev) => {
+      const cur = prev[id] || {};
+      const draft = { opts: { ...cur.opts }, vars: { ...cur.vars } };
+      mutate(draft);
+      const opts = {};
+      const v = {};
+      for (const [k, val] of Object.entries(draft.opts)) if (val !== undefined && val !== null && val !== '') opts[k] = val;
+      for (const [k, val] of Object.entries(draft.vars)) if (val !== undefined && val !== null && val !== '') v[k] = val;
+      if (!Object.keys(opts).length && !Object.keys(v).length) {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: { opts, vars: v } };
+    });
+  }, []);
+
+  const onDiagramOptChange = useCallback((id, optId, value) => {
+    setDiagramOverride(id, (d) => {
+      if (value === undefined) delete d.opts[optId];
+      else d.opts[optId] = value;
+    });
+  }, [setDiagramOverride]);
+  const onDiagramVarChange = useCallback((id, name, value) => {
+    if (value !== undefined && REMEASURE_VARS.has(name)) forgetMeasures();
+    setDiagramOverride(id, (d) => {
+      if (value === undefined) delete d.vars[name];
+      else d.vars[name] = value;
+    });
+  }, [forgetMeasures, setDiagramOverride]);
+  const onDiagramOverrideReset = useCallback((id) => {
+    setDiagramOverrides((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setStatus('Diagram style → global');
+  }, []);
+
+  const styleApi = useMemo(() => ({
+    overrides: diagramOverrides,
+    globalVars: vars,
+    globalOptVals: optVals,
+    setOpt: onDiagramOptChange,
+    setVar: onDiagramVarChange,
+    resetAll: onDiagramOverrideReset,
+    varsStyleFor,
+  }), [diagramOverrides, vars, optVals, onDiagramOptChange, onDiagramVarChange, onDiagramOverrideReset, varsStyleFor]);
 
   // ------------------------------------------------------------------ copy actions
   const doCopy = async (text, label) => {
@@ -278,14 +383,25 @@ export default function App() {
     });
   }, []);
 
+  // Duplicate / save-as carries the per-diagram style overrides to the new id.
+  const copyDiagramOverride = useCallback((fromId, toId) => {
+    setDiagramOverrides((prev) => {
+      const src = prev[fromId];
+      if (!src || !src.opts || !src.vars) return prev;
+      if (!Object.keys(src.opts).length && !Object.keys(src.vars).length) return prev;
+      return { ...prev, [toId]: { opts: { ...src.opts }, vars: { ...src.vars } } };
+    });
+  }, []);
+
   const saveAsDiagram = useCallback((id) => {
     const src = findDiagram(id);
     if (!src) return;
     const d = { ...src, id: newId(), title: `${src.title} (copy)`, original: src.source, builtin: false };
     insertCopyAfter(id, d);
+    copyDiagramOverride(id, d.id);
     setFocusedId(d.id);
     notify(`Saved as “${d.title}”`);
-  }, [findDiagram, insertCopyAfter, notify]);
+  }, [findDiagram, insertCopyAfter, notify, copyDiagramOverride]);
 
   const openEditor = useCallback((id) => navigate({ view: 'edit', id }), []);
   const backToGallery = useCallback(() => navigate({ view: 'gallery' }), []);
@@ -303,9 +419,11 @@ export default function App() {
   const duplicateDiagram = useCallback((id) => {
     const src = findDiagram(id);
     if (!src) return;
-    insertCopyAfter(id, { ...src, id: newId(), title: `${src.title} (copy)`, builtin: false });
+    const newDiagramId = newId();
+    insertCopyAfter(id, { ...src, id: newDiagramId, title: `${src.title} (copy)`, builtin: false });
+    copyDiagramOverride(id, newDiagramId);
     notify(`Duplicated “${src.title}”`);
-  }, [findDiagram, insertCopyAfter, notify]);
+  }, [findDiagram, insertCopyAfter, notify, copyDiagramOverride]);
   const deleteDiagram = useCallback((id) => {
     const src = findDiagram(id);
     if (!src) return;
@@ -313,6 +431,12 @@ export default function App() {
     setCanvasPositions((pos) => {
       if (!pos || !(id in pos)) return pos;
       const next = { ...pos };
+      delete next[id];
+      return next;
+    });
+    setDiagramOverrides((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
       delete next[id];
       return next;
     });
@@ -354,14 +478,18 @@ export default function App() {
   useEffect(() => {
     window.tweakpele = {
       diagrams: () => diagrams, vars: () => vars, optVals: () => optVals,
+      diagramOverrides: () => diagramOverrides,
       setVar: (n, v) => onVarChange(n, v),
       setOpt: (groupTitle, key, v) => {
         const o = ALL_OPTS.find((x) => x.group === groupTitle && x.key === key);
         if (o) onOptChange(o, v);
       },
+      setDiagramVar: (id, n, v) => onDiagramVarChange(id, n, v),
+      setDiagramOpt: (id, optId, v) => onDiagramOptChange(id, optId, v),
+      resetDiagramOverrides: (id) => onDiagramOverrideReset(id),
       mountOptions: () => mountOptions, STARTERS, OPT_GROUPS,
     };
-  }, [diagrams, vars, optVals, mountOptions, onVarChange, onOptChange]);
+  }, [diagrams, vars, optVals, diagramOverrides, mountOptions, onVarChange, onOptChange, onDiagramVarChange, onDiagramOptChange, onDiagramOverrideReset]);
 
   const current = route.view === 'edit' ? findDiagram(route.id) : null;
   const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
@@ -420,7 +548,8 @@ export default function App() {
               <div className="overview-view" aria-hidden={!!focusedDiagram} inert={focusedDiagram ? '' : undefined}>
                 {viewMode === 'gallery' ? (
                   <Gallery
-                    diagrams={diagrams} galleryOptions={galleryOptions}
+                    diagrams={diagrams} optionsFor={galleryOptionsFor}
+                    styleApi={styleApi}
                     onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                     onNew={() => setNewOpen(true)}
                     onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
@@ -428,7 +557,8 @@ export default function App() {
                   />
                 ) : (
                   <Canvas
-                    diagrams={diagrams} canvasOptions={canvasOptions}
+                    diagrams={diagrams} optionsFor={canvasOptionsFor}
+                    styleApi={styleApi}
                     positions={canvasPositions} onPositionsChange={setCanvasPositions}
                     onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                     onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
@@ -440,13 +570,14 @@ export default function App() {
                 <FocusedView
                   key={focusedDiagram.id}
                   diagram={focusedDiagram}
-                  options={focusedOptions}
+                  options={optionsForDiagram(focusedDiagram.id, 'focused')}
                   index={focusedIdx} total={focusOrder.length}
                   onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}
                   onChangeSource={changeSource}
                   vars={vars}
+                  styleApi={styleApi}
                 />
               )}
             </div>
@@ -454,7 +585,7 @@ export default function App() {
           {route.view === 'edit' && (current
             ? <EditorView
                 key={current.id}
-                diagram={current} mountOptions={mountOptions}
+                diagram={current} mountOptions={optionsForDiagram(current.id, 'editor')}
                 split={split} onSplitChange={setSplit}
                 onBack={backToGallery} onChangeTitle={changeTitle}
                 onChangeSource={changeSource} onResetSource={resetSource}
@@ -462,6 +593,7 @@ export default function App() {
                 notify={notify}
                 onRenderFeedback={(fb) => { bridge.pushFeedback?.(fb); }}
                 vars={vars}
+                styleApi={styleApi}
               />
             : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
                <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}

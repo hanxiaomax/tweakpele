@@ -6,14 +6,17 @@ import {
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
+import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
+import { detectDiagramType } from '../lib.js';
+import { hasTypeSpecificFields } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
 
 /** Expand a diagram inside the current view, retaining its card chrome. */
 export default function FocusedView({
   diagram, options, index, total,
   onClose, onPrev, onNext, onEdit, onDuplicate, onDelete, onMenu,
-  onChangeSource, vars,
+  onChangeSource, vars, styleApi,
 }) {
   const ctlRef = useRef(null);
   const bodyRef = useRef(null);
@@ -32,7 +35,7 @@ export default function FocusedView({
 
   const onBodyClick = (e) => {
     if (!c4 || !onChangeSource) return;
-    if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel')) return;
+    if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel, .diagram-style-panel')) return;
     const model = parseC4Model(diagram.source);
     const sel = selectionFromSvgTarget(e.target, model);
     if (sel) {
@@ -74,6 +77,7 @@ export default function FocusedView({
         ref={bodyRef}
         title={c4 ? 'Click a C4 shape or arrow to edit style · Pele zoom: wheel / pinch' : 'Pele native zoom: wheel / pinch, +/− overlay, +/− keys, double-click to fit'}
         onClick={onBodyClick}
+        style={styleApi?.varsStyleFor?.(diagram.id)}
       >
         <PeleHost
           source={diagram.source}
@@ -93,6 +97,22 @@ export default function FocusedView({
             vars={vars}
           />
         )}
+        {!c4 && styleApi && (() => {
+          const type = detectDiagramType(diagram.source, diagram.keyword);
+          if (!type || !hasTypeSpecificFields(type)) return null;
+          return (
+            <DiagramTypePanel
+              compact
+              diagramType={type}
+              globalVars={styleApi.globalVars}
+              globalOptVals={styleApi.globalOptVals}
+              override={styleApi.overrides[diagram.id]}
+              onChangeOpt={(optId, v) => styleApi.setOpt(diagram.id, optId, v)}
+              onChangeVar={(name, v) => styleApi.setVar(diagram.id, name, v)}
+              onResetAll={() => styleApi.resetAll(diagram.id)}
+            />
+          );
+        })()}
       </div>
     </article>
   );

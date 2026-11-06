@@ -328,6 +328,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .card .ibtn:hover { border-color: var(--pele-accent, #d9641a); color: var(--pele-accent, #d9641a); }
 .card .ibtn.danger:hover { border-color: var(--pele-error, #b8450c); color: var(--pele-error, #b8450c); }
 .card-body { padding: 12px; flex: 1; min-height: 110px; max-height: 220px; overflow: hidden; }
+.card-body:has(.diagram-style-panel:not(.collapsed)) { overflow: visible; z-index: 2; }
 .card-body .pele-host-wrap, .card-body .pele-host { width: 100%; height: 100%; overflow: hidden; }
 .new-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -592,6 +593,70 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   cursor: default;
 }
 .c4-style-panel.compact { width: min(340px, calc(100% - 16px)); }
+
+/* ---------------- per-diagram type style panel (shares the C4 look) ---------------- */
+.preview-pane, .focused-view-body, .card-body, .canvas-frame-body { position: relative; }
+.preview-pane .diagram-style-panel,
+.focused-view-body .diagram-style-panel,
+.card-body .diagram-style-panel,
+.canvas-frame-body .diagram-style-panel {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 5;
+  width: min(320px, calc(100% - 20px));
+  max-height: min(480px, calc(100% - 20px));
+  overflow: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--ui-shadow);
+  color: var(--ui-text);
+  pointer-events: auto;
+  cursor: default;
+}
+.diagram-style-panel.compact { width: min(260px, calc(100% - 16px)); }
+.diagram-style-panel.collapsed { max-height: none; overflow: visible; }
+.diagram-style-panel .diagram-style-head {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 7px 10px; border: none; background: transparent; color: var(--ui-text);
+  text-align: left; cursor: pointer;
+}
+.diagram-style-panel .diagram-style-head:hover b { color: var(--ui-accent); }
+.diagram-style-panel .diagram-style-head svg { width: 14px; height: 14px; color: var(--ui-accent); flex: none; }
+.diagram-style-panel .diagram-style-head b { font-size: 12.5px; }
+.diagram-style-count {
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ui-accent-soft, color-mix(in srgb, var(--ui-accent) 18%, transparent));
+  color: var(--ui-accent); font-size: 10.5px; font-weight: 700;
+}
+.diagram-style-group {
+  margin-top: 2px; padding-top: 4px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--ui-muted);
+  border-top: 1px solid var(--ui-border-soft);
+}
+.diagram-style-group:first-child { border-top: none; padding-top: 0; }
+.diagram-opt-row {
+  display: grid; grid-template-columns: 86px 1fr; gap: 8px; align-items: center;
+  font-size: 12px; color: var(--ui-muted);
+}
+.diagram-opt-row.set .c4-field-label,
+.c4-color-field.set .c4-field-label { color: var(--ui-accent); font-weight: 600; }
+.diagram-opt-ctl { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.diagram-opt-ctl select,
+.diagram-opt-ctl input {
+  flex: 1 1 auto; min-width: 0; height: 26px; border: 1px solid var(--ui-border);
+  border-radius: 6px; background: var(--ui-panel); color: var(--ui-text);
+  padding: 0 6px; font-size: 11.5px;
+}
+.diagram-opt-ctl input[type="color"] {
+  width: 26px; height: 26px; padding: 0; flex: none; cursor: pointer;
+}
+.diagram-opt-ctl input[type="checkbox"] { flex: none; width: auto; height: auto; }
+.diagram-opt-checks { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; }
+.diagram-opt-checks label { display: inline-flex; align-items: center; gap: 4px; }
 .c4-style-head {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 8px 10px 4px; border-bottom: 1px solid var(--ui-border-soft);

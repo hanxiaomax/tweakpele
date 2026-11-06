@@ -4,10 +4,15 @@ import {
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
+import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
+import { detectDiagramType } from '../lib.js';
+import { hasTypeSpecificFields } from '../diagramOverrides.js';
 
-const Card = memo(function Card({ d, galleryOptions, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
+const Card = memo(function Card({ d, optionsFor, styleApi, onOpen, onDuplicate, onDelete, onFocus, onCardMenu }) {
   const dirty = d.source !== d.original;
+  const type = detectDiagramType(d.source, d.keyword);
+  const showTypePanel = !!styleApi && !!type && type !== 'c4' && hasTypeSpecificFields(type);
 
   return (
     <article
@@ -27,15 +32,28 @@ const Card = memo(function Card({ d, galleryOptions, onOpen, onDuplicate, onDele
           <IconButton Icon={Trash2} label={`Delete ${d.title}`} kind="danger" onClick={() => onDelete(d.id)} />
         </span>
       </header>
-      <div className="card-body">
-        <PeleHost source={d.source} options={galleryOptions} lazy />
+      <div className="card-body" style={styleApi?.varsStyleFor?.(d.id)}>
+        <PeleHost source={d.source} options={optionsFor(d.id)} lazy />
+        {showTypePanel && (
+          <DiagramTypePanel
+            diagramType={type}
+            globalVars={styleApi.globalVars}
+            globalOptVals={styleApi.globalOptVals}
+            override={styleApi.overrides[d.id]}
+            onChangeOpt={(optId, v) => styleApi.setOpt(d.id, optId, v)}
+            onChangeVar={(name, v) => styleApi.setVar(d.id, name, v)}
+            onResetAll={() => styleApi.resetAll(d.id)}
+            compact
+            defaultCollapsed
+          />
+        )}
       </div>
     </article>
   );
 });
 
 export default function Gallery({
-  diagrams, galleryOptions,
+  diagrams, optionsFor, styleApi,
   onOpen, onDuplicate, onDelete, onNew, onFocus, onFocusPrev, onFocusNext,
   onCardMenu, onBoardMenu,
 }) {
@@ -73,7 +91,7 @@ export default function Gallery({
       )}
       {diagrams.map((d) => (
         <Card
-          key={d.id} d={d} galleryOptions={galleryOptions}
+          key={d.id} d={d} optionsFor={optionsFor} styleApi={styleApi}
           onOpen={onOpen} onDuplicate={onDuplicate} onDelete={onDelete}
           onFocus={onFocus} onCardMenu={onCardMenu}
         />

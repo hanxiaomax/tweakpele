@@ -5,8 +5,10 @@ import {
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
+import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
-import { clamp } from '../lib.js';
+import { clamp, detectDiagramType } from '../lib.js';
+import { hasTypeSpecificFields } from '../diagramOverrides.js';
 
 const MIN_S = 0.03;
 const MAX_S = 6;
@@ -89,10 +91,12 @@ export function ensureCanvasPositions(diagrams, sizesMap, existing) {
 }
 
 const Frame = memo(function Frame({
-  d, options, dragging, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize,
+  d, optionsFor, styleApi, dragging, onOpen, onDuplicate, onDelete, onFocus, onFrameMenu, onSize,
 }) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
+  const type = detectDiagramType(d.source, d.keyword);
+  const showTypePanel = !!styleApi && !!type && type !== 'c4' && hasTypeSpecificFields(type);
 
   const report = useCallback(() => {
     const el = shellRef.current;
@@ -127,21 +131,34 @@ const Frame = memo(function Frame({
           <IconButton Icon={Trash2} label={`Delete ${d.title}`} kind="danger" onClick={() => onDelete(d.id)} />
         </span>
       </header>
-      <div className="canvas-frame-body">
+      <div className="canvas-frame-body" style={styleApi?.varsStyleFor?.(d.id)}>
         <PeleHost
           source={d.source}
-          options={options}
+          options={optionsFor(d.id)}
           lazy
           onResult={reportWhenPainted}
           onError={reportWhenPainted}
         />
+        {showTypePanel && (
+          <DiagramTypePanel
+            diagramType={type}
+            globalVars={styleApi.globalVars}
+            globalOptVals={styleApi.globalOptVals}
+            override={styleApi.overrides[d.id]}
+            onChangeOpt={(optId, v) => styleApi.setOpt(d.id, optId, v)}
+            onChangeVar={(name, v) => styleApi.setVar(d.id, name, v)}
+            onResetAll={() => styleApi.resetAll(d.id)}
+            compact
+            defaultCollapsed
+          />
+        )}
       </div>
     </article>
   );
 });
 
 export default function Canvas({
-  diagrams, canvasOptions, positions, onPositionsChange,
+  diagrams, optionsFor, styleApi, positions, onPositionsChange,
   onFocus, onFocusPrev, onFocusNext,
   onOpen, onDuplicate, onDelete, onFrameMenu, onBoardMenu,
 }) {
@@ -310,7 +327,7 @@ export default function Canvas({
 
     const onDown = (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (e.target.closest('button, a, input, textarea, select, [data-pele-zoom], .ctxmenu, .card-actions')) return;
+      if (e.target.closest('button, a, input, textarea, select, label, [data-pele-zoom], .ctxmenu, .card-actions, .c4-style-panel, .diagram-style-panel')) return;
 
       // Prefer dragging a frame from its title bar (or any [data-frame-drag]).
       const handle = e.target.closest('[data-frame-drag]');
@@ -468,7 +485,8 @@ export default function Canvas({
             >
               <Frame
                 d={d}
-                options={canvasOptions}
+                optionsFor={optionsFor}
+                styleApi={styleApi}
                 dragging={draggingId === d.id}
                 onOpen={onOpen}
                 onDuplicate={onDuplicate}
