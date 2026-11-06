@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { VAR_META, OPT_GROUPS } from '../constants.js';
+import { VAR_META, OPT_GROUPS, THEME_PRESETS, matchThemePreset } from '../constants.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v).trim());
 function expandHex(hex) {
@@ -8,6 +8,39 @@ function expandHex(hex) {
   if (/^#[0-9a-fA-F]{8}$/.test(h)) return h.slice(0, 7);
   return h;
 }
+
+const SWATCH_KEYS = [
+  '--pele-bg',
+  '--pele-surface',
+  '--pele-accent',
+  '--pele-fg',
+  '--pele-series-1',
+  '--pele-border',
+];
+
+const PresetCard = memo(function PresetCard({ preset, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      className={'theme-preset' + (selected ? ' selected' : '')}
+      aria-pressed={selected}
+      title={preset.description || preset.label}
+      onClick={() => onSelect(preset)}
+    >
+      <span className="theme-preset-swatches" aria-hidden="true">
+        {SWATCH_KEYS.map((key) => (
+          <i key={key} style={{ background: preset.vars[key] }} />
+        ))}
+      </span>
+      <span className="theme-preset-meta">
+        <b>{preset.label}</b>
+        <small className={'theme-preset-tone ' + (preset.tone || 'light')}>
+          {preset.tone === 'dark' ? 'Dark' : 'Light'}
+        </small>
+      </span>
+    </button>
+  );
+});
 
 const VarRow = memo(function VarRow({ meta, value, onChange }) {
   return (
@@ -106,10 +139,27 @@ const OptRow = memo(function OptRow({ o, value, onChange, onReset }) {
   );
 });
 
-export default function Toolbox({ vars, onVarChange, optVals, onOptChange, onOptReset, cssBlock, optionsJson }) {
+export default function Toolbox({ vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset, cssBlock, optionsJson }) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
+  const active = matchThemePreset(vars);
   return (
     <aside className="toolbox" aria-label="Toolbox">
+      <details className="section" open>
+        <summary className="panel-head">
+          Theme presets
+          <span className="count">{active ? active.label : 'Custom'}</span>
+        </summary>
+        <div className="theme-preset-grid" role="list">
+          {THEME_PRESETS.map((preset) => (
+            <PresetCard
+              key={preset.id}
+              preset={preset}
+              selected={active?.id === preset.id}
+              onSelect={onApplyPreset}
+            />
+          ))}
+        </div>
+      </details>
       <details className="section" open>
         <summary className="panel-head">CSS variables <span className="count">{VAR_META.length}</span></summary>
         <div className="vars-list">

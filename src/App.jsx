@@ -14,7 +14,7 @@ import EditorView from './components/EditorView.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import {
-  VAR_META, FACTORY, DARK, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
+  VAR_META, FACTORY, DARK, THEME_PRESETS, REMEASURE_VARS, ALL_OPTS, OPT_GROUPS, STARTERS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from './constants.js';
 import { loadJSON, saveJSON, copyText, clamp, useHashRoute, navigate, useDebounced, usePersistedState, newId } from './lib.js';
@@ -104,15 +104,31 @@ export default function App() {
   }, []);
 
   // ------------------------------------------------------------------ theme actions
-  const applyPreset = (preset) => { setVars({ ...preset }); forgetMeasures(); };
+  const applyPresetVars = useCallback((presetVars) => {
+    setVars({ ...presetVars });
+    forgetMeasures();
+  }, [forgetMeasures]);
+  const applyThemePreset = useCallback((preset) => {
+    applyPresetVars(preset.vars);
+    notify(`Applied ${preset.label}`);
+    setStatus(`Theme · ${preset.label}`);
+  }, [applyPresetVars, notify]);
   const toggleTheme = () => {
     const next = siteTheme === 'light' ? 'dark' : 'light';
     setSiteTheme(next);
-    applyPreset(next === 'dark' ? DARK : FACTORY);
+    const preset = THEME_PRESETS.find((p) => p.id === (next === 'dark' ? 'dark-ink' : 'paper'));
+    applyPresetVars(preset ? preset.vars : (next === 'dark' ? DARK : FACTORY));
     notify(next === 'dark' ? 'Dark ink theme' : 'Light paper theme');
   };
-  const resetFactory = () => { setOptVals(factoryOpts()); applyPreset(FACTORY); notify('Factory theme & options restored'); };
-  const loadDarkSample = () => { applyPreset(DARK); notify('Dark ink sample applied'); };
+  const resetFactory = () => {
+    setOptVals(factoryOpts());
+    applyPresetVars(FACTORY);
+    notify('Factory theme & options restored');
+  };
+  const loadDarkSample = () => {
+    applyPresetVars(DARK);
+    notify('Dark ink sample applied');
+  };
 
   // ------------------------------------------------------------------ toolbox actions
   const onVarChange = useCallback((name, value) => {
@@ -300,7 +316,7 @@ export default function App() {
 
       <main className="layout">
         <Toolbox
-          vars={vars} onVarChange={onVarChange}
+          vars={vars} onVarChange={onVarChange} onApplyPreset={applyThemePreset}
           optVals={optVals} onOptChange={onOptChange} onOptReset={onOptReset}
           cssBlock={cssBlock} optionsJson={optionsJson}
         />
