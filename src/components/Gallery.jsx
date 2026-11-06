@@ -74,11 +74,13 @@ export default function Gallery({
   const wheelAcc = useRef(0);
   const single = cols === 1;
 
-  // Non-passive wheel so we can preventDefault (React's delegated onWheel is passive).
+  // Ctrl+wheel changes column density. Plain wheel scrolls normally.
+  // Non-passive listener so preventDefault works under Ctrl (React onWheel is passive).
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return undefined;
     const onWheel = (e) => {
+      if (!e.ctrlKey) return; // plain wheel → native gallery scroll
       if (e.target.closest && e.target.closest('input, textarea, select, button, a, .diagram-style-panel')) return;
       const dy = e.deltaY;
       if (!dy) return;
@@ -115,7 +117,7 @@ export default function Gallery({
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onFocusPrev} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onFocusNext} />
           <span className="muted">
-            {`${diagrams.length} diagrams · ${cols} col${cols === 1 ? '' : 's'} · wheel zooms density`}
+            {`${diagrams.length} diagrams · ${cols} col${cols === 1 ? '' : 's'} · Ctrl+wheel zooms density`}
           </span>
         </div>
       )}
@@ -123,8 +125,8 @@ export default function Gallery({
         <div className="gallery-hint">
           <span>
             {single
-              ? '1×1 · type panel on cards · click to focus · wheel zooms out for more columns'
-              : 'Wheel zooms columns · type panel only at 1×1 · click to focus · Esc/F exit focus'}
+              ? '1×1 · type panel on cards · click to focus · Ctrl+wheel zooms out for more columns'
+              : 'Ctrl+wheel zooms columns · type panel only at 1×1 · click to focus · Esc/F exit focus'}
           </span>
           <span>Right-click empty space to create · Duplicate / Save as from the card menu</span>
         </div>
