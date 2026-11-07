@@ -279,51 +279,23 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .overview-view[aria-hidden="true"] { visibility: hidden; pointer-events: none; }
 .fatal { margin: 20px; padding: 14px; border: 1px solid var(--ui-danger); border-radius: 8px; color: var(--ui-danger); font-weight: 600; }
 
-/* gallery: Ctrl+wheel zooms column density (data-cols); plain wheel scrolls */
+/* gallery: Ctrl+wheel zooms column density; cols=1 hands off to FocusedView (slide focus) */
 .gallery {
   flex: 1; min-height: 0; overflow: auto; padding: 18px;
   display: grid;
   grid-template-columns: repeat(var(--gallery-cols, 3), minmax(0, 1fr));
   gap: 18px; align-content: start;
-  container-type: size;
-  container-name: gallery;
 }
 .gallery-hint {
   grid-column: 1 / -1; color: var(--ui-muted); font-size: 11.5px; padding: 0 2px 4px;
   display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
 }
 .gallery-carousel { grid-column: 1 / -1; }
-/* 1×1: stacked full-viewport cards (NOT 1fr rows — that packed every card into one
-   viewport and caused overlap). Leave ~chrome for carousel+hint; panel stays inside card. */
-.gallery[data-cols="1"] {
-  align-content: start;
-  scroll-snap-type: y proximity;
-}
-.gallery[data-cols="1"] .card:not(.new-card) {
-  box-sizing: border-box;
-  min-height: max(360px, calc(100cqh - 108px));
-  height: max(360px, calc(100cqh - 108px));
-  max-height: none;
-  scroll-snap-align: start;
-}
-.gallery[data-cols="1"] .new-card {
-  min-height: 170px;
-  height: auto;
-  scroll-snap-align: none;
-}
-.gallery[data-cols="1"] .card-body {
-  max-height: none;
-  min-height: 0;
-  flex: 1;
-  /* Keep absolute type panel inside the card — don't spill onto the next card. */
-  overflow: hidden;
-}
-.gallery[data-cols="1"] .card-body:has(.diagram-style-panel:not(.collapsed)) {
-  overflow: hidden;
-  z-index: auto;
-}
-.gallery[data-cols="1"] .card-body .diagram-style-panel {
-  max-height: min(42%, calc(100% - 16px));
+.gallery-1x1-placeholder {
+  grid-column: 1 / -1;
+  min-height: 40vh;
+  display: grid; place-items: center;
+  color: var(--ui-muted); font-size: 12px;
 }
 .card {
   display: flex; flex-direction: column; min-width: 0; min-height: 170px;
@@ -449,6 +421,16 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border-radius: calc(var(--pele-radius, 6px) + 4px);
   overflow: hidden; font-family: var(--pele-font, inherit);
 }
+@keyframes focused-slide-next {
+  from { opacity: 0.35; transform: translateX(36px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes focused-slide-prev {
+  from { opacity: 0.35; transform: translateX(-36px); }
+  to { opacity: 1; transform: none; }
+}
+.focused-view.slide-next { animation: focused-slide-next 0.28s ease; }
+.focused-view.slide-prev { animation: focused-slide-prev 0.28s ease; }
 .focused-view-title {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: none;
   padding: 10px 12px;

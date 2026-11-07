@@ -32,6 +32,10 @@ const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
 const VIEW_KEY = 'tweakpele.viewMode';
 const POS_KEY = 'tweakpele.canvasPos.v1';
 const OVERRIDES_KEY = 'tweakpele.diagramOverrides.v1';
+const GALLERY_COLS_KEY = 'tweakpele.galleryCols.v1';
+const GALLERY_COLS_MULTI_KEY = 'tweakpele.galleryColsLastMulti.v1';
+const GALLERY_COL_MIN = 1;
+const GALLERY_COL_MAX = 6;
 
 function seedLibrary() {
   return (window.TWEAKPELE_DIAGRAMS || []).map((m) => ({
@@ -63,6 +67,17 @@ export default function App() {
     v && typeof v === 'object' && !Array.isArray(v) ? v : {}
   ));
   const [focusedId, setFocusedId] = useState(null);
+  const [focusSlideDir, setFocusSlideDir] = useState(0);
+  const [galleryCols, setGalleryCols] = usePersistedState(GALLERY_COLS_KEY, (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? clamp(Math.round(n), GALLERY_COL_MIN, GALLERY_COL_MAX) : 3;
+  });
+  const [galleryColsLastMulti, setGalleryColsLastMulti] = usePersistedState(GALLERY_COLS_MULTI_KEY, (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? clamp(Math.round(n), 2, GALLERY_COL_MAX) : 3;
+  });
+  const galleryColsRef = useRef(galleryCols);
+  galleryColsRef.current = galleryCols;
   const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (Number.isFinite(v) ? clamp(v, 16, 84) : 42));
   const [remeasureTick, setRemeasureTick] = useState(0);
   const route = useHashRoute();
@@ -348,8 +363,18 @@ export default function App() {
   // stable identities where possible: they are passed to memoized Cards/Frames/PeleHosts
   const findDiagram = useCallback((id) => diagrams.find((d) => d.id === id), [diagrams]);
 
-  const focusDiagram = useCallback((id) => setFocusedId(id), []);
-  const clearFocus = useCallback(() => setFocusedId(null), []);
+  const focusDiagram = useCallback((id) => {
+    setFocusSlideDir(0);
+    setFocusedId(id);
+  }, []);
+  /** Exit focus. Leaving gallery 1×1 also restores the last multi-column grid. */
+  const clearFocus = useCallback(() => {
+    if (viewMode === 'gallery' && galleryColsRef.current === 1) {
+      setGalleryCols(galleryColsLastMulti || 3);
+    }
+    setFocusSlideDir(0);
+    setFocusedId(null);
+  }, [viewMode, galleryColsLastMulti, setGalleryCols]);
   // Canvas focus carousel: top→bottom, left→right by saved positions. Gallery keeps library order.
   const focusOrder = useMemo(() => {
     if (viewMode === 'canvas') return sortDiagramsSpatially(diagrams, canvasPositions);
@@ -361,10 +386,40 @@ export default function App() {
     let next;
     if (i < 0) next = dir > 0 ? 0 : focusOrder.length - 1;
     else next = (i + dir + focusOrder.length) % focusOrder.length;
+    setFocusSlideDir(dir);
     setFocusedId(focusOrder[next].id);
   }, [focusOrder, focusedId]);
   const focusPrev = useCallback(() => focusStep(-1), [focusStep]);
   const focusNext = useCallback(() => focusStep(1), [focusStep]);
+
+  const bumpGalleryCols = useCallback((delta) => {
+    setGalleryCols((c) => clamp(c + delta, GALLERY_COL_MIN, GALLERY_COL_MAX));
+  }, [setGalleryCols]);
+
+  // Gallery 1×1 → auto-enter the same FocusedView as click-to-focus (centered slide UI).
+  const prevGalleryCols = useRef(galleryCols);
+  useEffect(() => {
+    const prev = prevGalleryCols.current;
+    prevGalleryCols.current = galleryCols;
+    if (route.view !== 'gallery' || viewMode !== 'gallery') return;
+    if (galleryCols >= 2) {
+      setGalleryColsLastMulti(galleryCols);
+      if (prev === 1) {
+        setFocusSlideDir(0);
+        setFocusedId(null);
+      }
+      return;
+    }
+    // cols === 1
+    if (!diagrams.length) {
+      setFocusedId(null);
+      return;
+    }
+    setFocusedId((id) => {
+      if (id && diagrams.some((d) => d.id === id)) return id;
+      return diagrams[0].id;
+    });
+  }, [galleryCols, route.view, viewMode, diagrams, setGalleryColsLastMulti]);
 
   // Global shortcuts: T toggles the toolbox; Esc/F exit focus; arrows step diagrams.
   useEffect(() => {
@@ -553,6 +608,7 @@ export default function App() {
                   <Gallery
                     diagrams={diagrams} optionsFor={galleryOptionsFor}
                     styleApi={styleApi}
+                    cols={galleryCols} onColsChange={setGalleryCols}
                     onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                     onNew={() => setNewOpen(true)}
                     onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
@@ -575,12 +631,15 @@ export default function App() {
                   diagram={focusedDiagram}
                   options={optionsForDiagram(focusedDiagram.id, 'focused')}
                   index={focusedIdx} total={focusOrder.length}
+                  slideDir={focusSlideDir}
                   onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
                   onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}
                   onChangeSource={changeSource}
                   vars={vars}
                   styleApi={styleApi}
+                  onCtrlWheelCols={viewMode === 'gallery' ? bumpGalleryCols : undefined}
+                  enableSlideWheel={viewMode === 'gallery' && galleryCols === 1}
                 />
               )}
             </div>
