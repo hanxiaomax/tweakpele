@@ -411,6 +411,9 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .preview-pane .pele-host-wrap { margin: 0 auto; max-width: none; width: max-content; height: auto; }
 .preview-pane .pele-host { margin: 0 auto; max-width: none; width: max-content; }
 .preview-pane .pele-host svg.pele { max-width: none; }
+.preview-pane .pele-host { display: grid; }
+.preview-pane .pele-host > * { grid-area: 1 / 1; }
+.preview-pane .pele-host > .pele-zoom { position: sticky !important; align-self: start; justify-self: end; }
 .editor-missing { margin: auto; text-align: center; }
 
 /* ---------------- in-place focused diagram ---------------- */
