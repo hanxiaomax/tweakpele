@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { LuPalette as Palette, LuChevronDown as ChevronDown, LuChevronRight as ChevronRight } from 'react-icons/lu';
 import { VAR_META } from '../constants.js';
 import { typeSpecificVars, typeSpecificOpts, overrideKeyCount } from '../diagramOverrides.js';
+import useDragOffset from '../useDragOffset.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v || '').trim());
 function expandHex(hex) {
@@ -148,6 +149,7 @@ export default function DiagramTypePanel({
   const tsOpts = useMemo(() => typeSpecificOpts(diagramType), [diagramType]);
   const [open, setOpen] = useState(!defaultCollapsed);
   const rootRef = useRef(null);
+  const { handleProps } = useDragOffset(rootRef);
 
   // Native wheel stop: panel scrolling must not pan/zoom the canvas viewport
   // (its wheel listener sits on an ancestor and React stopPropagation is too late).
@@ -186,6 +188,7 @@ export default function DiagramTypePanel({
       onDoubleClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
+      <div {...handleProps} />
       <button type="button" className="diagram-style-head" onClick={() => setOpen((o) => !o)}
         aria-expanded={open} title={open ? 'Collapse style panel' : 'Expand style panel'}>
         {open ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}

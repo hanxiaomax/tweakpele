@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LuPalette as Palette, LuX as X } from 'react-icons/lu';
 import {
   parseC4Model, upsertElementStyle, upsertRelStyle, upsertLayoutConfig, isC4Source,
 } from '../c4.js';
 import { VAR_META } from '../constants.js';
+import useDragOffset from '../useDragOffset.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v || '').trim());
 function expandHex(hex) {
@@ -102,6 +103,8 @@ export default function C4StylePanel({
   const [mode, setMode] = useState(
     selection?.type === 'rel' ? 'rel' : (selection?.type === 'element' ? 'element' : 'element'),
   );
+  const rootRef = useRef(null);
+  const { handleProps } = useDragOffset(rootRef);
 
   const paletteTokens = useMemo(() => {
     const map = vars || {};
@@ -174,7 +177,8 @@ export default function C4StylePanel({
   const layoutHas = !!(layout.c4ShapeInRow || layout.c4BoundaryInRow);
 
   return (
-    <aside className={'c4-style-panel' + (compact ? ' compact' : '')} aria-label="C4 style editor">
+    <aside ref={rootRef} className={'c4-style-panel' + (compact ? ' compact' : '')} aria-label="C4 style editor">
+      <div {...handleProps} />
       <header className="c4-style-head">
         <Palette aria-hidden="true" />
         <b>C4 style</b>
