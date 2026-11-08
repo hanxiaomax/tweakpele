@@ -611,6 +611,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   content: ''; width: 30px; height: 3px; border-radius: 2px;
   background: var(--ui-border);
 }
+.panel-drag-handle::after { content: ''; position: absolute; inset: 0 0 -8px; }
 .panel-drag-handle:hover::before,
 .panel-drag-handle.dragging::before { background: var(--ui-accent); }
 .panel-drag-handle.dragging { cursor: grabbing; }

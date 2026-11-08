@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 function clampOffset(el, x, y) {
   const parent = el.offsetParent || el.parentElement;
   if (!parent) return { x, y };
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
   return {
     x: clamp(x, -el.offsetLeft, parent.clientWidth - el.offsetWidth - el.offsetLeft),
     y: clamp(y, -el.offsetTop, parent.clientHeight - el.offsetHeight - el.offsetTop),
