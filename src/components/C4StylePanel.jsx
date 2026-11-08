@@ -5,71 +5,7 @@ import {
 } from '../c4.js';
 import { VAR_META } from '../constants.js';
 import useDragOffset from '../useDragOffset.js';
-
-const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v || '').trim());
-function expandHex(hex) {
-  const h = String(hex || '').trim();
-  if (/^#[0-9a-fA-F]{3}$/.test(h)) return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`;
-  if (/^#[0-9a-fA-F]{8}$/.test(h)) return h.slice(0, 7);
-  return h || '#888888';
-}
-
-const VAR_REF_RE = /^var\(\s*(--pele-[\w-]+)\s*\)$/i;
-
-function parseVarRef(value) {
-  const m = String(value || '').trim().match(VAR_REF_RE);
-  return m ? m[1] : null;
-}
-
-function ColorField({ label, value, onChange, onClear, paletteTokens }) {
-  const hex = isHexColor(value) ? expandHex(value) : '#888888';
-  const selectedToken = parseVarRef(value);
-  return (
-    <div className="c4-color-field">
-      <span className="c4-field-label">{label}</span>
-      <div className="c4-color-picker-panel">
-        <span className="c4-color-controls">
-          <input
-            type="color"
-            aria-label={`${label} color`}
-            value={hex}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <input
-            type="text"
-            spellCheck="false"
-            autoComplete="off"
-            placeholder="#hex or var(--pele-…)"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <button type="button" className="ibtn ghost tiny" title={`Clear ${label}`} aria-label={`Clear ${label}`}
-            onClick={onClear} disabled={!value}>✕</button>
-        </span>
-        {paletteTokens && paletteTokens.length > 0 && (
-          <div className="c4-palette-swatches" role="list" aria-label={`${label} palette tokens`}>
-            {paletteTokens.map((tok) => {
-              const active = selectedToken === tok.name;
-              return (
-                <button
-                  key={tok.name}
-                  type="button"
-                  role="listitem"
-                  className={'c4-swatch' + (active ? ' active' : '')}
-                  title={`${tok.label} · ${tok.name}`}
-                  aria-label={`Use ${tok.name}`}
-                  aria-pressed={active}
-                  style={{ background: tok.value || '#888' }}
-                  onClick={() => onChange(`var(${tok.name})`)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import ColorField from './ColorField.jsx';
 
 function NumberField({ label, value, onChange, onClear, placeholder }) {
   return (
@@ -223,11 +159,11 @@ export default function C4StylePanel({
                   ))}
                 </select>
               </label>
-              <ColorField label="Background" value={elStyle.bgColor} paletteTokens={paletteTokens}
+              <ColorField label="Background" value={elStyle.bgColor} clearDisabled={!elStyle.bgColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ bgColor: v })} onClear={() => setEl({ bgColor: '' })} />
-              <ColorField label="Font" value={elStyle.fontColor} paletteTokens={paletteTokens}
+              <ColorField label="Font" value={elStyle.fontColor} clearDisabled={!elStyle.fontColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ fontColor: v })} onClear={() => setEl({ fontColor: '' })} />
-              <ColorField label="Border" value={elStyle.borderColor} paletteTokens={paletteTokens}
+              <ColorField label="Border" value={elStyle.borderColor} clearDisabled={!elStyle.borderColor} paletteTokens={paletteTokens}
                 onChange={(v) => setEl({ borderColor: v })} onClear={() => setEl({ borderColor: '' })} />
               <div className="c4-style-actions">
                 <button type="button" className="btn" onClick={clearEl} disabled={!elHasStyle}>
@@ -262,9 +198,9 @@ export default function C4StylePanel({
                   ))}
                 </select>
               </label>
-              <ColorField label="Text" value={relStyle.textColor} paletteTokens={paletteTokens}
+              <ColorField label="Text" value={relStyle.textColor} clearDisabled={!relStyle.textColor} paletteTokens={paletteTokens}
                 onChange={(v) => setRel({ textColor: v })} onClear={() => setRel({ textColor: '' })} />
-              <ColorField label="Line" value={relStyle.lineColor} paletteTokens={paletteTokens}
+              <ColorField label="Line" value={relStyle.lineColor} clearDisabled={!relStyle.lineColor} paletteTokens={paletteTokens}
                 onChange={(v) => setRel({ lineColor: v })} onClear={() => setRel({ lineColor: '' })} />
               <NumberField label="Offset X" value={relStyle.offsetX} placeholder="0"
                 onChange={(v) => setRel({ offsetX: v })} onClear={() => setRel({ offsetX: '' })} />
