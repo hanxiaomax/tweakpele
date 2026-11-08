@@ -80,11 +80,11 @@ function OptField({ o, effective, overridden, onChange, onClear }) {
  */
 export default function DiagramTypePanel({
   diagramType, globalVars = {}, globalOptVals = {}, override,
-  onChangeOpt, onChangeVar, onResetAll, compact = false, defaultCollapsed = false,
+  onChangeOpt, onChangeVar, onResetAll, compact = false,
 }) {
   const tsVars = useMemo(() => typeSpecificVars(diagramType), [diagramType]);
   const tsOpts = useMemo(() => typeSpecificOpts(diagramType), [diagramType]);
-  const [open, setOpen] = useState(!defaultCollapsed);
+  const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const { handleProps } = useDragOffset(rootRef);
 
