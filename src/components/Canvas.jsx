@@ -149,7 +149,6 @@ const Frame = memo(function Frame({
             onChangeVar={(name, v) => styleApi.setVar(d.id, name, v)}
             onResetAll={() => styleApi.resetAll(d.id)}
             compact
-            defaultCollapsed
           />
         )}
       </div>

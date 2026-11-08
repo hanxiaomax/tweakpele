@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LuPalette as Palette, LuX as X } from 'react-icons/lu';
+import { LuPalette as Palette, LuX as X, LuChevronDown as ChevronDown, LuChevronRight as ChevronRight } from 'react-icons/lu';
 import {
   parseC4Model, upsertElementStyle, upsertRelStyle, upsertLayoutConfig, isC4Source,
 } from '../c4.js';
@@ -39,6 +39,7 @@ export default function C4StylePanel({
   const [mode, setMode] = useState(
     selection?.type === 'rel' ? 'rel' : (selection?.type === 'element' ? 'element' : 'element'),
   );
+  const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const { handleProps } = useDragOffset(rootRef);
 
@@ -57,6 +58,7 @@ export default function C4StylePanel({
   useEffect(() => {
     if (selection?.type === 'rel') setMode('rel');
     else if (selection?.type === 'element') setMode('element');
+    if (selection) setOpen(true);
   }, [selection]);
 
   if (!isC4Source(source)) return null;
@@ -113,12 +115,20 @@ export default function C4StylePanel({
   const layoutHas = !!(layout.c4ShapeInRow || layout.c4BoundaryInRow);
 
   return (
-    <aside ref={rootRef} className={'c4-style-panel' + (compact ? ' compact' : '')} aria-label="C4 style editor">
+    <aside
+      ref={rootRef}
+      className={'c4-style-panel' + (compact ? ' compact' : '') + (open ? '' : ' collapsed')}
+      aria-label="C4 style editor"
+    >
       <div {...handleProps} />
       <header className="c4-style-head">
-        <Palette aria-hidden="true" />
-        <b>C4 style</b>
-        <span className="c4-style-hint">Click shape/arrow · palette → var(--pele-…)</span>
+        <button type="button" className="diagram-style-head" onClick={() => setOpen((o) => !o)}
+          aria-expanded={open} title={open ? 'Collapse style panel' : 'Expand style panel'}>
+          {open ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+          <Palette aria-hidden="true" />
+          <b>C4 style</b>
+          <span className="c4-style-hint">Click shape/arrow · palette → var(--pele-…)</span>
+        </button>
         {selection && (
           <button type="button" className="ibtn ghost tiny" title="Clear selection" aria-label="Clear selection"
             onClick={() => onSelect?.(null)}>
@@ -127,7 +137,9 @@ export default function C4StylePanel({
         )}
       </header>
 
-      <div className="c4-style-tabs" role="tablist">
+      {open && (
+        <>
+        <div className="c4-style-tabs" role="tablist">
         <button type="button" role="tab" aria-selected={mode === 'element'}
           className={mode === 'element' ? 'active' : ''}
           onClick={() => setMode('element')}>Elements</button>
@@ -231,6 +243,8 @@ export default function C4StylePanel({
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
     </aside>
   );
