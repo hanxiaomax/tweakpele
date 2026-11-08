@@ -599,6 +599,23 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .canvas-empty { position: absolute; left: 40px; top: 40px; width: 320px; }
 
 
+/* ---------------- draggable style panels: shared top handle ---------------- */
+.panel-drag-handle {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  height: 12px; flex: none;
+  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
+  cursor: grab; touch-action: none;
+}
+.panel-drag-handle::before {
+  content: ''; width: 30px; height: 3px; border-radius: 2px;
+  background: var(--ui-border);
+}
+.panel-drag-handle::after { content: ''; position: absolute; inset: 0 0 -8px; }
+.panel-drag-handle:hover::before,
+.panel-drag-handle.dragging::before { background: var(--ui-accent); }
+.panel-drag-handle.dragging { cursor: grabbing; }
+
 /* ---------------- C4 interactive style editor ---------------- */
 .preview-pane.c4-interactive,
 .focused-view-body.c4-interactive {
