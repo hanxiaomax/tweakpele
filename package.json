@@ -4,8 +4,8 @@
   "description": "tweakpele — Pele theme & render playground (React + esbuild)",
   "main": "src/main.jsx",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "check": "node scripts/verify-diagram-overrides.mjs"
   },
   "repository": {
     "type": "git",
