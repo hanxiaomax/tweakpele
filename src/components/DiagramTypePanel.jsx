@@ -3,70 +3,7 @@ import { LuPalette as Palette, LuChevronDown as ChevronDown, LuChevronRight as C
 import { VAR_META } from '../constants.js';
 import { typeSpecificVars, typeSpecificOpts, overrideKeyCount } from '../diagramOverrides.js';
 import useDragOffset from '../useDragOffset.js';
-
-const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v || '').trim());
-function expandHex(hex) {
-  const h = String(hex || '').trim();
-  if (/^#[0-9a-fA-F]{3}$/.test(h)) return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`;
-  if (/^#[0-9a-fA-F]{8}$/.test(h)) return h.slice(0, 7);
-  return h || '#888888';
-}
-
-const VAR_REF_RE = /^var\(\s*(--pele-[\w-]+)\s*\)$/i;
-function parseVarRef(value) {
-  const m = String(value || '').trim().match(VAR_REF_RE);
-  return m ? m[1] : null;
-}
-
-function ColorField({ label, value, onChange, onClear, paletteTokens, overridden = false }) {
-  const hex = isHexColor(value) ? expandHex(value) : '#888888';
-  const selectedToken = parseVarRef(value);
-  return (
-    <div className={'c4-color-field' + (overridden ? ' set' : '')}>
-      <span className="c4-field-label">{label}</span>
-      <div className="c4-color-picker-panel">
-        <span className="c4-color-controls">
-          <input
-            type="color"
-            aria-label={`${label} color`}
-            value={hex}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <input
-            type="text"
-            spellCheck="false"
-            autoComplete="off"
-            placeholder="#hex or var(--pele-…)"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <button type="button" className="ibtn ghost tiny" title={`Clear ${label} (inherit global)`} aria-label={`Clear ${label}`}
-            onClick={onClear} disabled={!overridden}>✕</button>
-        </span>
-        {paletteTokens && paletteTokens.length > 0 && (
-          <div className="c4-palette-swatches" role="list" aria-label={`${label} palette tokens`}>
-            {paletteTokens.map((tok) => {
-              const active = selectedToken === tok.name;
-              return (
-                <button
-                  key={tok.name}
-                  type="button"
-                  role="listitem"
-                  className={'c4-swatch' + (active ? ' active' : '')}
-                  title={`${tok.label} · ${tok.name}`}
-                  aria-label={`Use ${tok.name}`}
-                  aria-pressed={active}
-                  style={{ background: tok.value || '#888' }}
-                  onClick={() => onChange(`var(${tok.name})`)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import ColorField from './ColorField.jsx';
 
 function OptField({ o, effective, overridden, onChange, onClear }) {
   let ctl = null;
@@ -211,6 +148,7 @@ export default function DiagramTypePanel({
                   label={meta.label || meta.name}
                   value={ovVars[meta.name] ?? globalVars[meta.name] ?? ''}
                   overridden={meta.name in ovVars}
+                  clearDisabled={!(meta.name in ovVars)}
                   paletteTokens={paletteTokens}
                   onChange={(v) => setVar(meta.name, v)}
                   onClear={() => setVar(meta.name, undefined)}
