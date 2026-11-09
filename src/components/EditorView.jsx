@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize } from 'react-icons/lu';
+import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize, LuDownload as Download } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
-import { IconButton } from './ui.jsx';
+import { IconButton, ContextMenu } from './ui.jsx';
+import { exportDiagram, slugify } from '../export.js';
 import { clamp, detectDiagramType } from '../lib.js';
 import { hasTypeSpecificFields } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
@@ -22,6 +23,7 @@ export default function EditorView({
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
   const [c4Sel, setC4Sel] = useState(null);
+  const [exportMenu, setExportMenu] = useState(null);
   const areaRef = useRef(null);
   const splitRef = useRef(null);
   const previewRef = useRef(null);
@@ -105,6 +107,28 @@ export default function EditorView({
     }
   };
 
+  const runExport = (format, background) => {
+    const svg = previewRef.current?.querySelector('svg.pele');
+    if (!svg) { notify('Nothing to export'); return; }
+    exportDiagram(svg, { format, background, filename: slugify(diagram.title) })
+      .then((name) => notify(`Exported ${name}`))
+      .catch(() => notify('Export failed'));
+  };
+
+  const openExportMenu = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setExportMenu({
+      x: rect.left,
+      y: rect.bottom + 4,
+      items: [
+        { label: 'PNG', onClick: () => runExport('png', true) },
+        { label: 'PNG (transparent)', onClick: () => runExport('png', false) },
+        { label: 'SVG', onClick: () => runExport('svg', true) },
+        { label: 'SVG (transparent)', onClick: () => runExport('svg', false) },
+      ],
+    });
+  };
+
   const dirty = diagram.source !== diagram.original;
 
   return (
@@ -127,6 +151,7 @@ export default function EditorView({
             onClick={() => { onResetSource(diagram.id); notify('Source reset'); setC4Sel(null); }} />
           <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"
             onClick={() => onCopySource(diagram)} />
+          <IconButton Icon={Download} label="Export image" onClick={openExportMenu} />
         </span>
       </header>
       <div className="editor-split" ref={splitRef} style={{ '--split': `${split}%` }}>
@@ -190,6 +215,7 @@ export default function EditorView({
           })()}
         </div>
       </div>
+      <ContextMenu menu={exportMenu} onClose={() => setExportMenu(null)} />
     </section>
   );
 }
