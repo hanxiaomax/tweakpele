@@ -5,7 +5,7 @@ import {
   LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
-  LuFocus as Focus, LuSave as Save,
+  LuFocus as Focus, LuSave as Save, LuDownload as Download,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -13,8 +13,9 @@ import Canvas from './components/Canvas.jsx';
 import EditorView from './components/EditorView.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
-import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS } from './constants.js';
+import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
 import { copyText, navigate } from './lib.js';
+import { download } from './export.js';
 import { useTweakpeleBridge } from './bridge.js';
 import { useThemeState } from './state/useThemeState.js';
 import { useDiagrams } from './state/useDiagrams.js';
@@ -112,6 +113,13 @@ export default function App() {
     setStatus(ok ? `Copied ${label}` : 'Copy failed');
   };
 
+  const downloadTheme = () => {
+    const filename = 'pele-theme.json';
+    download(new Blob([themeFileJson(vars, optVals)], { type: 'application/json;charset=utf-8' }), filename);
+    notify(`Downloaded ${filename}`);
+    setStatus(`Downloaded ${filename}`);
+  };
+
   // ------------------------------------------------------------------ library actions spanning view state
   const addDiagram = (starter) => {
     const d = createDiagram(starter);
@@ -202,6 +210,7 @@ export default function App() {
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
+          <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
           <IconButton Icon={RotateCcw} label="Reset factory theme & options" onClick={resetFactory} />
           <IconButton Icon={MoonStar} label="Apply dark ink sample" onClick={loadDarkSample} />
           <IconButton Icon={ArchiveRestore} label="Restore built-in samples" onClick={restoreSamples} />

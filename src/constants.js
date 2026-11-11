@@ -1619,6 +1619,14 @@ export function peleCssBlock(vars) {
   return `.pele {\n${VAR_META.map(({ name }) => `  ${name}: ${String(vars[name]).trim()};`).join('\n')}\n}`;
 }
 
+/** Theme file for Pele render.mjs --theme. CLI consumes vars; options are for a later round-trip. */
+export function themeFileJson(vars, optVals) {
+  const out = { version: 1, vars: {} };
+  for (const { name } of VAR_META) out.vars[name] = String(vars[name] ?? '').trim();
+  if (optVals) out.options = exportOptions(optVals, vars);
+  return JSON.stringify(out, null, 2) + '\n';
+}
+
 // ---------------------------------------------------------------------------
 // New-diagram starters — English labels, no hardcoded colors.
 // ---------------------------------------------------------------------------

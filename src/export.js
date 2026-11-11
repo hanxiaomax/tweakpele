@@ -5,7 +5,7 @@ export function slugify(title) {
     .replace(/^-+|-+$/g, '') || 'diagram';
 }
 
-function download(blob, filename) {
+export function download(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
