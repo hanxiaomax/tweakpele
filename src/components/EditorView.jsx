@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize, LuDownload as Download } from 'react-icons/lu';
+import { LuArrowLeft as ArrowLeft, LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy, LuMaximize as Maximize, LuDownload as Download, LuShare2 as Share2, LuLink as Link, LuFolderOpen as FolderOpen } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
@@ -19,11 +19,13 @@ export default function EditorView({
   diagram, mountOptions, split, onSplitChange,
   onBack, onChangeTitle, onChangeSource, onResetSource, onCopySource, notify,
   onRenderFeedback, vars, styleApi,
+  onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
 }) {
   const [text, setText] = useState(diagram.source);
   const [status, setStatus] = useState(null);   // { info } | { error }
   const [c4Sel, setC4Sel] = useState(null);
   const [exportMenu, setExportMenu] = useState(null);
+  const [shareMenu, setShareMenu] = useState(null);
   const areaRef = useRef(null);
   const splitRef = useRef(null);
   const previewRef = useRef(null);
@@ -129,6 +131,20 @@ export default function EditorView({
     });
   };
 
+
+  const openShareMenu = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setShareMenu({
+      x: rect.left,
+      y: rect.bottom + 4,
+      items: [
+        { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
+        { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
+        { label: 'Open snapshot file', Icon: FolderOpen, onClick: () => onOpenSnapshot?.() },
+      ],
+    });
+  };
+
   const dirty = diagram.source !== diagram.original;
 
   return (
@@ -152,6 +168,7 @@ export default function EditorView({
           <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"
             onClick={() => onCopySource(diagram)} />
           <IconButton Icon={Download} label="Export image" onClick={openExportMenu} />
+          <IconButton Icon={Share2} label="Share snapshot" onClick={openShareMenu} />
         </span>
       </header>
       <div className="editor-split" ref={splitRef} style={{ '--split': `${split}%` }}>
@@ -216,6 +233,7 @@ export default function EditorView({
         </div>
       </div>
       <ContextMenu menu={exportMenu} onClose={() => setExportMenu(null)} />
+      <ContextMenu menu={shareMenu} onClose={() => setShareMenu(null)} />
     </section>
   );
 }

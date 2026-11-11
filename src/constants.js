@@ -1619,12 +1619,32 @@ export function peleCssBlock(vars) {
   return `.pele {\n${VAR_META.map(({ name }) => `  ${name}: ${String(vars[name]).trim()};`).join('\n')}\n}`;
 }
 
-/** Theme file for Pele render.mjs --theme. CLI consumes vars; options are for a later round-trip. */
-export function themeFileJson(vars, optVals) {
+/** Theme file object for Pele render.mjs --theme and share snapshots. CLI consumes vars. */
+export function themeFileObject(vars, optVals) {
   const out = { version: 1, vars: {} };
   for (const { name } of VAR_META) out.vars[name] = String(vars[name] ?? '').trim();
   if (optVals) out.options = exportOptions(optVals, vars);
-  return JSON.stringify(out, null, 2) + '\n';
+  return out;
+}
+
+export function themeFileJson(vars, optVals) {
+  return JSON.stringify(themeFileObject(vars, optVals), null, 2) + '\n';
+}
+
+/** Inverse of exportOptions: nested pele.mount options -> toolbox optVals. Fonts stay in vars. */
+export function optValsFromOptions(options) {
+  const out = factoryOpts();
+  if (!options || typeof options !== 'object' || Array.isArray(options)) return out;
+  for (const o of ALL_OPTS) {
+    if (o.kind === 'font' || !o.path) continue;
+    let cur = options;
+    for (const k of o.path) {
+      if (cur == null || typeof cur !== 'object') { cur = undefined; break; }
+      cur = cur[k];
+    }
+    if (cur !== undefined && cur !== '') out[o.id] = cur;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

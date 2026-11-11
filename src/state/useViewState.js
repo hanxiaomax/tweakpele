@@ -116,8 +116,8 @@ export function useViewState({ diagrams }) {
       const t = e.target;
       if (t && (t.closest && t.closest('input, textarea, select, [contenteditable]'))) return;
       if (e.key === 't' || e.key === 'T') setToolboxCollapsed((c) => !c);
-      else if (e.key === 'Escape' && route.view === 'edit') navigate({ view: 'gallery' });
-      else if (route.view !== 'edit') {
+      else if (e.key === 'Escape' && (route.view === 'edit' || route.view === 'snapshot')) navigate({ view: 'gallery' });
+      else if (route.view !== 'edit' && route.view !== 'snapshot') {
         if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') clearFocus();
         else if (e.key === 'ArrowLeft') { e.preventDefault(); focusPrev(); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); focusNext(); }

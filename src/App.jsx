@@ -5,7 +5,7 @@ import {
   LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
-  LuFocus as Focus, LuSave as Save, LuDownload as Download,
+  LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -16,6 +16,11 @@ import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
 import { copyText, navigate } from './lib.js';
 import { download } from './export.js';
+import { slugify } from './export.js';
+import {
+  buildSnapshot, snapshotFileJson, parseSnapshot, snapshotTheme, diagramFromSnapshot,
+  encodeSnapshotToken, decodeSnapshotToken, shareUrl, isShareUrlTooLong,
+} from './snapshot.js';
 import { useTweakpeleBridge } from './bridge.js';
 import { useThemeState } from './state/useThemeState.js';
 import { useDiagrams } from './state/useDiagrams.js';
@@ -39,6 +44,7 @@ export default function App() {
     siteTheme, vars, optVals, cssBlock, optionsJson, mountOptions, varsStyle,
     applyPresetVars, applyThemePreset, toggleTheme, resetFactory, loadDarkSample,
     onVarChange, onOptChange, onOptReset,
+    applySnapshotTheme, clearSnapshotTheme,
   } = theme;
   const diagramsApi = useDiagrams({ theme, notify, setStatus });
   const {
@@ -120,6 +126,120 @@ export default function App() {
     setStatus(`Downloaded ${filename}`);
   };
 
+  const snapshotFileRef = useRef(null);
+  const [sessionDiagram, setSessionDiagram] = useState(null);
+
+  const snapshotOf = (diagram) => {
+    if (!diagram) return null;
+    const ov = diagramOverrides[diagram.id];
+    const shareVars = { ...vars, ...(ov?.vars || {}) };
+    const shareOptVals = { ...optVals, ...(ov?.opts || {}) };
+    return buildSnapshot(shareVars, shareOptVals, diagram);
+  };
+
+  const applySnapshot = (snap) => {
+    const themeNext = snapshotTheme(snap);
+    applySnapshotTheme(themeNext.vars, themeNext.optVals);
+    setSessionDiagram(diagramFromSnapshot(snap));
+  };
+
+  // Opening #/s/<token> applies the snapshot for this session only — it must not write localStorage.
+  useEffect(() => {
+    if (route.view !== 'snapshot') {
+      if (sessionDiagram) {
+        setSessionDiagram(null);
+        clearSnapshotTheme();
+      }
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await decodeSnapshotToken(route.token);
+        if (cancelled) return;
+        applySnapshot(snap);
+      } catch (_) {
+        if (cancelled) return;
+        notify('Share link is invalid');
+        navigate({ view: 'gallery' });
+      }
+    })();
+    return () => { cancelled = true };
+    // applySnapshot is recreated each render; token/view are the real inputs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.view, route.token]);
+
+  const copyShareLink = async (diagram) => {
+    const snap = snapshotOf(diagram);
+    if (!snap) { notify('Nothing to share'); return; }
+    try {
+      const token = await encodeSnapshotToken(snap);
+      const url = shareUrl(token);
+      if (isShareUrlTooLong(url)) {
+        const filename = `${slugify(diagram.title)}.tweakpele.json`;
+        download(new Blob([JSON.stringify(snap, null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
+        notify('Link too long — downloaded snapshot file instead');
+        return;
+      }
+      const ok = await copyText(url);
+      notify(ok ? 'Copied share link' : 'Copy failed — download the snapshot file instead');
+    } catch (_) {
+      notify('Could not build share link');
+    }
+  };
+
+  const downloadSnapshot = (diagram) => {
+    if (!diagram) { notify('Nothing to share'); return; }
+    const ov = diagramOverrides[diagram.id];
+    const shareVars = { ...vars, ...(ov?.vars || {}) };
+    const shareOptVals = { ...optVals, ...(ov?.opts || {}) };
+    const filename = `${slugify(diagram.title)}.tweakpele.json`;
+    download(new Blob([snapshotFileJson(shareVars, shareOptVals, diagram)], { type: 'application/json;charset=utf-8' }), filename);
+    notify(`Downloaded ${filename}`);
+  };
+
+  const openSnapshotFile = () => snapshotFileRef.current?.click();
+
+  const onSnapshotFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const snap = parseSnapshot(await file.text());
+      if (!snap) { notify('Not a valid snapshot file'); return; }
+      const token = await encodeSnapshotToken(snap);
+      const url = shareUrl(token);
+      // Prefer putting the token in the hash so refresh keeps it; even long hashes work in the address bar.
+      if (location.hash !== `#/s/${token}`) location.hash = `#/s/${token}`;
+      else applySnapshot(snap);
+      notify(isShareUrlTooLong(url) ? 'Opened snapshot (link would be too long to share)' : 'Opened snapshot');
+    } catch (_) {
+      notify('Could not open snapshot file');
+    }
+  };
+
+  const changeSourceSafe = (id, source) => {
+    if (sessionDiagram && id === sessionDiagram.id) {
+      setSessionDiagram((d) => ({ ...d, source }));
+      return;
+    }
+    changeSource(id, source);
+  };
+  const changeTitleSafe = (id, title) => {
+    if (sessionDiagram && id === sessionDiagram.id) {
+      setSessionDiagram((d) => ({ ...d, title }));
+      return;
+    }
+    changeTitle(id, title);
+  };
+  const resetSourceSafe = (id) => {
+    if (sessionDiagram && id === sessionDiagram.id) {
+      setSessionDiagram((d) => ({ ...d, source: d.original }));
+      return;
+    }
+    resetSource(id);
+  };
+
   // ------------------------------------------------------------------ library actions spanning view state
   const addDiagram = (starter) => {
     const d = createDiagram(starter);
@@ -179,7 +299,8 @@ export default function App() {
     };
   }, [diagrams, vars, optVals, diagramOverrides, mountOptions, onVarChange, onOptChange, onDiagramVarChange, onDiagramOptChange, onDiagramOverrideReset]);
 
-  const current = route.view === 'edit' ? findDiagram(route.id) : null;
+  const current = route.view === 'snapshot' ? sessionDiagram
+    : route.view === 'edit' ? findDiagram(route.id) : null;
   const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
   const focusedDiagram = focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
   // Editor → open diagram; gallery → focused diagram. Drives toolbox type filter.
@@ -200,7 +321,7 @@ export default function App() {
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark ink theme' : 'Switch to light paper theme'}
             onClick={toggleTheme} />
-          {route.view !== 'edit' && (
+          {route.view !== 'edit' && route.view !== 'snapshot' && (
             <IconButton
               Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
               label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}
@@ -211,6 +332,7 @@ export default function App() {
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
           <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
+          <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
           <IconButton Icon={RotateCcw} label="Reset factory theme & options" onClick={resetFactory} />
           <IconButton Icon={MoonStar} label="Apply dark ink sample" onClick={loadDarkSample} />
           <IconButton Icon={ArchiveRestore} label="Restore built-in samples" onClick={restoreSamples} />
@@ -269,21 +391,26 @@ export default function App() {
               )}
             </div>
           )}
-          {route.view === 'edit' && (current
+          {(route.view === 'edit' || route.view === 'snapshot') && (current
             ? <EditorView
                 key={current.id}
                 diagram={current} mountOptions={optionsForDiagram(current.id, 'editor')}
                 split={split} onSplitChange={setSplit}
-                onBack={backToGallery} onChangeTitle={changeTitle}
-                onChangeSource={changeSource} onResetSource={resetSource}
+                onBack={backToGallery} onChangeTitle={changeTitleSafe}
+                onChangeSource={changeSourceSafe} onResetSource={resetSourceSafe}
                 onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
                 notify={notify}
                 onRenderFeedback={(fb) => { bridge.pushFeedback?.(fb); }}
                 vars={vars}
                 styleApi={styleApi}
+                onCopyShareLink={() => copyShareLink(current)}
+                onDownloadSnapshot={() => downloadSnapshot(current)}
+                onOpenSnapshot={openSnapshotFile}
               />
-            : <div className="empty editor-missing"><p>This diagram no longer exists.</p>
-               <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></div>)}
+            : <div className="empty editor-missing">{route.view === 'snapshot'
+                ? <p>Opening shared snapshot…</p>
+                : <><p>This diagram no longer exists.</p>
+               <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></>}</div>)}
         </div>
       </main>
 
@@ -307,6 +434,7 @@ export default function App() {
           </div>
         </Dialog>
       )}
+      <input ref={snapshotFileRef} type="file" accept="application/json,.json,.tweakpele.json" hidden onChange={onSnapshotFile} />
       <Toast toast={toastMsg} />
     </div>
   );
