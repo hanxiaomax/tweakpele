@@ -10,19 +10,49 @@ const OPTS_KEY = 'tweakpele.opts.v1';
 const THEME_KEY = 'tweakpele.siteTheme';
 
 /** Global theme state: light/dark site theme, CSS vars, render options,
- *  and the derived CSS block / options JSON / shared mount options. */
+ *  and the derived CSS block / options JSON / shared mount options.
+ *  A session overlay (share snapshot) shadows vars/optVals without writing localStorage. */
 export function useThemeState({ notify, setStatus }) {
   const [siteTheme, setSiteTheme] = usePersistedState(THEME_KEY, (v) => (v === 'dark' ? 'dark' : 'light'));
-  const [vars, setVars] = usePersistedState(VARS_KEY, (v) => ({ ...FACTORY, ...v }));
-  const [optVals, setOptVals] = usePersistedState(OPTS_KEY, (v) => ({ ...factoryOpts(), ...v }));
+  const [storedVars, setStoredVars] = usePersistedState(VARS_KEY, (v) => ({ ...FACTORY, ...v }));
+  const [storedOptVals, setStoredOptVals] = usePersistedState(OPTS_KEY, (v) => ({ ...factoryOpts(), ...v }));
+  const [session, setSession] = useState(null); // { vars, optVals } | null
   const [remeasureTick, setRemeasureTick] = useState(0);
 
   useEffect(() => { document.documentElement.dataset.theme = siteTheme; }, [siteTheme]);
+
+  const vars = session ? session.vars : storedVars;
+  const optVals = session ? session.optVals : storedOptVals;
+
+  const setVars = useCallback((updater) => {
+    const apply = (prev) => (typeof updater === 'function' ? updater(prev) : updater);
+    if (session) setSession((s) => ({ ...s, vars: apply(s.vars) }));
+    else setStoredVars(updater);
+  }, [session]);
+
+  const setOptVals = useCallback((updater) => {
+    const apply = (prev) => (typeof updater === 'function' ? updater(prev) : updater);
+    if (session) setSession((s) => ({ ...s, optVals: apply(s.optVals) }));
+    else setStoredOptVals(updater);
+  }, [session]);
 
   const forgetMeasures = useCallback(() => {
     try { pele.forgetTextWidths(); } catch (_) { /* pele not loaded */ }
     setRemeasureTick((t) => t + 1);
   }, []);
+
+  const applySnapshotTheme = useCallback((nextVars, nextOptVals) => {
+    setSession({
+      vars: { ...FACTORY, ...nextVars },
+      optVals: { ...factoryOpts(), ...nextOptVals },
+    });
+    forgetMeasures();
+  }, [forgetMeasures]);
+
+  const clearSnapshotTheme = useCallback(() => {
+    setSession(null);
+    forgetMeasures();
+  }, [forgetMeasures]);
 
   // ------------------------------------------------------------------ derived
   const cssBlock = useMemo(() => peleCssBlock(vars), [vars]);
@@ -47,7 +77,7 @@ export function useThemeState({ notify, setStatus }) {
   const applyPresetVars = useCallback((presetVars) => {
     setVars({ ...presetVars });
     forgetMeasures();
-  }, [forgetMeasures]);
+  }, [forgetMeasures, setVars]);
   const applyThemePreset = useCallback((preset) => {
     applyPresetVars(preset.vars);
     notify(`Applied ${preset.label}`);
@@ -58,7 +88,7 @@ export function useThemeState({ notify, setStatus }) {
 
   const toggleTheme = () => {
     const next = siteTheme === 'light' ? 'dark' : 'light';
-    setSiteTheme(next);
+    if (!session) setSiteTheme(next);
     const preset = THEME_PRESETS.find((p) => p.id === (next === 'dark' ? 'dark-ink' : 'paper'));
     applyPresetVars(preset ? preset.vars : (next === 'dark' ? DARK : FACTORY));
     notify(next === 'dark' ? 'Dark ink theme' : 'Light paper theme');
@@ -78,11 +108,11 @@ export function useThemeState({ notify, setStatus }) {
     if (REMEASURE_VARS.has(name)) forgetMeasures();
     setVars((v) => (v[name] === value ? v : { ...v, [name]: value }));
     setStatus(name);
-  }, [forgetMeasures]);
+  }, [forgetMeasures, setVars]);
   const onOptChange = useCallback((o, value) => {
     setOptVals((v) => ({ ...v, [o.id]: value }));
     setStatus(o.path ? o.path.join('.') : o.key);
-  }, []);
+  }, [setOptVals]);
   const onOptReset = useCallback((o) => {
     setOptVals((v) => {
       const next = { ...v };
@@ -90,7 +120,7 @@ export function useThemeState({ notify, setStatus }) {
       return next;
     });
     setStatus(`${o.key} → default`);
-  }, []);
+  }, [setOptVals]);
 
   return {
     siteTheme, vars, optVals, remeasureTick, forgetMeasures,
@@ -98,5 +128,6 @@ export function useThemeState({ notify, setStatus }) {
     debouncedOptVals, debouncedVars,
     applyPresetVars, applyThemePreset, toggleTheme, resetFactory, loadDarkSample,
     onVarChange, onOptChange, onOptReset,
+    snapshotActive: !!session, applySnapshotTheme, clearSnapshotTheme,
   };
 }
