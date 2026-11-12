@@ -482,6 +482,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   margin: 0;
   overflow: hidden;
 }
+.focused-view-body .pele-host { display: flex; align-items: center; justify-content: center; }
 .focused-view-body .pele-host svg.pele {
   max-width: 100%;
   max-height: 100%;
