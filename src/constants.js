@@ -1651,7 +1651,8 @@ export function optValsFromOptions(options) {
 // New-diagram starters — English labels, no hardcoded colors.
 // ---------------------------------------------------------------------------
 export const STARTERS = [
-  { title: 'Blank flowchart', keyword: 'flowchart', source: 'flowchart TD\n  A[Start] --> B{Choice}\n  B -->|Yes| C[Do it]\n  B -->|No| D[Skip]\n  C --> E[Done]\n  D --> E\n' },
+  { title: 'Blank', keyword: 'blank', source: '' },
+  { title: 'Flowchart TD', keyword: 'flowchart', source: 'flowchart TD\n  A[Start] --> B{Choice}\n  B -->|Yes| C[Do it]\n  B -->|No| D[Skip]\n  C --> E[Done]\n  D --> E\n' },
   { title: 'Flowchart LR', keyword: 'flowchart', source: 'flowchart LR\n  Ingest[Ingest] --> Process[Process]\n  Process --> Store[(Store)]\n  Store --> Serve[Serve]\n' },
   { title: 'Sequence', keyword: 'sequenceDiagram', source: 'sequenceDiagram\n  autonumber\n  participant U as User\n  participant S as Server\n  U->>S: Request data\n  S-->>U: Data payload\n  Note over U,S: Round trip complete\n' },
   { title: 'Class', keyword: 'classDiagram', source: 'classDiagram\n  class Diagram {\n    +String title\n    +render()\n  }\n  Diagram <|-- Flowchart\n  Diagram <|-- Chart\n' },

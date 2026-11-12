@@ -361,6 +361,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border-radius: 4px;
 }
 @keyframes pele-shimmer { to { background-position: -200% 0; } }
+.pele-host.pele-empty {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 96px; padding: 8px; text-align: center;
+  color: color-mix(in srgb, var(--pele-muted, #777) 85%, transparent);
+  font-size: 12.5px;
+}
 .pele-host svg.pele { display: block; margin: 0 auto; max-width: 100%; }
 
 /* ---------------- editor view ---------------- */
