@@ -33,10 +33,13 @@ export function useViewState({ diagrams }) {
   });
   const galleryColsRef = useRef(galleryCols);
   galleryColsRef.current = galleryCols;
-  const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (Number.isFinite(v) ? clamp(v, 16, 84) : 42));
+  // Sidebar width in px (was a % split pre-v4; small stored values fall back to the default).
+  const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (
+    Number.isFinite(v) && v >= 200 ? Math.round(v) : 380
+  ));
   const route = useHashRoute();
 
-  // Default mode = editor: first open with no hash lands in the split editor.
+  // Default mode = editor: first open with no hash focuses the last-edited diagram with the sidebar.
   useEffect(() => {
     if (location.hash) return;
     if (!diagrams.length) return;
@@ -49,21 +52,32 @@ export function useViewState({ diagrams }) {
     if (route.view === 'edit' && route.id) saveJSON(LAST_EDIT_KEY, route.id);
   }, [route.view, route.id]);
 
-  const openEditor = useCallback((id) => navigate({ view: 'edit', id }), []);
+  // '#/edit/<id>' = that diagram focused with the editor sidebar open (deep links / lastEditId / prev-next).
+  useEffect(() => {
+    if (route.view === 'edit' && route.id) setFocusedId(route.id);
+  }, [route.view, route.id]);
+
+  const openEditor = useCallback((id) => {
+    setFocusSlideDir(0);
+    setFocusedId(id);
+    navigate({ view: 'edit', id });
+  }, []);
   const backToGallery = useCallback(() => navigate({ view: 'gallery' }), []);
 
   const focusDiagram = useCallback((id) => {
     setFocusSlideDir(0);
     setFocusedId(id);
   }, []);
-  /** Exit focus. Leaving gallery 1×1 also restores the last multi-column grid. */
+  /** Exit focus. Leaving gallery 1×1 also restores the last multi-column grid;
+   *  exiting while the edit sidebar is open also closes it. */
   const clearFocus = useCallback(() => {
     if (viewMode === 'gallery' && galleryColsRef.current === 1) {
       setGalleryCols(galleryColsLastMulti || 3);
     }
     setFocusSlideDir(0);
     setFocusedId(null);
-  }, [viewMode, galleryColsLastMulti, setGalleryCols]);
+    if (route.view === 'edit') backToGallery();
+  }, [viewMode, galleryColsLastMulti, setGalleryCols, route.view, backToGallery]);
   // Canvas focus carousel: top→bottom, left→right by saved positions. Gallery keeps library order.
   const focusOrder = useMemo(() => {
     if (viewMode === 'canvas') return sortDiagramsSpatially(diagrams, canvasPositions);
@@ -77,7 +91,9 @@ export function useViewState({ diagrams }) {
     else next = (i + dir + focusOrder.length) % focusOrder.length;
     setFocusSlideDir(dir);
     setFocusedId(focusOrder[next].id);
-  }, [focusOrder, focusedId]);
+    // keep the sidebar (edit route) on the new diagram
+    if (route.view === 'edit' && route.id !== focusOrder[next].id) navigate({ view: 'edit', id: focusOrder[next].id });
+  }, [focusOrder, focusedId, route.view, route.id]);
   const focusPrev = useCallback(() => focusStep(-1), [focusStep]);
   const focusNext = useCallback(() => focusStep(1), [focusStep]);
 
@@ -110,14 +126,21 @@ export function useViewState({ diagrams }) {
     });
   }, [galleryCols, route.view, viewMode, diagrams, setGalleryColsLastMulti]);
 
-  // Global shortcuts: T toggles the toolbox; Esc/F exit focus; arrows step diagrams.
+  // Global shortcuts: T toggles the toolbox; Esc/F exit focus (or close the sidebar first);
+  // arrows step diagrams — also while the edit sidebar is open (hash follows the new id).
   useEffect(() => {
     const onKey = (e) => {
       const t = e.target;
       if (t && (t.closest && t.closest('input, textarea, select, [contenteditable]'))) return;
       if (e.key === 't' || e.key === 'T') setToolboxCollapsed((c) => !c);
-      else if (e.key === 'Escape' && (route.view === 'edit' || route.view === 'snapshot')) navigate({ view: 'gallery' });
-      else if (route.view !== 'edit' && route.view !== 'snapshot') {
+      else if (route.view === 'snapshot') {
+        if (e.key === 'Escape') backToGallery();
+      } else if (route.view === 'edit') {
+        if (e.key === 'Escape') backToGallery();
+        else if (e.key === 'f' || e.key === 'F') clearFocus();
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); focusPrev(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); focusNext(); }
+      } else {
         if (e.key === 'Escape' || e.key === 'f' || e.key === 'F') clearFocus();
         else if (e.key === 'ArrowLeft') { e.preventDefault(); focusPrev(); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); focusNext(); }
@@ -125,7 +148,7 @@ export function useViewState({ diagrams }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [route.view, diagrams, focusedId, clearFocus, focusPrev, focusNext]);
+  }, [route.view, clearFocus, focusPrev, focusNext, backToGallery]);
 
   /** Cleanup after a diagram is removed: drop its canvas position, exit focus/edit if it was active. */
   const onDiagramDeleted = useCallback((id) => {

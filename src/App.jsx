@@ -10,7 +10,6 @@ import {
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
-import EditorView from './components/EditorView.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
@@ -251,8 +250,9 @@ export default function App() {
     const d = saveAsCopy(id);
     if (!d) return;
     setFocusedId(d.id);
+    if (route.view === 'edit') navigate({ view: 'edit', id: d.id });
     notify(`Saved as “${d.title}”`);
-  }, [saveAsCopy, focusDiagram, notify]);
+  }, [saveAsCopy, setFocusedId, route.view, notify]);
   const deleteDiagram = useCallback((id) => {
     const src = removeDiagram(id);
     if (!src) return;
@@ -299,12 +299,18 @@ export default function App() {
     };
   }, [diagrams, vars, optVals, diagramOverrides, mountOptions, onVarChange, onOptChange, onDiagramVarChange, onDiagramOptChange, onDiagramOverrideReset]);
 
-  const current = route.view === 'snapshot' ? sessionDiagram
-    : route.view === 'edit' ? findDiagram(route.id) : null;
+  const isSnapshot = route.view === 'snapshot';
+  // '#/edit/<id>' and '#/s/<token>' both render the focused view with the editor sidebar open.
+  const sidebarOpen = isSnapshot || route.view === 'edit';
   const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
-  const focusedDiagram = focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
-  // Editor → open diagram; gallery → focused diagram. Drives toolbox type filter.
+  const focusedDiagram = isSnapshot ? sessionDiagram
+    : focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';
+
+  const toggleSidebar = () => {
+    if (sidebarOpen) backToGallery();
+    else if (focusedDiagram) openEditor(focusedDiagram.id);
+  };
 
   return (
     <div className={'app' + (toolboxCollapsed ? ' toolbox-off' : '')}>
@@ -321,7 +327,7 @@ export default function App() {
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark site theme' : 'Switch to light site theme'}
             onClick={toggleTheme} />
-          {route.view !== 'edit' && route.view !== 'snapshot' && (
+          {!isSnapshot && (
             <IconButton
               Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
               label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}
@@ -347,7 +353,9 @@ export default function App() {
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
-          {route.view === 'gallery' && (
+          {isSnapshot && !sessionDiagram ? (
+            <div className="empty editor-missing"><p>Opening shared snapshot…</p></div>
+          ) : (
             <div className="view-holder">
               {/* Keep overview geometry and state while focus occupies the same content slot. */}
               <div className="overview-view" aria-hidden={!!focusedDiagram} inert={focusedDiagram ? '' : undefined}>
@@ -377,40 +385,32 @@ export default function App() {
                   key={focusedDiagram.id}
                   diagram={focusedDiagram}
                   options={optionsForDiagram(focusedDiagram.id, 'focused')}
-                  index={focusedIdx} total={focusOrder.length}
+                  index={isSnapshot ? 0 : focusedIdx}
+                  total={isSnapshot ? 1 : focusOrder.length}
                   slideDir={focusSlideDir}
-                  onClose={clearFocus} onPrev={focusPrev} onNext={focusNext}
-                  onEdit={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                  onClose={isSnapshot ? backToGallery : clearFocus}
+                  onPrev={focusPrev} onNext={focusNext}
+                  sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar}
+                  split={split} onSplitChange={setSplit}
+                  onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
                   onMenu={cardMenu}
-                  onChangeSource={changeSource}
+                  onChangeSource={changeSourceSafe}
+                  onChangeTitle={changeTitleSafe}
+                  onResetSource={resetSourceSafe}
+                  onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
+                  notify={notify}
+                  onRenderFeedback={sidebarOpen ? (fb) => { bridge.pushFeedback?.(fb); } : undefined}
+                  onCopyShareLink={() => copyShareLink(focusedDiagram)}
+                  onDownloadSnapshot={() => downloadSnapshot(focusedDiagram)}
+                  onOpenSnapshot={openSnapshotFile}
                   vars={vars}
                   styleApi={styleApi}
-                  onCtrlWheelCols={viewMode === 'gallery' ? bumpGalleryCols : undefined}
-                  enableSlideWheel={viewMode === 'gallery' && galleryCols === 1}
+                  onCtrlWheelCols={!isSnapshot && viewMode === 'gallery' ? bumpGalleryCols : undefined}
+                  enableSlideWheel={!isSnapshot && viewMode === 'gallery' && galleryCols === 1}
                 />
               )}
             </div>
           )}
-          {(route.view === 'edit' || route.view === 'snapshot') && (current
-            ? <EditorView
-                key={current.id}
-                diagram={current} mountOptions={optionsForDiagram(current.id, 'editor')}
-                split={split} onSplitChange={setSplit}
-                onBack={backToGallery} onChangeTitle={changeTitleSafe}
-                onChangeSource={changeSourceSafe} onResetSource={resetSourceSafe}
-                onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
-                notify={notify}
-                onRenderFeedback={(fb) => { bridge.pushFeedback?.(fb); }}
-                vars={vars}
-                styleApi={styleApi}
-                onCopyShareLink={() => copyShareLink(current)}
-                onDownloadSnapshot={() => downloadSnapshot(current)}
-                onOpenSnapshot={openSnapshotFile}
-              />
-            : <div className="empty editor-missing">{route.view === 'snapshot'
-                ? <p>Opening shared snapshot…</p>
-                : <><p>This diagram no longer exists.</p>
-               <p><button type="button" className="btn" onClick={backToGallery}>Back to gallery</button></p></>}</div>)}
         </div>
       </main>
 
