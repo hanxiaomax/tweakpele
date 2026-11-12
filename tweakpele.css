@@ -385,15 +385,28 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .editor-actions { display: flex; gap: 6px; flex: none; }
 .editor-missing { margin: auto; text-align: center; }
 
+/* Sidebar lives inside the diagram scope: remap chrome vars to the diagram palette. */
+.editor-sidebar, .sidebar-splitter {
+  --ui-panel: var(--pele-surface, #f8f7f3);
+  --ui-panel-2: var(--pele-bg, #fff);
+  --ui-text: var(--pele-fg, #1b1a17);
+  --ui-muted: var(--pele-muted, #67635a);
+  --ui-border: var(--pele-border, #cfccc2);
+  --ui-border-soft: color-mix(in srgb, var(--ui-border) 45%, transparent);
+  --ui-accent: var(--pele-accent, #d9641a);
+  --ui-accent-soft: color-mix(in srgb, var(--ui-accent) 14%, transparent);
+  --ui-danger: var(--pele-error, #b8450c);
+  --ui-mono: var(--pele-font-mono, ui-monospace, "Noto Sans Mono", monospace);
+}
 .editor-sidebar {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   background: var(--ui-panel); color: var(--ui-text);
-  font-family: var(--ui-sans, "Noto Sans", system-ui, sans-serif);
+  font-family: var(--pele-font, "Noto Sans", system-ui, sans-serif);
 }
 .editor-sidebar textarea {
   flex: 1; width: 100%; resize: none; border: none; outline: none; padding: 12px 14px;
-  background: var(--ui-panel); color: var(--ui-text);
-  font: 12.5px/1.55 ui-monospace, "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+  background: var(--ui-panel); color: var(--ui-text); caret-color: var(--ui-accent);
+  font: 12.5px/1.55 var(--ui-mono);
   white-space: pre; overflow: auto; tab-size: 2;
 }
 .editor-sidebar-head {
