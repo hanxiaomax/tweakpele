@@ -670,8 +670,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 /* ---------------- per-diagram type style panel (shares the C4 look) ---------------- */
 .focused-view-body, .card-body, .canvas-frame-body { position: relative; }
 .focused-view-body .diagram-style-panel,
-.card-body .diagram-style-panel,
-.canvas-frame-body .diagram-style-panel {
+.card-body .diagram-style-panel {
   position: absolute;
   bottom: 10px;
   left: 10px;
