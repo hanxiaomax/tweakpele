@@ -319,7 +319,7 @@ export default function App() {
         <span className="status" aria-live="polite">{status}</span>
         <span className="top-actions">
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
-            label={siteTheme === 'light' ? 'Switch to dark ink theme' : 'Switch to light paper theme'}
+            label={siteTheme === 'light' ? 'Switch to dark site theme' : 'Switch to light site theme'}
             onClick={toggleTheme} />
           {route.view !== 'edit' && route.view !== 'snapshot' && (
             <IconButton
