@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /** Icon-only button (React Icons / Lucide). Always labelled for a11y. */
-export function IconButton({ Icon, label, onClick, kind, disabled, className }) {
+export function IconButton({ Icon, label, onClick, kind, disabled, className, pressed }) {
   return (
     <button
       type="button"
       className={'ibtn' + (kind ? ' ' + kind : '') + (className ? ' ' + className : '')}
       title={label} aria-label={label}
+      aria-pressed={pressed === undefined ? undefined : !!pressed}
       onClick={onClick} disabled={disabled}
     >
       {Icon ? <Icon aria-hidden="true" focusable="false" /> : null}

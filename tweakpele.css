@@ -91,7 +91,7 @@ button { font: inherit; cursor: pointer; }
 }
 .edge-toggle:hover { opacity: 1; color: var(--ui-accent); }
 body.dragging-split { cursor: col-resize; user-select: none; }
-body.dragging-split .editor-split * { pointer-events: none; }
+body.dragging-split .focused-view-main * { pointer-events: none; }
 
 /* ---------------- theme presets (tweakcn-inspired picker) ---------------- */
 .theme-preset-grid {
@@ -369,14 +369,9 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .pele-host svg.pele { display: block; margin: 0 auto; max-width: 100%; }
 
-/* ---------------- editor view ---------------- */
-.editor-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.editor-bar {
-  display: flex; align-items: center; gap: 8px; flex: none; padding: 6px 10px;
-  border-bottom: 1px solid var(--ui-border); background: var(--ui-panel);
-}
+/* ---------------- editor sidebar (inside the focused view) ---------------- */
 .title-input {
-  flex: 0 1 auto; width: 260px; height: 28px; font-family: inherit; font-size: 13px; font-weight: 700;
+  flex: 1 1 auto; min-width: 0; width: 100%; height: 28px; font-family: inherit; font-size: 13px; font-weight: 700;
   background: transparent; border-color: transparent;
 }
 .title-input:hover { border-color: var(--ui-border); background: var(--ui-panel-2); }
@@ -388,11 +383,28 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .editor-status.error { color: var(--ui-danger); font-weight: 600; }
 .editor-actions { display: flex; gap: 6px; flex: none; }
+.editor-missing { margin: auto; text-align: center; }
 
-.editor-split {
-  flex: 1; min-height: 0; display: grid;
-  grid-template-columns: minmax(220px, var(--split, 42%)) 6px minmax(220px, 1fr);
+.editor-sidebar {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--ui-panel); color: var(--ui-text);
+  font-family: var(--ui-sans, "Noto Sans", system-ui, sans-serif);
 }
+.editor-sidebar textarea {
+  flex: 1; width: 100%; resize: none; border: none; outline: none; padding: 12px 14px;
+  background: var(--ui-panel); color: var(--ui-text);
+  font: 12.5px/1.55 ui-monospace, "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+  white-space: pre; overflow: auto; tab-size: 2;
+}
+.editor-sidebar-head {
+  display: flex; align-items: center; gap: 8px; flex: none; padding: 6px 10px;
+  border-bottom: 1px solid var(--ui-border-soft);
+}
+.editor-sidebar-foot {
+  display: flex; align-items: center; gap: 8px; flex: none; padding: 6px 10px;
+  border-top: 1px solid var(--ui-border-soft);
+}
+
 .splitter { cursor: col-resize; background: transparent; position: relative; }
 .splitter::after {
   content: ""; position: absolute; inset: 0 2px; border-radius: 3px; background: var(--ui-border);
@@ -400,27 +412,10 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .splitter:hover::after, body.dragging-split .splitter::after { opacity: 1; background: var(--ui-accent); }
 
-.source-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--ui-panel); }
-.source-pane textarea {
-  flex: 1; width: 100%; resize: none; border: none; outline: none; padding: 12px 14px;
-  background: var(--ui-panel); color: var(--ui-text);
-  font: 12.5px/1.55 ui-monospace, "Noto Sans Mono", "DejaVu Sans Mono", monospace;
-  white-space: pre; overflow: auto; tab-size: 2;
+.focused-view .ibtn[aria-pressed="true"] {
+  border-color: var(--pele-accent, #d9641a); color: var(--pele-accent, #d9641a);
+  background: color-mix(in srgb, var(--pele-accent, #d9641a) 12%, transparent);
 }
-.preview-pane {
-  min-width: 0; min-height: 0; overflow: auto; padding: 18px;
-  background-color: var(--pele-bg, #fff);
-  background-image: radial-gradient(circle, color-mix(in srgb, var(--pele-border, #000) 22%, transparent) 1px, transparent 1.2px);
-  background-size: 22px 22px;
-}
-/* No container max-width — Pele native zoom uses the viewport; scroll if needed. */
-.preview-pane .pele-host-wrap { margin: 0 auto; max-width: none; width: max-content; height: auto; }
-.preview-pane .pele-host { margin: 0 auto; max-width: none; width: max-content; }
-.preview-pane .pele-host svg.pele { max-width: none; }
-.preview-pane .pele-host { display: grid; }
-.preview-pane .pele-host > * { grid-area: 1 / 1; }
-.preview-pane .pele-host > .pele-zoom { position: sticky !important; align-self: start; justify-self: end; }
-.editor-missing { margin: auto; text-align: center; }
 
 /* ---------------- in-place focused diagram ---------------- */
 .focused-view {
@@ -471,6 +466,13 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .focused-view .ibtn.danger:hover {
   border-color: var(--pele-error, #b8450c); color: var(--pele-error, #b8450c);
 }
+/* Focus body + optional left editor sidebar; body keeps the remaining width. */
+.focused-view-main { flex: 1; min-height: 0; min-width: 0; display: flex; }
+.focused-view-main.with-sidebar {
+  display: grid;
+  grid-template-columns: clamp(260px, var(--sidebar-w, 380px), 60%) 6px minmax(220px, 1fr);
+}
+.focused-view-main .focused-view-body { flex: 1; min-width: 0; }
 .focused-view-body {
   flex: 1; min-height: 0; padding: 18px;
   /* Pele native zoom owns the viewport — avoid scroll+max-content clipping mid-SVG. */
@@ -629,12 +631,10 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .panel-drag-handle.dragging { cursor: grabbing; }
 
 /* ---------------- C4 interactive style editor ---------------- */
-.preview-pane.c4-interactive,
 .focused-view-body.c4-interactive {
   position: relative;
   cursor: crosshair;
 }
-.preview-pane .c4-style-panel,
 .focused-view-body .c4-style-panel {
   position: absolute;
   bottom: 10px;
@@ -655,8 +655,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .c4-style-panel.compact { width: min(340px, calc(100% - 16px)); }
 
 /* ---------------- per-diagram type style panel (shares the C4 look) ---------------- */
-.preview-pane, .focused-view-body, .card-body, .canvas-frame-body { position: relative; }
-.preview-pane .diagram-style-panel,
+.focused-view-body, .card-body, .canvas-frame-body { position: relative; }
 .focused-view-body .diagram-style-panel,
 .card-body .diagram-style-panel,
 .canvas-frame-body .diagram-style-panel {
@@ -840,9 +839,15 @@ g.pele-edge.c4-selected path {
   .app.toolbox-off .layout { grid-template-rows: 1fr; }
   .toolbox { border-right: none; border-bottom: 1px solid var(--ui-border); }
   .status { display: none; }
-  .editor-split { grid-template-columns: 1fr; grid-template-rows: minmax(140px, 38%) 6px minmax(140px, 1fr); }
-  .splitter { cursor: row-resize; }
-  .title-input { width: 140px; }
+}
+
+/* Sidebar stacks above the focused body on narrow screens; splitter hidden. */
+@media (max-width: 760px) {
+  .focused-view-main.with-sidebar { display: flex; flex-direction: column; }
+  .focused-view-main.with-sidebar .editor-sidebar {
+    flex: 0 0 45%; min-height: 0; border-bottom: 1px solid var(--ui-border);
+  }
+  .focused-view-main.with-sidebar .sidebar-splitter { display: none; }
 }
 
 /* ---------------- phones ---------------- */
@@ -857,10 +862,9 @@ g.pele-edge.c4-selected path {
   .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px; gap: 10px; }
   .card-title { flex-wrap: wrap; gap: 4px 8px; }
   .card-title b { flex: 1 1 100%; }
-  .editor-bar { gap: 6px; padding: 6px 8px; }
   .title-input { width: auto; min-width: 0; flex: 1 1 auto; }
   .editor-status { display: none; }
-  .preview-pane { padding: 10px; }
+  .focused-view-body { padding: 10px; }
   .c4-style-hint { display: none; }
 }
 
@@ -875,5 +879,5 @@ g.pele-edge.c4-selected path {
   .panel-drag-handle { height: 18px; }
   .c4-color-trigger { width: 30px; height: 30px; }
   .c4-swatch { width: 24px; height: 24px; }
-  input, select, textarea, .source-pane textarea { font-size: 16px; }
+  input, select, textarea, .editor-sidebar textarea { font-size: 16px; }
 }
