@@ -5,10 +5,8 @@ import {
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
-import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { IconButton } from './ui.jsx';
-import { clamp, detectDiagramType } from '../lib.js';
-import { hasTypeSpecificFields } from '../diagramOverrides.js';
+import { clamp } from '../lib.js';
 
 const MIN_S = 0.03;
 const MAX_S = 6;
@@ -95,8 +93,6 @@ const Frame = memo(function Frame({
 }) {
   const dirty = d.source !== d.original;
   const shellRef = useRef(null);
-  const type = detectDiagramType(d.source, d.keyword);
-  const showTypePanel = !!styleApi && !!type && type !== 'c4' && hasTypeSpecificFields(type);
 
   const report = useCallback(() => {
     const el = shellRef.current;
@@ -139,18 +135,6 @@ const Frame = memo(function Frame({
           onResult={reportWhenPainted}
           onError={reportWhenPainted}
         />
-        {showTypePanel && (
-          <DiagramTypePanel
-            diagramType={type}
-            globalVars={styleApi.globalVars}
-            globalOptVals={styleApi.globalOptVals}
-            override={styleApi.overrides[d.id]}
-            onChangeOpt={(optId, v) => styleApi.setOpt(d.id, optId, v)}
-            onChangeVar={(name, v) => styleApi.setVar(d.id, name, v)}
-            onResetAll={() => styleApi.resetAll(d.id)}
-            compact
-          />
-        )}
       </div>
     </article>
   );
@@ -326,7 +310,7 @@ export default function Canvas({
 
     const onDown = (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (e.target.closest('button, a, input, textarea, select, label, [data-pele-zoom], .ctxmenu, .card-actions, .c4-style-panel, .diagram-style-panel')) return;
+      if (e.target.closest('button, a, input, textarea, select, label, [data-pele-zoom], .ctxmenu, .card-actions')) return;
 
       // Prefer dragging a frame from its title bar (or any [data-frame-drag]).
       const handle = e.target.closest('[data-frame-drag]');
