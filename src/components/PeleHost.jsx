@@ -40,6 +40,7 @@ function withCallbacks(cbRef, opts) {
  * - `lazy`: wait until near viewport (IntersectionObserver) before mounting.
  */
 function PeleHost({ source, options, bindController, onResult, onError, className, lazy = false, active = true }) {
+  const empty = typeof source !== 'string' || source.trim() === '';
   const hostRef = useRef(null);
   const wrapRef = useRef(null);
   const ctlRef = useRef(null);
@@ -65,7 +66,7 @@ function PeleHost({ source, options, bindController, onResult, onError, classNam
     return () => io.disconnect();
   }, [lazy]);
 
-  const shouldMount = active && visible;
+  const shouldMount = active && visible && !empty;
 
   useEffect(() => {
     let cancelled = false;
@@ -127,9 +128,11 @@ function PeleHost({ source, options, bindController, onResult, onError, classNam
 
   return (
     <div ref={wrapRef} className={'pele-host-wrap' + (className ? ' ' + className : '')}>
-      {shouldMount
-        ? <div ref={hostRef} className="pele-host" />
-        : <div className="pele-host pele-host-placeholder" aria-hidden="true" />}
+      {empty
+        ? <div className="pele-host pele-empty">Empty diagram — type Mermaid source to start</div>
+        : shouldMount
+          ? <div ref={hostRef} className="pele-host" />
+          : <div className="pele-host pele-host-placeholder" aria-hidden="true" />}
     </div>
   );
 }

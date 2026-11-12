@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  VAR_META, FACTORY, DARK, THEME_PRESETS, REMEASURE_VARS,
+  VAR_META, FACTORY, DARK, REMEASURE_VARS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from '../constants.js';
 import { useDebounced, usePersistedState } from '../lib.js';
@@ -89,9 +89,7 @@ export function useThemeState({ notify, setStatus }) {
   const toggleTheme = () => {
     const next = siteTheme === 'light' ? 'dark' : 'light';
     if (!session) setSiteTheme(next);
-    const preset = THEME_PRESETS.find((p) => p.id === (next === 'dark' ? 'dark-ink' : 'paper'));
-    applyPresetVars(preset ? preset.vars : (next === 'dark' ? DARK : FACTORY));
-    notify(next === 'dark' ? 'Dark ink theme' : 'Light paper theme');
+    notify(`Site theme · ${next}`);
   };
   const resetFactory = () => {
     setOptVals(factoryOpts());

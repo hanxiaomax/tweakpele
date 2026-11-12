@@ -361,6 +361,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border-radius: 4px;
 }
 @keyframes pele-shimmer { to { background-position: -200% 0; } }
+.pele-host.pele-empty {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 96px; padding: 8px; text-align: center;
+  color: color-mix(in srgb, var(--pele-muted, #777) 85%, transparent);
+  font-size: 12.5px;
+}
 .pele-host svg.pele { display: block; margin: 0 auto; max-width: 100%; }
 
 /* ---------------- editor view ---------------- */
@@ -482,6 +488,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   margin: 0;
   overflow: hidden;
 }
+.focused-view-body .pele-host { display: flex; align-items: center; justify-content: center; }
 .focused-view-body .pele-host svg.pele {
   max-width: 100%;
   max-height: 100%;
@@ -608,6 +615,8 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   display: flex; align-items: center; justify-content: center;
   height: 12px; flex: none;
   background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
   cursor: grab; touch-action: none;
 }
 .panel-drag-handle::before {
