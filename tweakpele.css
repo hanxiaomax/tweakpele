@@ -615,6 +615,8 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   display: flex; align-items: center; justify-content: center;
   height: 12px; flex: none;
   background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
   cursor: grab; touch-action: none;
 }
 .panel-drag-handle::before {
