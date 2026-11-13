@@ -111,22 +111,6 @@ export default function EditorSidebar({
 
   const errMsg = status && status.error ? status.error : null;
   const errLine = errMsg ? errorLine(errMsg) : null;
-  const errSummary = errMsg
-    ? [errMsg.split('\n', 1)[0], errMsg.match(/^Expecting .+$/m)?.[0]].filter(Boolean).join(' · ')
-    : null;
-
-  const gotoErrorLine = () => {
-    if (errLine == null) return;
-    const area = areaRef.current;
-    if (!area) return;
-    const lines = text.split('\n');
-    let pos = 0;
-    for (let i = 0; i < errLine - 1 && i < lines.length; i++) pos += lines[i].length + 1;
-    area.focus();
-    area.setSelectionRange(pos, pos);
-    area.scrollTop = Math.max(0, (errLine - 1) * metrics.lh - area.clientHeight / 3);
-    setScrollTop(area.scrollTop);
-  };
 
   return (
     <aside className="editor-sidebar" aria-label="Diagram source editor">
@@ -164,10 +148,8 @@ export default function EditorSidebar({
       </div>
       <div className="editor-sidebar-foot">
         <span
-          className={'editor-status' + (errMsg ? ' error' : '') + (errLine != null ? ' jump' : '')}
-          aria-live="polite" title={errMsg || undefined} onClick={gotoErrorLine}
-        >
-          {empty ? 'Empty' : status ? (errSummary ?? (errMsg || status.info)) : 'rendering…'}
+className="editor-status" aria-live="polite">
+          {empty ? 'Empty' : status ? (status.info || '') : 'rendering…'}
         </span>
         <span className="editor-actions">
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   LuSun as Sun, LuMoon as Moon, LuPanelLeftClose as PanelLeftClose, LuPanelLeftOpen as PanelLeftOpen,
   LuFilePlus2 as FilePlus2, LuClipboardCopy as ClipboardCopy, LuBraces as Braces,
-  LuRotateCcw as RotateCcw, LuMoonStar as MoonStar, LuArchiveRestore as ArchiveRestore,
+  LuRotateCcw as RotateCcw, LuArchiveRestore as ArchiveRestore,
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
@@ -54,7 +54,7 @@ export default function App() {
   const {
     siteTheme, vars, optVals, cssBlock, optionsJson, mountOptions, varsStyle,
     setVars, setOptVals, forgetMeasures,
-    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
+    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory,
     onVarChange, onOptChange, onOptReset,
     applySnapshotTheme, clearSnapshotTheme,
   } = theme;
@@ -527,7 +527,6 @@ export default function App() {
           <IconButton Icon={Upload} label="Import theme file" onClick={() => themeFileRef.current?.click()} />
           <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
           <IconButton Icon={RotateCcw} label="Reset factory theme & options" onClick={resetFactory} />
-          <IconButton Icon={MoonStar} label="Apply dark ink sample" onClick={loadDarkSample} />
           <IconButton Icon={ArchiveRestore} label="Restore built-in samples" onClick={restoreSamples} />
         </span>
       </header>
