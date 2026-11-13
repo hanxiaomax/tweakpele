@@ -27,11 +27,18 @@ export function parseSnapshot(data) {
   return data;
 }
 
+/** Shipped source for a built-in diagram id, so unchanged built-ins travel as a reference. */
+function builtinSource(id) {
+  return (window.TWEAKPELE_DIAGRAMS || []).find((m) => m.id === id)?.source;
+}
+
 export function buildCanvasSnapshot(vars, optVals, diagrams, overrides, positions, view) {
   return {
     ...themeFileObject(vars, optVals),
     kind: 'canvas',
-    diagrams: diagrams.map((d) => ({ id: d.id, title: d.title, keyword: d.keyword, source: d.source })),
+    diagrams: diagrams.map((d) => (builtinSource(d.id) === d.source
+      ? { id: d.id, title: d.title, builtin: true }
+      : { id: d.id, title: d.title, keyword: d.keyword, source: d.source })),
     overrides: overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {},
     positions: positions && typeof positions === 'object' && !Array.isArray(positions) ? positions : {},
     view: view && typeof view === 'object' ? view : { x: 40, y: 40, zoom: 1 },
@@ -41,7 +48,8 @@ export function buildCanvasSnapshot(vars, optVals, diagrams, overrides, position
 export function parseCanvasSnapshot(data) {
   data = parseThemeFile(data);
   if (!data || data.kind !== 'canvas' || !Array.isArray(data.diagrams)
-    || !data.diagrams.every((d) => d && typeof d === 'object' && typeof d.source === 'string')) return null;
+    || !data.diagrams.every((d) => d && typeof d === 'object'
+      && (typeof d.source === 'string' || (d.builtin === true && typeof builtinSource(d.id) === 'string')))) return null;
   return data;
 }
 
@@ -52,7 +60,7 @@ export function canvasSessionFromSnapshot(snap) {
     let id = typeof d.id === 'string' && d.id ? d.id : `shared-${i + 1}`;
     while (used.has(id)) id = `${id}-${i + 1}`;
     used.add(id);
-    const source = String(d.source || '');
+    const source = typeof d.source === 'string' ? d.source : builtinSource(d.id);
     return {
       id,
       title: String(d.title || `Diagram ${i + 1}`),
