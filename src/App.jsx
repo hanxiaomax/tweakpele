@@ -533,7 +533,7 @@ export default function App() {
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark site theme' : 'Switch to light site theme'}
             onClick={toggleTheme} />
-          {!inSession && (
+          {!inSession && route.view !== 'markdown' && (
             <IconButton
               Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
               label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}

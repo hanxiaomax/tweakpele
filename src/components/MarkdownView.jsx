@@ -1,5 +1,6 @@
-/** Markdown preview: prose via marked, ```mermaid blocks render live with the current Pele theme. */
+/** Markdown preview: sanitized prose via marked, ```mermaid blocks render live with the current Pele theme. */
 import { useMemo, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { LuFolderOpen as FolderOpen, LuX as X } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
@@ -11,6 +12,15 @@ export default function MarkdownView({ options, onClose, notify }) {
   const [doc, setDoc] = usePersistedState('tweakpele.markdown.v1', null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef(null);
+  const docRef = useRef(null);
+
+  const onDocClick = (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    e.preventDefault();
+    const id = decodeURIComponent(a.getAttribute('href').slice(1));
+    docRef.current?.querySelector(`[id="${CSS.escape(id)}"]`)?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const openFile = async (file) => {
     if (!file) return;
@@ -25,7 +35,7 @@ export default function MarkdownView({ options, onClose, notify }) {
   };
 
   const segments = useMemo(() => markdownSegments(doc?.text).map((seg) => (
-    seg.kind === 'md' ? { ...seg, html: marked.parse(seg.text, { gfm: true }) } : seg
+    seg.kind === 'md' ? { ...seg, html: DOMPurify.sanitize(marked.parse(seg.text, { gfm: true })) } : seg
   )), [doc?.text]);
 
   return (
@@ -46,7 +56,7 @@ export default function MarkdownView({ options, onClose, notify }) {
       </header>
       {doc ? (
         <div className="md-body">
-          <article className="md-doc">
+          <article ref={docRef} className="md-doc" onClick={onDocClick}>
             {segments.map((seg, i) => seg.kind === 'md'
               ? <div key={i} dangerouslySetInnerHTML={{ __html: seg.html }} />
               : (
