@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  VAR_META, FACTORY, DARK, REMEASURE_VARS,
+  VAR_META, FACTORY, REMEASURE_VARS,
   factoryOpts, buildMountOptions, exportOptions, peleCssBlock,
 } from '../constants.js';
 import { useDebounced, usePersistedState } from '../lib.js';
@@ -101,10 +101,6 @@ export function useThemeState({ notify, setStatus }) {
     applyPresetVars(FACTORY);
     notify('Factory theme & options restored');
   };
-  const loadDarkSample = () => {
-    applyPresetVars(DARK);
-    notify('Dark ink sample applied');
-  };
 
   // ------------------------------------------------------------------ toolbox actions
   const onVarChange = useCallback((name, value) => {
@@ -129,7 +125,7 @@ export function useThemeState({ notify, setStatus }) {
     siteTheme, vars, optVals, setVars, setOptVals, remeasureTick, forgetMeasures,
     cssBlock, optionsJson, mountOptions, varsStyle,
     debouncedOptVals, debouncedVars,
-    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
+    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory,
     onVarChange, onOptChange, onOptReset,
     snapshotActive: !!session, applySnapshotTheme, clearSnapshotTheme,
   };

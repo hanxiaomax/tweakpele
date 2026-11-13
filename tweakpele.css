@@ -389,8 +389,6 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--ui-muted); font: 11.5px var(--ui-mono);
 }
-.editor-status.error { color: var(--ui-danger); font-weight: 600; }
-.editor-status.jump { cursor: pointer; text-decoration: underline dotted; }
 .editor-actions { display: flex; gap: 6px; flex: none; }
 .editor-missing { margin: auto; text-align: center; }
 
