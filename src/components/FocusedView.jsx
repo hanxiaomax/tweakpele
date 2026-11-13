@@ -24,7 +24,7 @@ const SIDEBAR_MIN = 260;
 export default function FocusedView({
   diagram, options, index, total, slideDir = 0,
   onClose, onPrev, onNext, onDuplicate, onDelete, onMenu,
-  onChangeSource, onChangeTitle, onResetSource, onCopySource,
+  onChangeSource, onChangeTitle, onResetSource, onCopySource, onCopyMermaidSource,
   notify, onRenderFeedback,
   onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
   vars, styleApi,
@@ -189,6 +189,7 @@ export default function FocusedView({
               onChangeSource={onChangeSource}
               onResetSource={onResetSource}
               onCopySource={onCopySource}
+              onCopyMermaidSource={onCopyMermaidSource}
               onExport={runExport}
               onCopyShareLink={onCopyShareLink}
               onDownloadSnapshot={onDownloadSnapshot}
