@@ -8,11 +8,13 @@ import {
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
   LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
   LuFileCode2 as FileCode2,
+  LuFileText as FileText,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
 import FocusedView from './components/FocusedView.jsx';
+import MarkdownView from './components/MarkdownView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
 import { copyText, navigate, newId, useHashRoute } from './lib.js';
@@ -64,7 +66,7 @@ export default function App() {
   const diagramsApi = useDiagrams({ theme, notify, setStatus, sessionActive: isSharedCanvas });
   const {
     diagrams, setDiagrams, diagramOverrides, setDiagramOverrides, findDiagram,
-    styleApi, optionsForDiagram, galleryOptionsFor, canvasOptionsFor,
+    styleApi, galleryOptions, optionsForDiagram, galleryOptionsFor, canvasOptionsFor,
     onDiagramOptChange, onDiagramVarChange, onDiagramOverrideReset,
     createDiagram, duplicateDiagram, saveAsCopy, removeDiagram,
     changeSource, changeTitle, resetSource, restoreSamples,
@@ -544,6 +546,9 @@ export default function App() {
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
           <IconButton Icon={FileCode2} label="Export for Mermaid" onClick={mermaidMenu} />
+          {!inSession && (
+            <IconButton Icon={FileText} label="Markdown preview" onClick={() => navigate({ view: 'markdown' })} />
+          )}
           <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
           <IconButton Icon={Upload} label="Import theme file" onClick={() => themeFileRef.current?.click()} />
           <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
@@ -563,6 +568,8 @@ export default function App() {
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
           {(isSnapshot && !sessionDiagram) || (isSharedCanvas && !sessionCanvas) ? (
             <div className="empty editor-missing"><p>{isSnapshot ? 'Opening shared snapshot…' : 'Opening shared canvas…'}</p></div>
+          ) : route.view === 'markdown' ? (
+            <MarkdownView options={galleryOptions} onClose={backToGallery} notify={notify} />
           ) : (
             <div className="view-holder">
               {/* Keep overview geometry and state while focus occupies the same content slot. */}

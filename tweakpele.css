@@ -350,6 +350,56 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .empty { grid-column: 1 / -1; text-align: center; margin-top: 8vh; }
 .empty p { margin: 8px 0; }
 
+/* ---------------- markdown preview ---------------- */
+.md-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.md-view.dragging { outline: 3px dashed var(--ui-accent); outline-offset: -6px; }
+.md-bar {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  padding: 6px 10px; border-bottom: 1px solid var(--ui-border); background: var(--ui-panel);
+}
+.md-name {
+  flex: 1; min-width: 0; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.md-body { flex: 1; min-height: 0; overflow: auto; }
+.md-doc { max-width: 860px; margin: 0 auto; padding: 22px 28px 56px; }
+.md-doc > div > :first-child { margin-top: 0; }
+.md-doc h1, .md-doc h2, .md-doc h3, .md-doc h4, .md-doc h5, .md-doc h6 {
+  margin: 1.3em 0 .45em; line-height: 1.25;
+}
+.md-doc h1 { font-size: 1.65em; }
+.md-doc h2 { font-size: 1.35em; }
+.md-doc h3 { font-size: 1.15em; }
+.md-doc p { margin: .65em 0; line-height: 1.6; }
+.md-doc ul, .md-doc ol { margin: .6em 0; padding-left: 1.6em; }
+.md-doc blockquote {
+  margin: .9em 0; padding: .35em 1.1em;
+  border-left: 3px solid var(--ui-accent); color: var(--ui-muted); background: var(--ui-panel);
+}
+.md-doc code {
+  font-family: var(--ui-mono); font-size: .88em;
+  padding: .08em .35em; border: 1px solid var(--ui-border-soft);
+  border-radius: 4px; background: var(--ui-panel);
+}
+.md-doc pre {
+  overflow: auto; margin: .9em 0; padding: 10px 12px;
+  border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-panel);
+}
+.md-doc pre code { padding: 0; border: none; background: transparent; font-size: 12px; }
+.md-doc table { border-collapse: collapse; margin: .9em 0; }
+.md-doc th, .md-doc td { border: 1px solid var(--ui-border); padding: 5px 10px; }
+.md-doc th { background: var(--ui-panel); text-align: left; }
+.md-doc a { color: var(--ui-accent); }
+.md-doc img { max-width: 100%; }
+.md-diagram {
+  margin: 1.5em 0; padding: 16px; text-align: center;
+  background: var(--pele-bg, #fff); color: var(--pele-fg, #000);
+  border: 1px solid color-mix(in srgb, var(--pele-border, #000) 45%, transparent);
+  border-radius: calc(var(--pele-radius, 6px) + 4px);
+}
+.md-diagram .pele-host-wrap { width: 100%; }
+.md-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
 .pele-host-wrap { display: block; width: 100%; height: 100%; min-height: 0; }
 .pele-host-placeholder {
   min-height: 96px; width: 100%; height: 100%;
