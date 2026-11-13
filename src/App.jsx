@@ -7,6 +7,7 @@ import {
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
   LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
+  LuFileCode2 as FileCode2,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -17,6 +18,8 @@ import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './
 import { copyText, navigate, newId, useHashRoute } from './lib.js';
 import { download } from './export.js';
 import { slugify } from './export.js';
+import { mergeDiagramVars } from './diagramOverrides.js';
+import { mermaidConfig, mermaidFrontmatter, withMermaidFrontmatter } from './mermaidConfig.js';
 import {
   buildSnapshot, snapshotFileJson, parseSnapshot, parseThemeFile, snapshotTheme, diagramFromSnapshot,
   buildCanvasSnapshot, parseCanvasSnapshot, canvasSessionFromSnapshot,
@@ -156,6 +159,23 @@ export default function App() {
     download(new Blob([themeFileJson(vars, optVals)], { type: 'application/json;charset=utf-8' }), filename);
     notify(`Downloaded ${filename}`);
     setStatus(`Downloaded ${filename}`);
+  };
+
+  const downloadMermaidConfig = () => {
+    const filename = 'mermaid.config.json';
+    download(new Blob([JSON.stringify(mermaidConfig(vars), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
+    notify(`Downloaded ${filename}`);
+    setStatus(`Downloaded ${filename}`);
+  };
+
+  const mermaidMenu = (e) => {
+    setCtxMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars), 'Mermaid frontmatter') },
+        { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
+      ],
+    });
   };
 
   const themeFileRef = useRef(null);
@@ -523,6 +543,7 @@ export default function App() {
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
+          <IconButton Icon={FileCode2} label="Export for Mermaid" onClick={mermaidMenu} />
           <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
           <IconButton Icon={Upload} label="Import theme file" onClick={() => themeFileRef.current?.click()} />
           <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
@@ -596,6 +617,10 @@ export default function App() {
                   onChangeTitle={changeTitleSafe}
                   onResetSource={resetSourceSafe}
                   onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
+                  onCopyMermaidSource={(d) => doCopy(
+                    withMermaidFrontmatter(d.source, mergeDiagramVars(vars, diagramOverrides[d.id]?.vars)),
+                    `${d.title} source with Mermaid theme`,
+                  )}
                   notify={notify}
                   onRenderFeedback={sidebarOpen ? (fb) => { bridge.pushFeedback?.(fb); } : undefined}
                   onCopyShareLink={() => copyShareLink(focusedDiagram)}

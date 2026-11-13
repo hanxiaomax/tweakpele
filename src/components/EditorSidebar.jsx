@@ -13,7 +13,7 @@ import { errorLine } from '../lib.js';
  */
 export default function EditorSidebar({
   diagram, status, onClose, notify,
-  onChangeTitle, onChangeSource, onResetSource, onCopySource,
+  onChangeTitle, onChangeSource, onResetSource, onCopySource, onCopyMermaidSource,
   onExport, onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
 }) {
   const [text, setText] = useState(diagram.source);
@@ -89,6 +89,7 @@ export default function EditorSidebar({
         { label: 'PNG (transparent)', onClick: () => onExport('png', false) },
         { label: 'SVG', onClick: () => onExport('svg', true) },
         { label: 'SVG (transparent)', onClick: () => onExport('svg', false) },
+        { label: 'Copy source with Mermaid theme', onClick: () => onCopyMermaidSource?.(diagram) },
       ],
     });
   };
