@@ -16,6 +16,13 @@ export function saveJSON(key, value) {
 
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
+/** 1-based line number from a Mermaid parse error message, or null. */
+export function errorLine(message) {
+  const n = (String(message || '').match(/error on line (\d+)/i) || [])[1];
+  const line = n ? Number(n) : 0;
+  return line >= 1 ? line : null;
+}
+
 export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; }
   catch (_) {
