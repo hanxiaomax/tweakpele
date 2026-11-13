@@ -74,6 +74,11 @@ export function useThemeState({ notify, setStatus }) {
   const debouncedVars = useDebounced(vars, 280);
 
   // ------------------------------------------------------------------ theme actions
+  const applyTheme = useCallback(({ vars: nextVars, optVals: nextOptVals }) => {
+    setVars(nextVars);
+    setOptVals(nextOptVals);
+    forgetMeasures();
+  }, [setVars, setOptVals, forgetMeasures]);
   const applyPresetVars = useCallback((presetVars) => {
     setVars({ ...presetVars });
     forgetMeasures();
@@ -124,7 +129,7 @@ export function useThemeState({ notify, setStatus }) {
     siteTheme, vars, optVals, remeasureTick, forgetMeasures,
     cssBlock, optionsJson, mountOptions, varsStyle,
     debouncedOptVals, debouncedVars,
-    applyPresetVars, applyThemePreset, toggleTheme, resetFactory, loadDarkSample,
+    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
     onVarChange, onOptChange, onOptReset,
     snapshotActive: !!session, applySnapshotTheme, clearSnapshotTheme,
   };

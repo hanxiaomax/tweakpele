@@ -147,6 +147,7 @@ body.dragging-split .focused-view-main * { pointer-events: none; }
 
 /* ---------------- toolbox ---------------- */
 .toolbox { overflow: auto; border-right: 1px solid var(--ui-border); background: var(--ui-panel); min-height: 0; }
+.toolbox.drag-over { outline: 2px dashed var(--ui-accent); outline-offset: -3px; }
 .section { border-bottom: 1px solid var(--ui-border); }
 .panel-head {
   position: sticky; top: 0; z-index: 2; background: var(--ui-panel);

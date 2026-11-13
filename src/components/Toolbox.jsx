@@ -172,13 +172,14 @@ function ListSearchBar({ search, onSearch, searchPlaceholder }) {
 
 export default function Toolbox({
   vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset,
-  cssBlock, optionsJson,
+  cssBlock, optionsJson, onImportThemeFile,
 }) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
   const active = matchThemePreset(vars);
 
   const [varQuery, setVarQuery] = useState('');
   const [optQuery, setOptQuery] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
   // Sidebar only shows global-only tokens/options; type-specific ones live in DiagramTypePanel.
   const globalVars = useMemo(() => VAR_META.filter((m) => isGlobalOnly(m.kinds)), []);
@@ -219,7 +220,18 @@ export default function Toolbox({
   const visibleOptCount = filteredGroups.reduce((n, g) => n + g.items.length, 0);
 
   return (
-    <aside className="toolbox" aria-label="Toolbox">
+    <aside
+      className={'toolbox' + (dragOver ? ' drag-over' : '')}
+      aria-label="Toolbox"
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file && onImportThemeFile) onImportThemeFile(file);
+      }}
+    >
       <details className="section" open>
         <summary className="panel-head">
           Theme presets

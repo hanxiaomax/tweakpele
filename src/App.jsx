@@ -6,6 +6,7 @@ import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
+  LuUpload as Upload,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -17,7 +18,7 @@ import { copyText, navigate } from './lib.js';
 import { download } from './export.js';
 import { slugify } from './export.js';
 import {
-  buildSnapshot, snapshotFileJson, parseSnapshot, snapshotTheme, diagramFromSnapshot,
+  buildSnapshot, snapshotFileJson, parseSnapshot, parseThemeFile, snapshotTheme, diagramFromSnapshot,
   encodeSnapshotToken, decodeSnapshotToken, shareUrl, isShareUrlTooLong,
 } from './snapshot.js';
 import { useTweakpeleBridge } from './bridge.js';
@@ -41,7 +42,7 @@ export default function App() {
   const theme = useThemeState({ notify, setStatus });
   const {
     siteTheme, vars, optVals, cssBlock, optionsJson, mountOptions, varsStyle,
-    applyPresetVars, applyThemePreset, toggleTheme, resetFactory, loadDarkSample,
+    applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
     onVarChange, onOptChange, onOptReset,
     applySnapshotTheme, clearSnapshotTheme,
   } = theme;
@@ -123,6 +124,26 @@ export default function App() {
     download(new Blob([themeFileJson(vars, optVals)], { type: 'application/json;charset=utf-8' }), filename);
     notify(`Downloaded ${filename}`);
     setStatus(`Downloaded ${filename}`);
+  };
+
+  const themeFileRef = useRef(null);
+
+  const importThemeFile = async (file) => {
+    try {
+      const data = parseThemeFile(await file.text());
+      if (!data) { notify('Not a valid theme file'); return; }
+      applyTheme(snapshotTheme(data));
+      notify(`Imported ${file.name}`);
+      setStatus(`Imported ${file.name}`);
+    } catch (_) {
+      notify('Not a valid theme file');
+    }
+  };
+
+  const onThemeFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) importThemeFile(file);
   };
 
   const snapshotFileRef = useRef(null);
@@ -338,6 +359,7 @@ export default function App() {
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
           <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
+          <IconButton Icon={Upload} label="Import theme file" onClick={() => themeFileRef.current?.click()} />
           <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
           <IconButton Icon={RotateCcw} label="Reset factory theme & options" onClick={resetFactory} />
           <IconButton Icon={MoonStar} label="Apply dark ink sample" onClick={loadDarkSample} />
@@ -350,6 +372,7 @@ export default function App() {
           vars={vars} onVarChange={onVarChange} onApplyPreset={applyThemePreset}
           optVals={optVals} onOptChange={onOptChange} onOptReset={onOptReset}
           cssBlock={cssBlock} optionsJson={optionsJson}
+          onImportThemeFile={importThemeFile}
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
@@ -435,6 +458,7 @@ export default function App() {
         </Dialog>
       )}
       <input ref={snapshotFileRef} type="file" accept="application/json,.json,.tweakpele.json" hidden onChange={onSnapshotFile} />
+      <input ref={themeFileRef} type="file" accept=".json,application/json" hidden onChange={onThemeFile} />
       <Toast toast={toastMsg} />
     </div>
   );
