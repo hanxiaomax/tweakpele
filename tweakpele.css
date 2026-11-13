@@ -383,6 +383,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   color: var(--ui-muted); font: 11.5px var(--ui-mono);
 }
 .editor-status.error { color: var(--ui-danger); font-weight: 600; }
+.editor-status.jump { cursor: pointer; text-decoration: underline dotted; }
 .editor-actions { display: flex; gap: 6px; flex: none; }
 .editor-missing { margin: auto; text-align: center; }
 
@@ -404,9 +405,24 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   background: var(--ui-panel); color: var(--ui-text);
   font-family: var(--pele-font, "Noto Sans", system-ui, sans-serif);
 }
+.editor-area { flex: 1; min-height: 0; display: flex; }
+.editor-gutter {
+  flex: none; min-width: 36px; padding: 12px 6px 12px 10px; overflow: hidden;
+  text-align: right; user-select: none; color: var(--ui-muted); opacity: .85;
+  font: 12.5px/1.55 var(--ui-mono);
+}
+.editor-gutter-inner > div { height: var(--line-h, 19.4px); }
+.editor-gutter-inner > div.err { color: var(--ui-danger); font-weight: 700; opacity: 1; }
+.editor-text-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.editor-error-band {
+  position: absolute; left: 0; right: 0;
+  background: color-mix(in srgb, var(--ui-danger) 12%, transparent);
+  pointer-events: none;
+}
 .editor-sidebar textarea {
-  flex: 1; width: 100%; resize: none; border: none; outline: none; padding: 12px 14px;
-  background: var(--ui-panel); color: var(--ui-text); caret-color: var(--ui-accent);
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  resize: none; border: none; outline: none; padding: 12px 14px;
+  background: transparent; color: var(--ui-text); caret-color: var(--ui-accent);
   font: 12.5px/1.55 var(--ui-mono);
   white-space: pre; overflow: auto; tab-size: 2;
 }
@@ -892,5 +908,5 @@ g.pele-edge.c4-selected path {
   .panel-drag-handle { height: 18px; }
   .c4-color-trigger { width: 30px; height: 30px; }
   .c4-swatch { width: 24px; height: 24px; }
-  input, select, textarea, .editor-sidebar textarea { font-size: 16px; }
+  input, select, textarea, .editor-sidebar textarea, .editor-gutter { font-size: 16px; }
 }

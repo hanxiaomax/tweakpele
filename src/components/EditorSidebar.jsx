@@ -4,6 +4,7 @@ import {
   LuDownload as Download, LuShare2 as Share2, LuLink as Link, LuFolderOpen as FolderOpen,
 } from 'react-icons/lu';
 import { ContextMenu, IconButton } from './ui.jsx';
+import { errorLine } from '../lib.js';
 
 /**
  * Left source editor inside the focused view: title, Mermaid textarea, render
@@ -18,6 +19,8 @@ export default function EditorSidebar({
   const [text, setText] = useState(diagram.source);
   const [exportMenu, setExportMenu] = useState(null);
   const [shareMenu, setShareMenu] = useState(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [metrics, setMetrics] = useState({ lh: 19.4, pt: 12 });
   const areaRef = useRef(null);
   const timerRef = useRef(null);
   const idRef = useRef(diagram.id);
@@ -40,6 +43,28 @@ export default function EditorSidebar({
     timerRef.current = setTimeout(() => onChangeSource(diagram.id, value), 250);
   };
   useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  // line metrics for the gutter and the error band (re-measured on resize)
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area) return undefined;
+    const measure = () => {
+      const cs = getComputedStyle(area);
+      const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.55;
+      setMetrics({ lh, pt: parseFloat(cs.paddingTop) || 0 });
+      setScrollTop(area.scrollTop);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(area);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
+
+  // value changes can clamp/reset textarea scroll without firing a scroll event
+  useEffect(() => {
+    if (areaRef.current) setScrollTop(areaRef.current.scrollTop);
+  }, [text]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); return; }
@@ -81,6 +106,25 @@ export default function EditorSidebar({
   const dirty = diagram.source !== diagram.original;
   const empty = !diagram.source || !diagram.source.trim();
 
+  const errMsg = status && status.error ? status.error : null;
+  const errLine = errMsg ? errorLine(errMsg) : null;
+  const errSummary = errMsg
+    ? [errMsg.split('\n', 1)[0], errMsg.match(/^Expecting .+$/m)?.[0]].filter(Boolean).join(' · ')
+    : null;
+
+  const gotoErrorLine = () => {
+    if (errLine == null) return;
+    const area = areaRef.current;
+    if (!area) return;
+    const lines = text.split('\n');
+    let pos = 0;
+    for (let i = 0; i < errLine - 1 && i < lines.length; i++) pos += lines[i].length + 1;
+    area.focus();
+    area.setSelectionRange(pos, pos);
+    area.scrollTop = Math.max(0, (errLine - 1) * metrics.lh - area.clientHeight / 3);
+    setScrollTop(area.scrollTop);
+  };
+
   return (
     <aside className="editor-sidebar" aria-label="Diagram source editor">
       <div className="editor-sidebar-head">
@@ -91,15 +135,36 @@ export default function EditorSidebar({
         />
         {dirty && <span className="dirty-dot" title="Edited — source differs from the built-in sample">●</span>}
       </div>
-      <textarea
-        ref={areaRef} value={text} spellCheck="false" autoComplete="off" autoCapitalize="off" wrap="off"
-        aria-label="Mermaid source"
-        onChange={(e) => applyText(e.target.value, true)}
-        onKeyDown={onKeyDown}
-      />
+      <div className="editor-area" style={{ '--line-h': `${metrics.lh}px` }}>
+        <div className="editor-gutter" aria-hidden="true">
+          <div className="editor-gutter-inner" style={{ transform: `translateY(${-scrollTop}px)` }}>
+            {Array.from({ length: text.split('\n').length }, (_, i) => (
+              <div key={i} className={i + 1 === errLine ? 'err' : undefined}>{i + 1}</div>
+            ))}
+          </div>
+        </div>
+        <div className="editor-text-wrap">
+          {errLine != null && (
+            <div
+              className="editor-error-band"
+              style={{ top: metrics.pt + (errLine - 1) * metrics.lh - scrollTop, height: metrics.lh }}
+            />
+          )}
+          <textarea
+            ref={areaRef} value={text} spellCheck="false" autoComplete="off" autoCapitalize="off" wrap="off"
+            aria-label="Mermaid source"
+            onChange={(e) => applyText(e.target.value, true)}
+            onKeyDown={onKeyDown}
+            onScroll={(e) => setScrollTop(e.target.scrollTop)}
+          />
+        </div>
+      </div>
       <div className="editor-sidebar-foot">
-        <span className={'editor-status' + (status && status.error ? ' error' : '')} aria-live="polite">
-          {empty ? 'Empty' : status ? (status.error ? status.error : status.info) : 'rendering…'}
+        <span
+          className={'editor-status' + (errMsg ? ' error' : '') + (errLine != null ? ' jump' : '')}
+          aria-live="polite" title={errMsg || undefined} onClick={gotoErrorLine}
+        >
+          {empty ? 'Empty' : status ? (errSummary ?? (errMsg || status.info)) : 'rendering…'}
         </span>
         <span className="editor-actions">
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
