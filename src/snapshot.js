@@ -1,4 +1,4 @@
-import { themeFileObject, optValsFromOptions, FACTORY } from './constants.js';
+import { themeFileObject, optValsFromOptions, FACTORY, VAR_META } from './constants.js';
 import { detectDiagramType } from './lib.js';
 
 /** Full share URL above this length is copied as a last resort; we also offer a file. */
@@ -22,19 +22,26 @@ export function snapshotFileJson(vars, optVals, diagram) {
 }
 
 export function parseSnapshot(data) {
+  data = parseThemeFile(data);
+  if (!data || !data.diagram || typeof data.diagram !== 'object' || typeof data.diagram.source !== 'string') return null;
+  return data;
+}
+
+/** A theme file or snapshot file minus the `diagram` part; null when unusable. */
+export function parseThemeFile(data) {
   if (typeof data === 'string') {
     try { data = JSON.parse(data); } catch (_) { return null; }
   }
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   if (!data.vars || typeof data.vars !== 'object' || Array.isArray(data.vars)) return null;
-  if (!data.diagram || typeof data.diagram !== 'object' || typeof data.diagram.source !== 'string') return null;
   return data;
 }
 
 export function snapshotTheme(snap) {
   const vars = { ...FACTORY };
-  for (const [k, v] of Object.entries(snap.vars || {})) {
-    if (typeof v === 'string' && v.trim()) vars[k] = v.trim();
+  for (const { name } of VAR_META) {
+    const v = snap.vars?.[name];
+    if (typeof v === 'string' && v.trim()) vars[name] = v.trim();
   }
   return { vars, optVals: optValsFromOptions(snap.options) };
 }
