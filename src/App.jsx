@@ -14,11 +14,12 @@ import Canvas from './components/Canvas.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
-import { copyText, navigate } from './lib.js';
+import { copyText, navigate, newId, useHashRoute } from './lib.js';
 import { download } from './export.js';
 import { slugify } from './export.js';
 import {
   buildSnapshot, snapshotFileJson, parseSnapshot, parseThemeFile, snapshotTheme, diagramFromSnapshot,
+  buildCanvasSnapshot, parseCanvasSnapshot, canvasSessionFromSnapshot,
   encodeSnapshotToken, decodeSnapshotToken, shareUrl, isShareUrlTooLong,
 } from './snapshot.js';
 import { useTweakpeleBridge } from './bridge.js';
@@ -26,6 +27,9 @@ import { useThemeState } from './state/useThemeState.js';
 import { useDiagrams } from './state/useDiagrams.js';
 import { useViewState } from './state/useViewState.js';
 import { useHistory } from './state/useHistory.js';
+
+const NO_DIAGRAMS = [];
+const NO_POSITIONS = {};
 
 export default function App() {
   const [toastMsg, setToastMsg] = useState('');
@@ -40,6 +44,12 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToastMsg(''), 1800);
   }, []);
 
+  const route = useHashRoute();
+  const isSharedCanvas = route.view === 'sharedCanvas';
+  const [sessionCanvas, setSessionCanvas] = useState(null);
+  const [sessionSidebarOpen, setSessionSidebarOpen] = useState(false);
+  const sessionNonceRef = useRef(0);
+
   const theme = useThemeState({ notify, setStatus });
   const {
     siteTheme, vars, optVals, cssBlock, optionsJson, mountOptions, varsStyle,
@@ -48,7 +58,7 @@ export default function App() {
     onVarChange, onOptChange, onOptReset,
     applySnapshotTheme, clearSnapshotTheme,
   } = theme;
-  const diagramsApi = useDiagrams({ theme, notify, setStatus });
+  const diagramsApi = useDiagrams({ theme, notify, setStatus, sessionActive: isSharedCanvas });
   const {
     diagrams, setDiagrams, diagramOverrides, setDiagramOverrides, findDiagram,
     styleApi, optionsForDiagram, galleryOptionsFor, canvasOptionsFor,
@@ -56,9 +66,14 @@ export default function App() {
     createDiagram, duplicateDiagram, saveAsCopy, removeDiagram,
     changeSource, changeTitle, resetSource, restoreSamples,
   } = diagramsApi;
-  const view = useViewState({ diagrams });
+  const view = useViewState({
+    diagrams: isSharedCanvas ? (sessionCanvas ? sessionCanvas.diagrams : NO_DIAGRAMS) : diagrams,
+    positions: isSharedCanvas ? (sessionCanvas ? sessionCanvas.positions : NO_POSITIONS) : undefined,
+    sessionActive: isSharedCanvas,
+    route,
+  });
   const {
-    route, openEditor, backToGallery, viewMode, setViewMode,
+    openEditor, backToGallery, viewMode, setViewMode,
     toolboxCollapsed, setToolboxCollapsed, split, setSplit,
     canvasPositions, setCanvasPositions,
     focusedId, setFocusedId, focusSlideDir, focusOrder, focusDiagram, clearFocus, focusPrev, focusNext,
@@ -75,7 +90,7 @@ export default function App() {
   const history = useHistory({
     state: { vars, optVals, overrides: diagramOverrides, diagrams },
     apply: applyDocState,
-    enabled: route.view !== 'snapshot',
+    enabled: route.view !== 'snapshot' && route.view !== 'sharedCanvas',
     onAction: notify,
   });
 
@@ -112,6 +127,7 @@ export default function App() {
     if (!bridge.enabled) return;
     if (skipBridgePush.current) { skipBridgePush.current = false; return; }
     if (bridge.isApplying()) return;
+    if (route.view === 'sharedCanvas') return;
     bridge.pushLocal({
       diagrams,
       diagramOverrides,
@@ -179,15 +195,28 @@ export default function App() {
     setSessionDiagram(diagramFromSnapshot(snap));
   };
 
-  // Opening #/s/<token> applies the snapshot for this session only — it must not write localStorage.
+  const applyCanvasSnapshot = (snap) => {
+    const { overrides, ...cs } = canvasSessionFromSnapshot(snap);
+    const themeNext = snapshotTheme(snap);
+    applySnapshotTheme(themeNext.vars, themeNext.optVals);
+    setDiagramOverrides(overrides);
+    setSessionCanvas({ ...cs, nonce: ++sessionNonceRef.current });
+    setSessionSidebarOpen(false);
+    setFocusedId(null);
+  };
+
+  // Opening #/s/<token> or #/c/<token> applies the snapshot for this session only — it must not write localStorage.
   useEffect(() => {
-    if (route.view !== 'snapshot') {
-      if (sessionDiagram) {
+    if (route.view !== 'snapshot' && route.view !== 'sharedCanvas') {
+      if (sessionDiagram || sessionCanvas) {
         setSessionDiagram(null);
+        setSessionCanvas(null);
+        setFocusedId(null);
         clearSnapshotTheme();
       }
       return;
     }
+    if (route.view !== 'snapshot') return;
     let cancelled = false;
     (async () => {
       try {
@@ -202,6 +231,23 @@ export default function App() {
     })();
     return () => { cancelled = true };
     // applySnapshot is recreated each render; token/view are the real inputs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.view, route.token]);
+
+  useEffect(() => {
+    if (route.view !== 'sharedCanvas') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await decodeSnapshotToken(route.token, parseCanvasSnapshot);
+        if (!cancelled) applyCanvasSnapshot(snap);
+      } catch (_) {
+        if (cancelled) return;
+        notify('Share link is invalid');
+        navigate({ view: 'gallery' });
+      }
+    })();
+    return () => { cancelled = true };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.view, route.token]);
 
@@ -234,6 +280,35 @@ export default function App() {
     notify(`Downloaded ${filename}`);
   };
 
+  const canvasSnapshotOf = (cam) => buildCanvasSnapshot(
+    vars, optVals, diagrams, diagramOverrides, canvasPositions,
+    { x: cam?.x ?? 40, y: cam?.y ?? 40, zoom: cam?.s ?? 1 },
+  );
+
+  const copyCanvasLink = async (cam) => {
+    if (!diagrams.length) { notify('Nothing to share'); return; }
+    const snap = canvasSnapshotOf(cam);
+    try {
+      const token = await encodeSnapshotToken(snap);
+      const url = shareUrl(token, 'c');
+      if (isShareUrlTooLong(url)) {
+        download(new Blob([JSON.stringify(snap, null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), 'canvas.tweakpele.json');
+        notify('Link too long — downloaded canvas file instead');
+        return;
+      }
+      const ok = await copyText(url);
+      notify(ok ? 'Copied canvas link' : 'Copy failed — download the canvas file instead');
+    } catch (_) {
+      notify('Could not build canvas link');
+    }
+  };
+
+  const downloadCanvasFile = (cam) => {
+    const filename = 'canvas.tweakpele.json';
+    download(new Blob([JSON.stringify(canvasSnapshotOf(cam), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
+    notify(`Downloaded ${filename}`);
+  };
+
   const openSnapshotFile = () => snapshotFileRef.current?.click();
 
   const onSnapshotFile = async (e) => {
@@ -241,24 +316,32 @@ export default function App() {
     e.target.value = '';
     if (!file) return;
     try {
-      const snap = parseSnapshot(await file.text());
+      const raw = parseThemeFile(await file.text());
+      const snap = !raw ? null : raw.kind === 'canvas' ? parseCanvasSnapshot(raw) : parseSnapshot(raw);
       if (!snap) { notify('Not a valid snapshot file'); return; }
+      const isCanvas = snap.kind === 'canvas';
       const token = await encodeSnapshotToken(snap);
-      const url = shareUrl(token);
+      const hash = `#/${isCanvas ? 'c' : 's'}/${token}`;
       // Prefer putting the token in the hash so refresh keeps it; even long hashes work in the address bar.
-      if (location.hash !== `#/s/${token}`) location.hash = `#/s/${token}`;
+      if (location.hash !== hash) location.hash = hash;
+      else if (isCanvas) applyCanvasSnapshot(snap);
       else applySnapshot(snap);
-      notify(isShareUrlTooLong(url) ? 'Opened snapshot (link would be too long to share)' : 'Opened snapshot');
+      notify(isShareUrlTooLong(shareUrl(token, isCanvas ? 'c' : 's')) ? 'Opened snapshot (link would be too long to share)' : 'Opened snapshot');
     } catch (_) {
       notify('Could not open snapshot file');
     }
   };
 
+  const inCanvasSession = (id) => isSharedCanvas && sessionCanvas && sessionCanvas.diagrams.some((d) => d.id === id);
+  const patchSessionDiagram = (id, patch) => setSessionCanvas((s) => (
+    s ? { ...s, diagrams: s.diagrams.map((d) => (d.id === id ? { ...d, ...patch } : d)) } : s
+  ));
   const changeSourceSafe = (id, source) => {
     if (sessionDiagram && id === sessionDiagram.id) {
       setSessionDiagram((d) => ({ ...d, source }));
       return;
     }
+    if (inCanvasSession(id)) { patchSessionDiagram(id, { source }); return; }
     changeSource(id, source);
   };
   const changeTitleSafe = (id, title) => {
@@ -266,6 +349,7 @@ export default function App() {
       setSessionDiagram((d) => ({ ...d, title }));
       return;
     }
+    if (inCanvasSession(id)) { patchSessionDiagram(id, { title }); return; }
     changeTitle(id, title);
   };
   const resetSourceSafe = (id) => {
@@ -273,7 +357,67 @@ export default function App() {
       setSessionDiagram((d) => ({ ...d, source: d.original }));
       return;
     }
+    if (inCanvasSession(id)) {
+      const d = sessionCanvas.diagrams.find((x) => x.id === id);
+      if (d) patchSessionDiagram(id, { source: d.original });
+      return;
+    }
     resetSource(id);
+  };
+
+  // ------------------------------------------------------------------ shared-canvas session actions (in memory only)
+  const setSessionPositions = useCallback((p) => {
+    setSessionCanvas((s) => (s ? { ...s, positions: p } : s));
+  }, []);
+  const sessionOpen = (id) => {
+    focusDiagram(id);
+    setSessionSidebarOpen(true);
+  };
+  const sessionDuplicate = (id) => {
+    const src = sessionCanvas?.diagrams.find((d) => d.id === id);
+    if (!src) return;
+    const nid = newId();
+    setSessionCanvas((s) => {
+      const i = s ? s.diagrams.findIndex((d) => d.id === id) : -1;
+      if (i < 0) return s;
+      const next = [...s.diagrams];
+      next.splice(i + 1, 0, { ...src, id: nid, title: `${src.title} (copy)`, builtin: false });
+      return { ...s, diagrams: next };
+    });
+    const ov = diagramOverrides[id];
+    if (ov) setDiagramOverrides((prev) => ({ ...prev, [nid]: { opts: { ...ov.opts }, vars: { ...ov.vars } } }));
+    notify(`Duplicated “${src.title}”`);
+  };
+  const sessionDelete = (id) => {
+    setSessionCanvas((s) => {
+      if (!s) return s;
+      const positions = { ...s.positions };
+      delete positions[id];
+      return { ...s, diagrams: s.diagrams.filter((d) => d.id !== id), positions };
+    });
+    setDiagramOverrides((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    if (focusedId === id) setFocusedId(null);
+    notify('Deleted from shared canvas');
+  };
+  const sessionCardMenu = (e, d) => {
+    setCtxMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        { label: 'Focus', Icon: Focus, onClick: () => focusDiagram(d.id) },
+        { label: `Edit “${d.title}”`, Icon: Pencil, onClick: () => sessionOpen(d.id) },
+        { label: 'Duplicate', Icon: Copy, onClick: () => sessionDuplicate(d.id) },
+        { label: 'Delete', Icon: Trash2, danger: true, onClick: () => sessionDelete(d.id) },
+      ],
+    });
+  };
+  const exitSession = () => {
+    setFocusedId(null);
+    backToGallery();
   };
 
   // ------------------------------------------------------------------ library actions spanning view state
@@ -337,15 +481,18 @@ export default function App() {
   }, [diagrams, vars, optVals, diagramOverrides, mountOptions, onVarChange, onOptChange, onDiagramVarChange, onDiagramOptChange, onDiagramOverrideReset]);
 
   const isSnapshot = route.view === 'snapshot';
-  // '#/edit/<id>' and '#/s/<token>' both render the focused view with the editor sidebar open.
-  const sidebarOpen = isSnapshot || route.view === 'edit';
+  const inSession = isSnapshot || isSharedCanvas;
+  // '#/edit/<id>' and '#/s/<token>' both render the focused view with the editor sidebar open;
+  // in a shared-canvas session the sidebar is toggled without leaving the '#/c/' route.
+  const sidebarOpen = isSnapshot || route.view === 'edit' || (isSharedCanvas && sessionSidebarOpen);
   const focusedIdx = focusedId ? focusOrder.findIndex((d) => d.id === focusedId) : -1;
   const focusedDiagram = isSnapshot ? sessionDiagram
-    : focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId ? findDiagram(focusedId) : null);
+    : focusedIdx >= 0 ? focusOrder[focusedIdx] : (focusedId && !isSharedCanvas ? findDiagram(focusedId) : null);
   const peleMissing = typeof pele === 'undefined' || typeof pele.mount !== 'function';
 
   const toggleSidebar = () => {
-    if (sidebarOpen) backToGallery();
+    if (isSharedCanvas) setSessionSidebarOpen((o) => !o);
+    else if (sidebarOpen) backToGallery();
     else if (focusedDiagram) openEditor(focusedDiagram.id);
   };
 
@@ -364,7 +511,7 @@ export default function App() {
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark site theme' : 'Switch to light site theme'}
             onClick={toggleTheme} />
-          {!isSnapshot && (
+          {!inSession && (
             <IconButton
               Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
               label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}
@@ -394,13 +541,13 @@ export default function App() {
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
-          {isSnapshot && !sessionDiagram ? (
-            <div className="empty editor-missing"><p>Opening shared snapshot…</p></div>
+          {(isSnapshot && !sessionDiagram) || (isSharedCanvas && !sessionCanvas) ? (
+            <div className="empty editor-missing"><p>{isSnapshot ? 'Opening shared snapshot…' : 'Opening shared canvas…'}</p></div>
           ) : (
             <div className="view-holder">
               {/* Keep overview geometry and state while focus occupies the same content slot. */}
               <div className="overview-view" aria-hidden={!!focusedDiagram} inert={focusedDiagram ? '' : undefined}>
-                {viewMode === 'gallery' ? (
+                {viewMode === 'gallery' && !isSharedCanvas ? (
                   <Gallery
                     diagrams={diagrams} optionsFor={galleryOptionsFor}
                     styleApi={styleApi}
@@ -412,12 +559,22 @@ export default function App() {
                   />
                 ) : (
                   <Canvas
-                    diagrams={diagrams} optionsFor={canvasOptionsFor}
+                    key={isSharedCanvas ? `shared-${sessionCanvas.nonce}` : 'own'}
+                    diagrams={isSharedCanvas ? sessionCanvas.diagrams : diagrams}
+                    optionsFor={canvasOptionsFor}
                     styleApi={styleApi}
-                    positions={canvasPositions} onPositionsChange={setCanvasPositions}
-                    onOpen={openEditor} onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
+                    positions={isSharedCanvas ? sessionCanvas.positions : canvasPositions}
+                    onPositionsChange={isSharedCanvas ? setSessionPositions : setCanvasPositions}
+                    initialCam={isSharedCanvas ? sessionCanvas.cam : undefined}
+                    onOpen={isSharedCanvas ? sessionOpen : openEditor}
+                    onDuplicate={isSharedCanvas ? sessionDuplicate : duplicateDiagram}
+                    onDelete={isSharedCanvas ? sessionDelete : deleteDiagram}
                     onFocus={focusDiagram} onFocusPrev={focusPrev} onFocusNext={focusNext}
-                    onFrameMenu={cardMenu} onBoardMenu={boardMenu}
+                    onFrameMenu={isSharedCanvas ? sessionCardMenu : cardMenu}
+                    onBoardMenu={isSharedCanvas ? undefined : boardMenu}
+                    onCopyCanvasLink={isSharedCanvas ? undefined : copyCanvasLink}
+                    onDownloadCanvasFile={isSharedCanvas ? undefined : downloadCanvasFile}
+                    onExitSession={isSharedCanvas ? exitSession : undefined}
                   />
                 )}
               </div>
@@ -433,8 +590,9 @@ export default function App() {
                   onPrev={focusPrev} onNext={focusNext}
                   sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar}
                   split={split} onSplitChange={setSplit}
-                  onDuplicate={duplicateDiagram} onDelete={deleteDiagram}
-                  onMenu={cardMenu}
+                  onDuplicate={isSharedCanvas ? sessionDuplicate : duplicateDiagram}
+                  onDelete={isSharedCanvas ? sessionDelete : deleteDiagram}
+                  onMenu={isSharedCanvas ? sessionCardMenu : cardMenu}
                   onChangeSource={changeSourceSafe}
                   onChangeTitle={changeTitleSafe}
                   onResetSource={resetSourceSafe}
@@ -446,8 +604,8 @@ export default function App() {
                   onOpenSnapshot={openSnapshotFile}
                   vars={vars}
                   styleApi={styleApi}
-                  onCtrlWheelCols={!isSnapshot && viewMode === 'gallery' ? bumpGalleryCols : undefined}
-                  enableSlideWheel={!isSnapshot && viewMode === 'gallery' && galleryCols === 1}
+                  onCtrlWheelCols={!inSession && viewMode === 'gallery' ? bumpGalleryCols : undefined}
+                  enableSlideWheel={!inSession && viewMode === 'gallery' && galleryCols === 1}
                 />
               )}
             </div>

@@ -3,9 +3,10 @@ import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2, LuFocus as Focus,
   LuMaximize2 as Maximize2, LuZoomIn as ZoomIn, LuZoomOut as ZoomOut,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
+  LuShare2 as Share2, LuLink as Link, LuDownload as Download, LuX as X,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
-import { IconButton } from './ui.jsx';
+import { ContextMenu, IconButton } from './ui.jsx';
 import { clamp } from '../lib.js';
 
 const MIN_S = 0.03;
@@ -144,17 +145,34 @@ export default function Canvas({
   diagrams, optionsFor, styleApi, positions, onPositionsChange,
   onFocus, onFocusPrev, onFocusNext,
   onOpen, onDuplicate, onDelete, onFrameMenu, onBoardMenu,
+  initialCam, onCopyCanvasLink, onDownloadCanvasFile, onExitSession,
 }) {
+  const initCam = initialCam && [initialCam.x, initialCam.y, initialCam.s].every(Number.isFinite)
+    ? { x: initialCam.x, y: initialCam.y, s: clamp(initialCam.s, MIN_S, MAX_S) }
+    : null;
   const vpRef = useRef(null);
-  const camRef = useRef({ x: 40, y: 40, s: 1 });
-  const userMovedRef = useRef(false);
+  const camRef = useRef(initCam || { x: 40, y: 40, s: 1 });
+  const userMovedRef = useRef(!!initCam);
   const sizesRef = useRef(new Map());
   const [localPos, setLocalPos] = useState(() => positions || {});
   const positionsRef = useRef(localPos);
-  const [cam, setCam] = useState({ x: 40, y: 40, s: 1 });
+  const [cam, setCam] = useState(camRef.current);
   const [layoutTick, setLayoutTick] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
+  const [shareMenu, setShareMenu] = useState(null);
+
+  const openCanvasShareMenu = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setShareMenu({
+      x: rect.left,
+      y: rect.bottom + 4,
+      items: [
+        { label: 'Copy canvas link', Icon: Link, onClick: () => onCopyCanvasLink?.(camRef.current) },
+        { label: 'Download canvas file', Icon: Download, onClick: () => onDownloadCanvasFile?.(camRef.current) },
+      ],
+    });
+  };
 
   // Mirror parent positions except while a frame drag is in flight.
   useEffect(() => {
@@ -433,7 +451,7 @@ export default function Canvas({
       onContextMenu={(e) => {
         if (e.target.closest('[data-frame]')) return;
         e.preventDefault();
-        onBoardMenu(e);
+        onBoardMenu?.(e);
       }}
       onDoubleClick={(e) => {
         if (e.target.closest('[data-frame]')) return;
@@ -447,6 +465,12 @@ export default function Canvas({
         <IconButton Icon={Maximize2} label="Fit all" onClick={() => fitAll(true)} />
         <IconButton Icon={ZoomOut} label="Zoom out" onClick={() => zoomCenter(0.8)} />
         <IconButton Icon={ZoomIn} label="Zoom in" onClick={() => zoomCenter(1.25)} />
+        {onCopyCanvasLink && (
+          <IconButton Icon={Share2} label="Share canvas" onClick={openCanvasShareMenu} />
+        )}
+        {onExitSession && (
+          <IconButton Icon={X} label="Exit shared canvas" onClick={onExitSession} />
+        )}
       </div>
       <div
         className={'canvas-world' + (animating ? ' animating' : '')}
@@ -485,6 +509,7 @@ export default function Canvas({
       <div className="canvas-hint">
         Drag title to move · empty space to pan · scroll to zoom · double-click to focus · ←/→ by position · Esc/F exit
       </div>
+      <ContextMenu menu={shareMenu} onClose={() => setShareMenu(null)} />
     </section>
   );
 }

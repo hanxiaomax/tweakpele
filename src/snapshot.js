@@ -27,6 +27,64 @@ export function parseSnapshot(data) {
   return data;
 }
 
+export function buildCanvasSnapshot(vars, optVals, diagrams, overrides, positions, view) {
+  return {
+    ...themeFileObject(vars, optVals),
+    kind: 'canvas',
+    diagrams: diagrams.map((d) => ({ id: d.id, title: d.title, keyword: d.keyword, source: d.source })),
+    overrides: overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {},
+    positions: positions && typeof positions === 'object' && !Array.isArray(positions) ? positions : {},
+    view: view && typeof view === 'object' ? view : { x: 40, y: 40, zoom: 1 },
+  };
+}
+
+export function parseCanvasSnapshot(data) {
+  data = parseThemeFile(data);
+  if (!data || data.kind !== 'canvas' || !Array.isArray(data.diagrams)
+    || !data.diagrams.every((d) => d && typeof d === 'object' && typeof d.source === 'string')) return null;
+  return data;
+}
+
+/** Sanitized in-memory session state from a canvas snapshot. */
+export function canvasSessionFromSnapshot(snap) {
+  const used = new Set();
+  const diagrams = snap.diagrams.map((d, i) => {
+    let id = typeof d.id === 'string' && d.id ? d.id : `shared-${i + 1}`;
+    while (used.has(id)) id = `${id}-${i + 1}`;
+    used.add(id);
+    const source = String(d.source || '');
+    return {
+      id,
+      title: String(d.title || `Diagram ${i + 1}`),
+      keyword: d.keyword || detectDiagramType(source) || 'flowchart',
+      source,
+      original: source,
+      builtin: false,
+    };
+  });
+  const ids = new Set(diagrams.map((d) => d.id));
+  const overrides = {};
+  const rawOv = snap.overrides && typeof snap.overrides === 'object' && !Array.isArray(snap.overrides) ? snap.overrides : {};
+  for (const [id, ov] of Object.entries(rawOv)) {
+    if (!ov || typeof ov !== 'object' || Array.isArray(ov) || !ids.has(id)) continue;
+    const opts = ov.opts && typeof ov.opts === 'object' && !Array.isArray(ov.opts) ? ov.opts : {};
+    const vars = ov.vars && typeof ov.vars === 'object' && !Array.isArray(ov.vars) ? ov.vars : {};
+    if (!Object.keys(opts).length && !Object.keys(vars).length) continue;
+    overrides[id] = { opts: { ...opts }, vars: { ...vars } };
+  }
+  const positions = {};
+  const rawPos = snap.positions && typeof snap.positions === 'object' && !Array.isArray(snap.positions) ? snap.positions : {};
+  for (const id of ids) {
+    const p = rawPos[id];
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) positions[id] = { x: p.x, y: p.y };
+  }
+  const v = snap.view;
+  const cam = v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.zoom)
+    ? { x: v.x, y: v.y, s: v.zoom }
+    : null;
+  return { diagrams, overrides, positions, cam };
+}
+
 /** A theme file or snapshot file minus the `diagram` part; null when unusable. */
 export function parseThemeFile(data) {
   if (typeof data === 'string') {
@@ -94,7 +152,7 @@ export async function encodeSnapshotToken(snap) {
   }
 }
 
-export async function decodeSnapshotToken(token) {
+export async function decodeSnapshotToken(token, parse = parseSnapshot) {
   if (!token) throw new Error('empty snapshot token');
   const codec = token[0];
   const body = token.slice(1);
@@ -102,13 +160,13 @@ export async function decodeSnapshotToken(token) {
   if (codec === '1') bytes = await inflateBytes(b64urlDecode(body));
   else if (codec === '0') bytes = b64urlDecode(body);
   else throw new Error('unknown snapshot codec');
-  const snap = parseSnapshot(new TextDecoder().decode(bytes));
+  const snap = parse(new TextDecoder().decode(bytes));
   if (!snap) throw new Error('invalid snapshot');
   return snap;
 }
 
-export function shareUrl(token) {
-  return `${location.origin}${location.pathname}${location.search}#/s/${token}`;
+export function shareUrl(token, kind = 's') {
+  return `${location.origin}${location.pathname}${location.search}#/${kind}/${token}`;
 }
 
 export function isShareUrlTooLong(url) {

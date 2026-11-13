@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  clamp, loadJSON, saveJSON, useHashRoute, usePersistedState, navigate, sortDiagramsSpatially,
+  clamp, loadJSON, saveJSON, usePersistedState, navigate, sortDiagramsSpatially,
 } from '../lib.js';
 
 const TOOLBOX_KEY = 'tweakpele.toolbox.collapsed';
@@ -14,8 +14,10 @@ const GALLERY_COL_MAX = 6;
 const LAST_EDIT_KEY = 'tweakpele.lastEditId';
 
 /** View state: hash route, gallery↔canvas mode, editor split, focus carousel,
- *  gallery column density, canvas positions, toolbox collapse, global shortcuts. */
-export function useViewState({ diagrams }) {
+ *  gallery column density, canvas positions, toolbox collapse, global shortcuts.
+ *  Receives the effective diagrams/positions (session ones during a shared canvas)
+ *  and the route from App; `sessionActive` keeps persisted state untouched. */
+export function useViewState({ diagrams, positions, sessionActive = false, route }) {
   const [toolboxCollapsed, setToolboxCollapsed] = usePersistedState(TOOLBOX_KEY, (v) => (v === false ? false : true));
   const [viewMode, setViewMode] = usePersistedState(VIEW_KEY, (v) => (v === 'canvas' ? 'canvas' : 'gallery'));
   const [canvasPositions, setCanvasPositions] = usePersistedState(POS_KEY, (v) => (
@@ -37,7 +39,6 @@ export function useViewState({ diagrams }) {
   const [split, setSplit] = usePersistedState(SPLIT_KEY, (v) => (
     Number.isFinite(v) && v >= 200 ? Math.round(v) : 380
   ));
-  const route = useHashRoute();
 
   // Default mode = editor: first open with no hash focuses the last-edited diagram with the sidebar.
   useEffect(() => {
@@ -71,18 +72,19 @@ export function useViewState({ diagrams }) {
   /** Exit focus. Leaving gallery 1×1 also restores the last multi-column grid;
    *  exiting while the edit sidebar is open also closes it. */
   const clearFocus = useCallback(() => {
-    if (viewMode === 'gallery' && galleryColsRef.current === 1) {
+    if (!sessionActive && viewMode === 'gallery' && galleryColsRef.current === 1) {
       setGalleryCols(galleryColsLastMulti || 3);
     }
     setFocusSlideDir(0);
     setFocusedId(null);
     if (route.view === 'edit') backToGallery();
-  }, [viewMode, galleryColsLastMulti, setGalleryCols, route.view, backToGallery]);
+  }, [sessionActive, viewMode, galleryColsLastMulti, setGalleryCols, route.view, backToGallery]);
   // Canvas focus carousel: top→bottom, left→right by saved positions. Gallery keeps library order.
+  const focusPositions = positions ?? canvasPositions;
   const focusOrder = useMemo(() => {
-    if (viewMode === 'canvas') return sortDiagramsSpatially(diagrams, canvasPositions);
+    if (viewMode === 'canvas' || sessionActive) return sortDiagramsSpatially(diagrams, focusPositions);
     return diagrams;
-  }, [viewMode, diagrams, canvasPositions]);
+  }, [viewMode, sessionActive, diagrams, focusPositions]);
   const focusStep = useCallback((dir) => {
     if (!focusOrder.length) return;
     const i = focusOrder.findIndex((d) => d.id === focusedId);
@@ -163,7 +165,7 @@ export function useViewState({ diagrams }) {
   }, [focusedId, route.view, route.id, backToGallery, setCanvasPositions]);
 
   return {
-    route, openEditor, backToGallery,
+    openEditor, backToGallery,
     viewMode, setViewMode,
     toolboxCollapsed, setToolboxCollapsed,
     split, setSplit,
