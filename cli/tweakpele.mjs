@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { FACTORY } from '../src/constants.js';
+import { findMermaidBlocks } from '../src/markdown.js';
 
 const PELE_GLOBAL = fileURLToPath(new URL('../vendor/pele.global.js', import.meta.url));
 
@@ -108,27 +109,6 @@ function standaloneSvg(svg, vars, transparent) {
   return { svg: out, unresolved: /var\(--/.test(out) };
 }
 
-// Fenced ```mermaid blocks: ``` or ~~~ fences (>=3 chars, <=3 spaces indent), exact info string.
-function findBlocks(lines) {
-  const blocks = [];
-  const fence = /^ {0,3}(`{3,}|~{3,})(.*)$/;
-  for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(fence);
-    if (!m || m[2].trim() !== 'mermaid') continue;
-    const ch = m[1][0];
-    const len = m[1].length;
-    const indent = lines[i].length - lines[i].trimStart().length;
-    const close = new RegExp(`^ {0,3}${ch === '`' ? '`' : '~'}{${len},}\\s*$`);
-    let j = i + 1;
-    while (j < lines.length && !close.test(lines[j])) j++;
-    if (j >= lines.length) continue;
-    const dedent = new RegExp(`^ {0,${indent}}`);
-    blocks.push({ line: i + 1, closeIdx: j, source: lines.slice(i + 1, j).map((l) => l.replace(dedent, '')).join('\n') });
-    i = j;
-  }
-  return blocks;
-}
-
 // Ensure exactly one image line after the closing fence; replace a stale one, else insert.
 function updateImageLine(lines, closeIdx, img, imgRe) {
   const isImg = (l) => imgRe.test(l.trim());
@@ -213,7 +193,7 @@ async function main() {
     const text = fs.readFileSync(md, 'utf8');
     const eol = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/);
-    const blocks = findBlocks(lines);
+    const blocks = findMermaidBlocks(lines);
     const outDirAbs = path.resolve(path.dirname(md), args.outDir);
     if (!outDirs.has(outDirAbs)) outDirs.set(outDirAbs, new Set());
     let updated = 0;
