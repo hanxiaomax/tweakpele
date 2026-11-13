@@ -14,8 +14,9 @@ function seedLibrary() {
 }
 
 /** Diagram library + per-diagram style/render overrides: CRUD, override editing,
- *  and the per-view mount options each diagram actually renders with. */
-export function useDiagrams({ theme, notify, setStatus }) {
+ *  and the per-view mount options each diagram actually renders with.
+ *  While `sessionActive` (shared canvas session), overrides live in memory only. */
+export function useDiagrams({ theme, notify, setStatus, sessionActive = false }) {
   // library persists a versioned wrapper, so it keeps its explicit load/save pair
   const [diagrams, setDiagrams] = useState(() => {
     const stored = loadJSON(LIB_KEY, null);
@@ -26,9 +27,12 @@ export function useDiagrams({ theme, notify, setStatus }) {
     return seedLibrary();
   });
   // Per-diagram style/render overrides: { [diagramId]: { opts: { [optId]: value }, vars: { [cssVar]: value } } }
-  const [diagramOverrides, setDiagramOverrides] = usePersistedState(OVERRIDES_KEY, (v) => (
+  const [storedOverrides, setStoredOverrides] = usePersistedState(OVERRIDES_KEY, (v) => (
     v && typeof v === 'object' && !Array.isArray(v) ? v : {}
   ));
+  const [sessionOverrides, setSessionOverrides] = useState({});
+  const diagramOverrides = sessionActive ? sessionOverrides : storedOverrides;
+  const setDiagramOverrides = sessionActive ? setSessionOverrides : setStoredOverrides;
 
   const {
     vars, optVals, remeasureTick, forgetMeasures,
@@ -121,7 +125,7 @@ export function useDiagrams({ theme, notify, setStatus }) {
       }
       return { ...prev, [id]: { opts, vars: v } };
     });
-  }, []);
+  }, [setDiagramOverrides]);
 
   const onDiagramOptChange = useCallback((id, optId, value) => {
     setDiagramOverride(id, (d) => {
@@ -144,7 +148,7 @@ export function useDiagrams({ theme, notify, setStatus }) {
       return next;
     });
     setStatus('Diagram style → global');
-  }, []);
+  }, [setDiagramOverrides]);
 
   const styleApi = useMemo(() => ({
     overrides: diagramOverrides,
@@ -177,7 +181,7 @@ export function useDiagrams({ theme, notify, setStatus }) {
       if (!Object.keys(src.opts).length && !Object.keys(src.vars).length) return prev;
       return { ...prev, [toId]: { opts: { ...src.opts }, vars: { ...src.vars } } };
     });
-  }, []);
+  }, [setDiagramOverrides]);
 
   const createDiagram = (starter) => {
     const d = {

@@ -37,12 +37,14 @@ export async function copyText(text) {
   }
 }
 
-/** Hash route: '#/' gallery · '#/edit/<id>' split editor · '#/s/<token>' share snapshot.
- *  Empty hash (first open) is redirected to editor by App — editor is the default mode. */
+/** Hash route: '#/' gallery · '#/edit/<id>' split editor · '#/s/<token>' share snapshot ·
+ *  '#/c/<token>' shared whole canvas. Empty hash (first open) is redirected to editor by App. */
 export function parseHash() {
   const h = (location.hash || '').replace(/^#/, '');
   const share = h.match(/^\/s\/(.+)$/);
   if (share) return { view: 'snapshot', token: share[1] };
+  const canvasShare = h.match(/^\/c\/(.+)$/);
+  if (canvasShare) return { view: 'sharedCanvas', token: canvasShare[1] };
   const m = h.match(/^\/edit\/(.+)$/);
   if (m) return { view: 'edit', id: decodeURIComponent(m[1]) };
   return { view: 'gallery' };
