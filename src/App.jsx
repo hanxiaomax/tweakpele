@@ -6,7 +6,7 @@ import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
-  LuUpload as Upload,
+  LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -25,6 +25,7 @@ import { useTweakpeleBridge } from './bridge.js';
 import { useThemeState } from './state/useThemeState.js';
 import { useDiagrams } from './state/useDiagrams.js';
 import { useViewState } from './state/useViewState.js';
+import { useHistory } from './state/useHistory.js';
 
 export default function App() {
   const [toastMsg, setToastMsg] = useState('');
@@ -42,6 +43,7 @@ export default function App() {
   const theme = useThemeState({ notify, setStatus });
   const {
     siteTheme, vars, optVals, cssBlock, optionsJson, mountOptions, varsStyle,
+    setVars, setOptVals, forgetMeasures,
     applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
     onVarChange, onOptChange, onOptReset,
     applySnapshotTheme, clearSnapshotTheme,
@@ -62,6 +64,20 @@ export default function App() {
     focusedId, setFocusedId, focusSlideDir, focusOrder, focusDiagram, clearFocus, focusPrev, focusNext,
     galleryCols, setGalleryCols, bumpGalleryCols, onDiagramDeleted,
   } = view;
+
+  const applyDocState = useCallback((s) => {
+    setVars(s.vars);
+    setOptVals(s.optVals);
+    setDiagramOverrides(s.overrides);
+    setDiagrams(s.diagrams);
+    forgetMeasures();
+  }, [setVars, setOptVals, setDiagramOverrides, setDiagrams, forgetMeasures]);
+  const history = useHistory({
+    state: { vars, optVals, overrides: diagramOverrides, diagrams },
+    apply: applyDocState,
+    enabled: route.view !== 'snapshot',
+    onAction: notify,
+  });
 
   const skipBridgePush = useRef(false);
   const bridge = useTweakpeleBridge({
@@ -355,6 +371,8 @@ export default function App() {
               onClick={() => setViewMode((m) => (m === 'gallery' ? 'canvas' : 'gallery'))}
             />
           )}
+          <IconButton Icon={Undo2} label="Undo" disabled={!history.canUndo} onClick={history.undo} />
+          <IconButton Icon={Redo2} label="Redo" disabled={!history.canRedo} onClick={history.redo} />
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
           <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
           <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />

@@ -70,8 +70,11 @@ export default function EditorSidebar({
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); return; }
     if (e.key === 'Tab') {
       e.preventDefault();
-      const { selectionStart: s, selectionEnd: en } = e.target;
-      e.target.setRangeText('  ', s, en, 'end');
+      // execCommand keeps the insert on the textarea's native undo stack
+      if (!document.execCommand('insertText', false, '  ')) {
+        const { selectionStart: s, selectionEnd: en } = e.target;
+        e.target.setRangeText('  ', s, en, 'end');
+      }
       applyText(e.target.value, true);
     }
   };
