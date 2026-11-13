@@ -126,7 +126,7 @@ export function useThemeState({ notify, setStatus }) {
   }, [setOptVals]);
 
   return {
-    siteTheme, vars, optVals, remeasureTick, forgetMeasures,
+    siteTheme, vars, optVals, setVars, setOptVals, remeasureTick, forgetMeasures,
     cssBlock, optionsJson, mountOptions, varsStyle,
     debouncedOptVals, debouncedVars,
     applyPresetVars, applyThemePreset, applyTheme, toggleTheme, resetFactory, loadDarkSample,
