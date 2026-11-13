@@ -369,6 +369,13 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   font-size: 12.5px;
 }
 .pele-host svg.pele { display: block; margin: 0 auto; max-width: 100%; }
+/* Pele sets the error's layout inline; pin it to the bottom centre of fixed-size hosts. */
+.focused-view-body .pele-host > .pele.pele-error,
+.card-body .pele-host > .pele.pele-error {
+  position: absolute !important; left: 50%; bottom: 12px; transform: translateX(-50%);
+  height: auto !important; margin: 0 !important; max-width: calc(100% - 24px);
+  padding: 4px 10px; border-radius: 6px; background: var(--pele-bg, #fff); z-index: 1;
+}
 
 /* ---------------- editor sidebar (inside the focused view) ---------------- */
 .title-input {
