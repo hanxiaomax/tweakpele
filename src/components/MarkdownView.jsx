@@ -8,6 +8,15 @@ import { IconButton } from './ui.jsx';
 import { usePersistedState } from '../lib.js';
 import { markdownSegments } from '../markdown.js';
 
+const SANITIZE_CONFIG = { USE_PROFILES: { html: true } };
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A' && /^https?:\/\//i.test(node.getAttribute('href') || '')) {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
+
 export default function MarkdownView({ options, onClose, notify }) {
   const [doc, setDoc] = usePersistedState('tweakpele.markdown.v1', null);
   const [dragging, setDragging] = useState(false);
@@ -18,7 +27,12 @@ export default function MarkdownView({ options, onClose, notify }) {
     const a = e.target.closest('a[href^="#"]');
     if (!a) return;
     e.preventDefault();
-    const id = decodeURIComponent(a.getAttribute('href').slice(1));
+    let id;
+    try {
+      id = decodeURIComponent(a.getAttribute('href').slice(1));
+    } catch {
+      return;
+    }
     docRef.current?.querySelector(`[id="${CSS.escape(id)}"]`)?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -35,7 +49,7 @@ export default function MarkdownView({ options, onClose, notify }) {
   };
 
   const segments = useMemo(() => markdownSegments(doc?.text).map((seg) => (
-    seg.kind === 'md' ? { ...seg, html: DOMPurify.sanitize(marked.parse(seg.text, { gfm: true })) } : seg
+    seg.kind === 'md' ? { ...seg, html: DOMPurify.sanitize(marked.parse(seg.text, { gfm: true }), SANITIZE_CONFIG) } : seg
   )), [doc?.text]);
 
   return (
