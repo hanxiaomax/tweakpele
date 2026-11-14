@@ -22,7 +22,7 @@ const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
 const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
 
 /** One ```mermaid card: Pele render plus the playground's Pele / Mermaid / SVG / Compare switch. */
-function MdDiagram({ source, options, mermaidTheme, notify }) {
+function MdDiagram({ source, options, cardTone, notify }) {
   const [view, setView] = useState('pele');
   const [peleSvg, setPeleSvg] = useState('');
   const [stock, setStock] = useState({ svg: '', error: '' });
@@ -32,11 +32,11 @@ function MdDiagram({ source, options, mermaidTheme, notify }) {
     if (!needsStock) return;
     let cancelled = false;
     setStock({ svg: '', error: '' });
-    renderStockMermaid(source, mermaidTheme)
+    renderStockMermaid(source, cardTone === 'dark' ? 'dark' : 'default')
       .then((svg) => { if (!cancelled) setStock({ svg, error: '' }); })
       .catch((err) => { if (!cancelled) setStock({ svg: '', error: err?.message || String(err) }); });
     return () => { cancelled = true; };
-  }, [needsStock, source, mermaidTheme]);
+  }, [needsStock, source, cardTone]);
 
   const onCopy = async () => {
     const ok = await copyText(peleSvg);
@@ -50,7 +50,7 @@ function MdDiagram({ source, options, mermaidTheme, notify }) {
       : <div>Loading Mermaid…</div>;
 
   return (
-    <figure className="md-diagram" data-view={view}>
+    <figure className="md-diagram" data-view={view} data-tone={cardTone}>
       <div className="md-diagram-bar">
         <div className="md-views" role="group" aria-label="Output view">
           {VIEWS.map((v) => (
@@ -80,7 +80,7 @@ function MdDiagram({ source, options, mermaidTheme, notify }) {
   );
 }
 
-export default function MarkdownView({ options, onClose, notify, mermaidTheme }) {
+export default function MarkdownView({ options, onClose, notify, cardTone }) {
   const [doc, setDoc] = usePersistedState('tweakpele.markdown.v1', null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef(null);
@@ -136,7 +136,7 @@ export default function MarkdownView({ options, onClose, notify, mermaidTheme })
           <article ref={docRef} className="md-doc" onClick={onDocClick}>
             {segments.map((seg, i) => seg.kind === 'md'
               ? <div key={i} dangerouslySetInnerHTML={{ __html: seg.html }} />
-              : <MdDiagram key={i} source={seg.source} options={options} mermaidTheme={mermaidTheme} notify={notify} />)}
+              : <MdDiagram key={i} source={seg.source} options={options} cardTone={cardTone} notify={notify} />)}
           </article>
         </div>
       ) : (

@@ -21,7 +21,7 @@ import { copyText, navigate, newId, useHashRoute } from './lib.js';
 import { download } from './export.js';
 import { slugify } from './export.js';
 import { mergeDiagramVars } from './diagramOverrides.js';
-import { mermaidConfig, mermaidFrontmatter, withMermaidFrontmatter } from './mermaidConfig.js';
+import { isDarkBackground, mermaidConfig, mermaidFrontmatter, withMermaidFrontmatter } from './mermaidConfig.js';
 import {
   buildSnapshot, snapshotFileJson, parseSnapshot, parseThemeFile, snapshotTheme, diagramFromSnapshot,
   buildCanvasSnapshot, parseCanvasSnapshot, canvasSessionFromSnapshot,
@@ -569,7 +569,7 @@ export default function App() {
           {(isSnapshot && !sessionDiagram) || (isSharedCanvas && !sessionCanvas) ? (
             <div className="empty editor-missing"><p>{isSnapshot ? 'Opening shared snapshot…' : 'Opening shared canvas…'}</p></div>
           ) : route.view === 'markdown' ? (
-            <MarkdownView options={galleryOptions} onClose={backToGallery} notify={notify} mermaidTheme={mermaidConfig(vars).themeVariables.darkMode ? 'dark' : 'default'} />
+            <MarkdownView options={galleryOptions} onClose={backToGallery} notify={notify} cardTone={isDarkBackground(vars['--pele-bg']) ? 'dark' : 'light'} />
           ) : (
             <div className="view-holder">
               {/* Keep overview geometry and state while focus occupies the same content slot. */}

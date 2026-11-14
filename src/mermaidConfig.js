@@ -34,6 +34,15 @@ function luminance(color) {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
+/** True when white text contrasts better than black on the given color (false when unparseable). */
+export function isDarkBackground(color) {
+  const c = normalizeColor(color);
+  if (!c) return false;
+  const lum = luminance(c);
+  if (lum === null) return false;
+  return 1.05 / (lum + 0.05) > (lum + 0.05) / 0.05;
+}
+
 const COLOR_GROUPS = [
   ['bg', ['background', 'edgeLabelBackground']],
   ['surface', ['primaryColor', 'mainBkg', 'nodeBkg', 'actorBkg', 'labelBoxBkgColor']],
