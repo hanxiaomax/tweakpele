@@ -569,7 +569,7 @@ export default function App() {
           {(isSnapshot && !sessionDiagram) || (isSharedCanvas && !sessionCanvas) ? (
             <div className="empty editor-missing"><p>{isSnapshot ? 'Opening shared snapshot…' : 'Opening shared canvas…'}</p></div>
           ) : route.view === 'markdown' ? (
-            <MarkdownView options={galleryOptions} onClose={backToGallery} notify={notify} />
+            <MarkdownView options={galleryOptions} onClose={backToGallery} notify={notify} mermaidTheme={mermaidConfig(vars).themeVariables.darkMode ? 'dark' : 'default'} />
           ) : (
             <div className="view-holder">
               {/* Keep overview geometry and state while focus occupies the same content slot. */}
