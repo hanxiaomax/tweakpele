@@ -37,8 +37,9 @@ export async function copyText(text) {
   }
 }
 
-/** Hash route: '#/' gallery · '#/edit/<id>' split editor · '#/s/<token>' share snapshot ·
- *  '#/c/<token>' shared whole canvas. Empty hash (first open) is redirected to editor by App. */
+/** Hash route: '#/' gallery · '#/edit/<id>' split editor · '#/md' markdown preview ·
+ *  '#/s/<token>' share snapshot · '#/c/<token>' shared whole canvas.
+ *  Empty hash (first open) is redirected to editor by App. */
 export function parseHash() {
   const h = (location.hash || '').replace(/^#/, '');
   const share = h.match(/^\/s\/(.+)$/);
@@ -47,6 +48,7 @@ export function parseHash() {
   if (canvasShare) return { view: 'sharedCanvas', token: canvasShare[1] };
   const m = h.match(/^\/edit\/(.+)$/);
   if (m) return { view: 'edit', id: decodeURIComponent(m[1]) };
+  if (h === '/md') return { view: 'markdown' };
   return { view: 'gallery' };
 }
 
@@ -61,7 +63,8 @@ export function useHashRoute() {
 }
 
 export function navigate(route) {
-  const h = route.view === 'edit' ? `#/edit/${encodeURIComponent(route.id)}` : '#/';
+  const h = route.view === 'edit' ? `#/edit/${encodeURIComponent(route.id)}`
+    : route.view === 'markdown' ? '#/md' : '#/';
   if (location.hash !== h) location.hash = h;
 }
 

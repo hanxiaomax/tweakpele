@@ -231,6 +231,7 @@ export function useDiagrams({ theme, notify, setStatus, sessionActive = false })
     diagrams, setDiagrams,
     diagramOverrides, setDiagramOverrides,
     findDiagram, styleApi,
+    galleryOptions,
     optionsForDiagram, galleryOptionsFor, canvasOptionsFor,
     onDiagramOptChange, onDiagramVarChange, onDiagramOverrideReset,
     createDiagram, duplicateDiagram, saveAsCopy, removeDiagram,

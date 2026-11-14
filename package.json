@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/hanxiaomax/tweakpele#readme",
   "dependencies": {
+    "dompurify": "3.4.17",
+    "marked": "18.2.0",
     "pele": "1.13.0",
     "playwright-core": "1.65.0",
     "react": "18.3.1",
