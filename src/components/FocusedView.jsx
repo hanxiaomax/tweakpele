@@ -12,7 +12,7 @@ import EditorSidebar from './EditorSidebar.jsx';
 import { IconButton } from './ui.jsx';
 import { exportDiagram, slugify } from '../export.js';
 import { clamp, detectDiagramType } from '../lib.js';
-import { hasTypeSpecificFields } from '../diagramOverrides.js';
+import { hasTypeSpecificFields, mergeDiagramVars } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
 
 const WHEEL_STEP = 90;
@@ -45,9 +45,11 @@ export default function FocusedView({
   const [c4Sel, setC4Sel] = useState(null);
   const [status, setStatus] = useState(null);   // { info } | { error }
   const c4 = isC4Source(diagram.source);
+  // Same vars as the copy/download paths: global toolbox + per-diagram overrides.
+  const themeVars = mergeDiagramVars(vars, styleApi?.overrides?.[diagram.id]?.vars);
   // Pele / Mermaid / SVG / Compare switch; only the Pele view keeps the full interactions below.
-  const { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg } =
-    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id });
+  const { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg, compat, setCompat, bodyTone } =
+    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id, themeVars });
 
   useEffect(() => { setC4Sel(null); }, [diagram.id]);
 
@@ -277,6 +279,9 @@ export default function FocusedView({
               peleSvg={peleSvg}
               onPeleSvg={setPeleSvg}
               stock={stock}
+              compat={compat}
+              onToggleCompat={() => setCompat((v) => !v)}
+              bodyTone={bodyTone}
             />
           )}
         </div>

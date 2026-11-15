@@ -4,7 +4,7 @@ Pele theme & render playground (React + esbuild).
 
 ## Focused diagram view
 
-The **focused diagram view** (click a gallery card, or gallery 1×1) has the Pele playground's Pele / Mermaid / SVG / Compare switch and **Copy SVG** (copies the Pele output). Mermaid and Compare load stock Mermaid 12.1.0 from jsDelivr on first use (needs network). Zoom, C4 selection, and the style panels stay on the Pele view; the other views are read-only.
+The **focused diagram view** (click a gallery card, or gallery 1×1) has the Pele playground's Pele / Mermaid / SVG / Compare switch and **Copy SVG** (copies the Pele output). Compare has a **Compatible theme** toggle on the Mermaid side (off by default; uses the exported mermaid.config.json theme). Mermaid and Compare load stock Mermaid 12.1.0 from jsDelivr on first use (needs network). Zoom, C4 selection, and the style panels stay on the Pele view; the other views are read-only.
 
 ## Preview Markdown
 
