@@ -542,9 +542,10 @@ export default function App() {
           <MenuButton Icon={FileCode2} text="Export" label="Export theme and Mermaid" items={() => [
             { label: 'Copy .pele CSS', Icon: ClipboardCopy, onClick: () => doCopy(cssBlock, '.pele CSS') },
             { label: 'Copy render options JSON', Icon: Braces, onClick: () => doCopy(optionsJson, 'render options JSON') },
+            { label: 'Download theme file', Icon: Download, onClick: downloadTheme },
+            { sep: true },
             { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars, exportOptions(optVals, vars), mermaidExportLayout), 'Mermaid frontmatter') },
             { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
-            { label: 'Download theme file', Icon: Download, onClick: downloadTheme },
           ]} />
           <MenuButton Icon={File} text="File" label="File" items={() => [
             ...(!inSession ? [{ label: 'Markdown preview', Icon: FileText, onClick: () => navigate({ view: 'markdown' }) }] : []),

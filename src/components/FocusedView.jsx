@@ -11,7 +11,7 @@ import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { DiagramAltBody, DiagramViewSwitch, useDiagramViews } from './DiagramViews.jsx';
 import EditorSidebar from './EditorSidebar.jsx';
 import { IconButton, MenuButton } from './ui.jsx';
-import { exportDiagram, slugify } from '../export.js';
+import { exportDiagram, parseSvgMarkup, peleStyleVars, slugify } from '../export.js';
 import { clamp, detectDiagramType } from '../lib.js';
 import { hasTypeSpecificFields, mergeDiagramVars } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
@@ -142,10 +142,14 @@ export default function FocusedView({
     }
   };
 
+  // Always export the stored Pele markup (works in every view); vars come from the themed body.
   const runExport = (format, background) => {
-    const svg = bodyRef.current?.querySelector('svg.pele');
+    const svg = parseSvgMarkup(peleSvg);
     if (!svg) { notify('Nothing to export'); return; }
-    exportDiagram(svg, { format, background, filename: slugify(diagram.title) })
+    exportDiagram(svg, {
+      format, background, filename: slugify(diagram.title),
+      vars: peleStyleVars(peleSvg, bodyRef.current),
+    })
       .then((name) => notify(`Exported ${name}`))
       .catch(() => notify('Export failed'));
   };
@@ -176,7 +180,6 @@ export default function FocusedView({
           <IconButton Icon={Pencil} label={`Edit ${diagram.title} (toggle sidebar)`} pressed={sidebarOpen}
             onClick={onToggleSidebar} />
           <MenuButton Icon={MoreHorizontal} text="Actions" label="Diagram actions" items={() => [
-            { label: 'Copy SVG', Icon: Copy, disabled: !peleSvg, onClick: copySvg },
             { label: 'Reset Pele zoom', Icon: Maximize, disabled: view !== 'pele',
               onClick: () => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } } },
             { label: `Duplicate ${diagram.title}`, Icon: Copy, onClick: () => onDuplicate(diagram.id) },
@@ -203,6 +206,8 @@ export default function FocusedView({
               onCopySource={onCopySource}
               onCopyMermaidSource={onCopyMermaidSource}
               onExport={runExport}
+              onCopySvg={copySvg}
+              canCopySvg={!!peleSvg}
               onCopyShareLink={onCopyShareLink}
               onDownloadSnapshot={onDownloadSnapshot}
             />

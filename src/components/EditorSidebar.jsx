@@ -14,7 +14,7 @@ import { errorLine } from '../lib.js';
 export default function EditorSidebar({
   diagram, status, onClose, notify,
   onChangeTitle, onChangeSource, onResetSource, onCopySource, onCopyMermaidSource,
-  onExport, onCopyShareLink, onDownloadSnapshot,
+  onExport, onCopySvg, canCopySvg, onCopyShareLink, onDownloadSnapshot,
 }) {
   const [text, setText] = useState(diagram.source);
   const [scrollTop, setScrollTop] = useState(0);
@@ -124,14 +124,17 @@ export default function EditorSidebar({
         <span className="editor-actions">
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
             onClick={() => { onResetSource(diagram.id); notify('Source reset'); }} />
-          <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"
-            onClick={() => onCopySource(diagram)} />
+          <MenuButton Icon={diagram.builtin ? Copy : ClipboardCopy} text="Copy" label="Copy source" items={() => [
+            { label: 'Copy Mermaid source', Icon: Copy, onClick: () => onCopySource(diagram) },
+            { label: 'Copy source with Mermaid theme', Icon: ClipboardCopy, onClick: () => onCopyMermaidSource?.(diagram) },
+          ]} />
           <MenuButton Icon={Download} text="Export" label="Export and share" items={() => [
-            { label: 'PNG', onClick: () => onExport('png', true) },
-            { label: 'PNG (transparent)', onClick: () => onExport('png', false) },
-            { label: 'SVG', onClick: () => onExport('svg', true) },
-            { label: 'SVG (transparent)', onClick: () => onExport('svg', false) },
-            { label: 'Copy source with Mermaid theme', Icon: Copy, onClick: () => onCopyMermaidSource?.(diagram) },
+            { label: 'Download PNG', onClick: () => onExport('png', true) },
+            { label: 'Download PNG (transparent)', onClick: () => onExport('png', false) },
+            { sep: true },
+            { label: 'Copy SVG', Icon: Copy, disabled: !canCopySvg, onClick: onCopySvg },
+            { label: 'Download SVG', onClick: () => onExport('svg', true) },
+            { label: 'Download SVG (transparent)', onClick: () => onExport('svg', false) },
             { sep: true },
             { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
             { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
