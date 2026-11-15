@@ -23,10 +23,10 @@ function loadMermaid() {
 export async function renderStockMermaid(source, config = {}) {
   const mermaid = await loadMermaid();
   await mermaid.initialize({
+    ...config,
     startOnLoad: false,
     securityLevel: 'strict',
     suppressErrorRendering: true,
-    ...config,
   });
   const { svg } = await mermaid.render(`tp-mermaid-${++counter}`, source);
   return svg;
