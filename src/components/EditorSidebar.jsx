@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy,
-  LuDownload as Download, LuShare2 as Share2, LuLink as Link, LuFolderOpen as FolderOpen,
+  LuDownload as Download, LuLink as Link,
 } from 'react-icons/lu';
-import { ContextMenu, IconButton } from './ui.jsx';
+import { IconButton, MenuButton } from './ui.jsx';
 import { errorLine } from '../lib.js';
 
 /**
@@ -14,11 +14,9 @@ import { errorLine } from '../lib.js';
 export default function EditorSidebar({
   diagram, status, onClose, notify,
   onChangeTitle, onChangeSource, onResetSource, onCopySource, onCopyMermaidSource,
-  onExport, onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
+  onExport, onCopySvg, canCopySvg, onCopyShareLink, onDownloadSnapshot,
 }) {
   const [text, setText] = useState(diagram.source);
-  const [exportMenu, setExportMenu] = useState(null);
-  const [shareMenu, setShareMenu] = useState(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [metrics, setMetrics] = useState({ lh: 19.4, pt: 12 });
   const areaRef = useRef(null);
@@ -79,34 +77,6 @@ export default function EditorSidebar({
     }
   };
 
-  const openExportMenu = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setExportMenu({
-      x: rect.left,
-      y: rect.bottom + 4,
-      items: [
-        { label: 'PNG', onClick: () => onExport('png', true) },
-        { label: 'PNG (transparent)', onClick: () => onExport('png', false) },
-        { label: 'SVG', onClick: () => onExport('svg', true) },
-        { label: 'SVG (transparent)', onClick: () => onExport('svg', false) },
-        { label: 'Copy source with Mermaid theme', onClick: () => onCopyMermaidSource?.(diagram) },
-      ],
-    });
-  };
-
-  const openShareMenu = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setShareMenu({
-      x: rect.left,
-      y: rect.bottom + 4,
-      items: [
-        { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
-        { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
-        { label: 'Open snapshot file', Icon: FolderOpen, onClick: () => onOpenSnapshot?.() },
-      ],
-    });
-  };
-
   const dirty = diagram.source !== diagram.original;
   const empty = !diagram.source || !diagram.source.trim();
 
@@ -148,21 +118,29 @@ export default function EditorSidebar({
         </div>
       </div>
       <div className="editor-sidebar-foot">
-        <span
-className="editor-status" aria-live="polite">
+        <span className="editor-status" aria-live="polite">
           {empty ? 'Empty' : status ? (status.info || '') : 'rendering…'}
         </span>
         <span className="editor-actions">
           <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
             onClick={() => { onResetSource(diagram.id); notify('Source reset'); }} />
-          <IconButton Icon={diagram.builtin ? Copy : ClipboardCopy} label="Copy Mermaid source"
-            onClick={() => onCopySource(diagram)} />
-          <IconButton Icon={Download} label="Export image" onClick={openExportMenu} />
-          <IconButton Icon={Share2} label="Share snapshot" onClick={openShareMenu} />
+          <MenuButton Icon={diagram.builtin ? Copy : ClipboardCopy} text="Copy" label="Copy source" items={() => [
+            { label: 'Copy Mermaid source', Icon: Copy, onClick: () => onCopySource(diagram) },
+            { label: 'Copy source with Mermaid theme', Icon: ClipboardCopy, onClick: () => onCopyMermaidSource?.(diagram) },
+          ]} />
+          <MenuButton Icon={Download} text="Export" label="Export and share" items={() => [
+            { label: 'Download PNG', onClick: () => onExport('png', true) },
+            { label: 'Download PNG (transparent)', onClick: () => onExport('png', false) },
+            { sep: true },
+            { label: 'Copy SVG', Icon: Copy, disabled: !canCopySvg, onClick: onCopySvg },
+            { label: 'Download SVG', onClick: () => onExport('svg', true) },
+            { label: 'Download SVG (transparent)', onClick: () => onExport('svg', false) },
+            { sep: true },
+            { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
+            { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
+          ]} />
         </span>
       </div>
-      <ContextMenu menu={exportMenu} onClose={() => setExportMenu(null)} />
-      <ContextMenu menu={shareMenu} onClose={() => setShareMenu(null)} />
     </aside>
   );
 }

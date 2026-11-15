@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /** Icon-only button (React Icons / Lucide). Always labelled for a11y. */
-export function IconButton({ Icon, label, onClick, kind, disabled, className, pressed }) {
+export function IconButton({ Icon, label, onClick, kind, disabled, className, pressed, ...rest }) {
   return (
     <button
       type="button"
@@ -9,29 +9,59 @@ export function IconButton({ Icon, label, onClick, kind, disabled, className, pr
       title={label} aria-label={label}
       aria-pressed={pressed === undefined ? undefined : !!pressed}
       onClick={onClick} disabled={disabled}
+      {...rest}
     >
       {Icon ? <Icon aria-hidden="true" focusable="false" /> : null}
     </button>
   );
 }
 
-/** Right-click menu. `menu` = { x, y, items: [{label, Icon, onClick, danger}] } | null */
+/**
+ * Menu anchored to a trigger button (see MenuButton) or at raw coordinates (right-click).
+ * `menu` = { x, y, items: [{label, Icon, onClick, danger, disabled} | {sep: true}], trigger? } | null
+ */
 export function ContextMenu({ menu, onClose }) {
   const ref = useRef(null);
   const [pos, setPos] = useState(null);
 
+  const close = () => {
+    // Menu buttons get their focus back; raw right-click menus have no trigger.
+    if (menu?.trigger) menu.trigger.focus?.();
+    onClose();
+  };
+
+  const enabledItems = () =>
+    Array.from(ref.current?.querySelectorAll('button.ctxitem:not(:disabled)') || []);
+
   useEffect(() => {
     if (!menu) return;
     // Ignore presses inside the menu so item onClick can fire (capture would otherwise unmount first).
+    // Presses on the trigger are left to the button itself so it can toggle (not reopen).
     const onPointerDown = (e) => {
       if (ref.current && ref.current.contains(e.target)) return;
-      onClose();
+      if (menu.trigger && menu.trigger.contains(e.target)) return;
+      close();
     };
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Tab') {
+        // Stop Escape/Tab from also closing the editor sidebar or exiting focus.
+        e.preventDefault(); e.stopPropagation();
+        close();
+        return;
+      }
+      const items = enabledItems();
+      if (!items.length) return;
+      const idx = items.indexOf(document.activeElement);
+      const move = (n) => { e.preventDefault(); items[n].focus(); };
+      if (e.key === 'ArrowDown') move(idx < 0 ? 0 : (idx + 1) % items.length);
+      else if (e.key === 'ArrowUp') move(idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length);
+      else if (e.key === 'Home') move(0);
+      else if (e.key === 'End') move(items.length - 1);
+    };
     const onScroll = (e) => {
       if (!ref.current) return;
-      if (e.target === document || e.target === document.documentElement) onClose();
-      else if (e.target.contains && e.target.contains(ref.current)) onClose();
+      if (e.target === document || e.target === document.documentElement) close();
+      else if (e.target.contains && e.target.contains(ref.current)) close();
     };
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKey, true);
@@ -65,6 +95,7 @@ export function ContextMenu({ menu, onClose }) {
     if (x < pad) x = pad;
     if (y < pad) y = pad;
     setPos({ menu, left: Math.round(x), top: Math.round(y) });
+    enabledItems()[0]?.focus();
   }, [menu]);
 
   if (!menu) return null;
@@ -73,15 +104,51 @@ export function ContextMenu({ menu, onClose }) {
     : { left: menu.x, top: menu.y };
   return (
     <div className="ctxmenu" ref={ref} style={style} role="menu" onContextMenu={(e) => e.preventDefault()}>
-      {menu.items.map((it, i) => (
+      {menu.items.map((it, i) => (it.sep ? (
+        <div key={i} role="separator" className="ctxsep" />
+      ) : (
         <button
           key={i} type="button" role="menuitem" className={'ctxitem' + (it.danger ? ' danger' : '')}
-          onClick={() => { onClose(); it.onClick && it.onClick(); }}
+          disabled={!!it.disabled}
+          onClick={() => { close(); it.onClick && it.onClick(); }}
         >
           {it.Icon ? <it.Icon aria-hidden="true" /> : null}<span>{it.label}</span>
         </button>
-      ))}
+      )))}
     </div>
+  );
+}
+
+/** Labeled trigger button opening a ContextMenu anchored below itself. */
+export function MenuButton({ Icon, label, items, text, kind, className, disabled }) {
+  const btnRef = useRef(null);
+  const [menu, setMenu] = useState(null);
+  // `items` as a function re-evaluates on open so disabled state stays fresh.
+  const open = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setMenu({
+      x: r.left, y: r.bottom + 4,
+      items: typeof items === 'function' ? items() : items,
+      trigger: btnRef.current,
+    });
+  };
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={'ibtn' + (kind ? ' ' + kind : '') + (text ? ' menu-btn' : '') + (className ? ' ' + className : '')}
+        title={label} aria-label={label}
+        aria-haspopup="menu" aria-expanded={!!menu}
+        onClick={() => (menu ? setMenu(null) : open())}
+        disabled={disabled}
+      >
+        {Icon ? <Icon aria-hidden="true" focusable="false" /> : null}
+        {text ? <span>{text}</span> : null}
+      </button>
+      <ContextMenu menu={menu} onClose={() => setMenu(null)} />
+    </>
   );
 }
 

@@ -9,13 +9,14 @@ import {
   LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
   LuFileCode2 as FileCode2,
   LuFileText as FileText,
+  LuFile as File,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import MarkdownView from './components/MarkdownView.jsx';
-import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
+import { ContextMenu, Dialog, IconButton, MenuButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, exportOptions, themeFileJson } from './constants.js';
 import { copyText, navigate, newId, useHashRoute } from './lib.js';
 import { download } from './export.js';
@@ -171,16 +172,6 @@ export default function App() {
     download(new Blob([JSON.stringify(mermaidConfig(vars, exportOptions(optVals, vars), mermaidExportLayout), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
     notify(`Downloaded ${filename}`);
     setStatus(`Downloaded ${filename}`);
-  };
-
-  const mermaidMenu = (e) => {
-    setCtxMenu({
-      x: e.clientX, y: e.clientY,
-      items: [
-        { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars, exportOptions(optVals, vars), mermaidExportLayout), 'Mermaid frontmatter') },
-        { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
-      ],
-    });
   };
 
   const themeFileRef = useRef(null);
@@ -548,17 +539,22 @@ export default function App() {
           <IconButton Icon={Undo2} label="Undo" disabled={!history.canUndo} onClick={history.undo} />
           <IconButton Icon={Redo2} label="Redo" disabled={!history.canRedo} onClick={history.redo} />
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
-          <IconButton Icon={ClipboardCopy} label="Copy .pele CSS" onClick={() => doCopy(cssBlock, '.pele CSS')} />
-          <IconButton Icon={Braces} label="Copy render options JSON" onClick={() => doCopy(optionsJson, 'render options JSON')} />
-          <IconButton Icon={FileCode2} label="Export for Mermaid" onClick={mermaidMenu} />
-          {!inSession && (
-            <IconButton Icon={FileText} label="Markdown preview" onClick={() => navigate({ view: 'markdown' })} />
-          )}
-          <IconButton Icon={Download} label="Download theme file" onClick={downloadTheme} />
-          <IconButton Icon={Upload} label="Import theme file" onClick={() => themeFileRef.current?.click()} />
-          <IconButton Icon={FolderOpen} label="Open snapshot file" onClick={openSnapshotFile} />
-          <IconButton Icon={RotateCcw} label="Reset factory theme & options" onClick={resetFactory} />
-          <IconButton Icon={ArchiveRestore} label="Restore built-in samples" onClick={restoreSamples} />
+          <MenuButton Icon={FileCode2} text="Export" label="Export theme and Mermaid" items={() => [
+            { label: 'Copy .pele CSS', Icon: ClipboardCopy, onClick: () => doCopy(cssBlock, '.pele CSS') },
+            { label: 'Copy render options JSON', Icon: Braces, onClick: () => doCopy(optionsJson, 'render options JSON') },
+            { label: 'Download theme file', Icon: Download, onClick: downloadTheme },
+            { sep: true },
+            { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars, exportOptions(optVals, vars), mermaidExportLayout), 'Mermaid frontmatter') },
+            { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
+          ]} />
+          <MenuButton Icon={File} text="File" label="File" items={() => [
+            ...(!inSession ? [{ label: 'Markdown preview', Icon: FileText, onClick: () => navigate({ view: 'markdown' }) }] : []),
+            { label: 'Import theme file', Icon: Upload, onClick: () => themeFileRef.current?.click() },
+            { label: 'Open snapshot file', Icon: FolderOpen, onClick: openSnapshotFile },
+            { sep: true },
+            { label: 'Reset factory theme & options', Icon: RotateCcw, onClick: resetFactory },
+            { label: 'Restore built-in samples', Icon: ArchiveRestore, onClick: restoreSamples },
+          ]} />
         </span>
       </header>
 
@@ -642,7 +638,6 @@ export default function App() {
                   onRenderFeedback={sidebarOpen ? (fb) => { bridge.pushFeedback?.(fb); } : undefined}
                   onCopyShareLink={() => copyShareLink(focusedDiagram)}
                   onDownloadSnapshot={() => downloadSnapshot(focusedDiagram)}
-                  onOpenSnapshot={openSnapshotFile}
                   vars={vars}
                   mermaidLayout={mermaidLayout}
                   onMermaidLayoutChange={setMermaidLayout}
