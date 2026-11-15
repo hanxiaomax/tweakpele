@@ -282,11 +282,15 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .view-holder {
   display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   flex: 1; min-width: 0; min-height: 0;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ui-border) 50%, transparent) 1px, transparent 0)
+    0 0 / 28px 28px,
+    var(--ui-bg);
 }
 .overview-view, .focused-view { grid-area: 1 / 1; min-width: 0; min-height: 0; }
 .overview-view { display: flex; flex-direction: column; }
-/* Preserve overview dimensions, gallery scroll, and canvas camera without a backdrop. */
-.overview-view[aria-hidden="true"] { visibility: hidden; pointer-events: none; }
+/* Preserve overview dimensions, gallery scroll, and canvas camera behind the floating focused view. */
+.overview-view[aria-hidden="true"] { opacity: 0.3; pointer-events: none; }
 .fatal { margin: 20px; padding: 14px; border: 1px solid var(--ui-danger); border-radius: 8px; color: var(--ui-danger); font-weight: 600; }
 
 /* gallery: Ctrl+wheel zooms column density; cols=1 hands off to FocusedView (slide focus) */
@@ -514,10 +518,13 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 /* ---------------- in-place focused diagram ---------------- */
 .focused-view {
   display: flex; flex-direction: column; flex: 1;
+  margin: 28px 40px;
   background: var(--pele-bg, #fff); color: var(--pele-fg, #000);
-  border: 1px solid color-mix(in srgb, var(--pele-border, #000) 45%, transparent);
-  border-radius: calc(var(--pele-radius, 6px) + 4px);
+  border: 1px solid color-mix(in srgb, var(--ui-border) 85%, transparent);
+  border-radius: calc(var(--pele-radius, 6px) + 6px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .16), 0 4px 12px rgba(0, 0, 0, .07);
   overflow: hidden; font-family: var(--pele-font, inherit);
+  z-index: 2;
 }
 @keyframes focused-slide-next {
   from { opacity: 0.35; transform: translateX(36px); }
@@ -839,7 +846,20 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   cursor: default;
 }
 .diagram-style-panel.compact { width: min(260px, calc(100% - 16px)); }
-.diagram-style-panel.collapsed, .c4-style-panel.collapsed { max-height: none; overflow: visible; }
+.diagram-style-panel.collapsed, .c4-style-panel.collapsed {
+  width: auto;
+  max-width: calc(100% - 20px);
+  max-height: none;
+  overflow: visible;
+}
+.diagram-style-panel.compact.collapsed, .c4-style-panel.compact.collapsed {
+  width: auto;
+  max-width: calc(100% - 16px);
+}
+.diagram-style-panel.collapsed .c4-style-hint,
+.c4-style-panel.collapsed .c4-style-hint {
+  flex: 0 1 auto;
+}
 .diagram-style-panel .diagram-style-head,
 .c4-style-panel .diagram-style-head {
   display: flex; align-items: center; gap: 6px; width: 100%;
@@ -1006,6 +1026,7 @@ g.pele-edge.c4-selected path {
 
 /* Sidebar stacks above the focused body on narrow screens; splitter hidden. */
 @media (max-width: 760px) {
+  .focused-view { margin: 10px; }
   .focused-view-main.with-sidebar { display: flex; flex-direction: column; }
   .focused-view-main.with-sidebar .editor-sidebar {
     flex: 0 0 45%; min-height: 0; border-bottom: 1px solid var(--ui-border);
