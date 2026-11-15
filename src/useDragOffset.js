@@ -1,77 +1,133 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-// offsetLeft/offsetTop ignore transforms, so they stay the CSS anchor while dragging.
-function clampOffset(el, x, y) {
-  const parent = el.offsetParent || el.parentElement;
-  if (!parent) return { x, y };
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
-  return {
-    x: clamp(x, -el.offsetLeft, parent.clientWidth - el.offsetWidth - el.offsetLeft),
-    y: clamp(y, -el.offsetTop, parent.clientHeight - el.offsetHeight - el.offsetTop),
-  };
-}
+/**
+ * Drag a floating element inside its offset parent with a translate3d offset.
+ *
+ * Performance notes (why this is smooth):
+ * - Bounds are measured once on pointerdown, never inside pointermove (no layout thrash).
+ * - Moves are coalesced into one requestAnimationFrame write per frame.
+ * - The `dragging` class is toggled directly on the element: no React re-render while dragging.
+ * - Only `transform` is written; visual effects (hover scale, open animation) live on children,
+ *   so they never fight the drag transform.
+ */
+export default function useDragOffset(elRef) {
+  const offset = useRef({ x: 0, y: 0 });
+  const suppressClick = useRef(false);
 
-export default function useDragOffset(panelRef) {
-  const [dragging, setDragging] = useState(false);
-  const offsetRef = useRef({ x: 0, y: 0 });
+  const apply = useCallback((el, p) => {
+    el.style.transform = p.x || p.y ? `translate3d(${p.x}px, ${p.y}px, 0)` : '';
+  }, []);
 
-  const onPointerDown = useCallback((e) => {
+  /** Keep the element inside its parent (call after its size changes). */
+  const reclamp = useCallback(() => {
+    const el = elRef.current;
+    const parent = el && (el.offsetParent || el.parentElement);
+    if (!el || !parent) return;
+    const maxX = parent.clientWidth - el.offsetWidth - el.offsetLeft;
+    const maxY = parent.clientHeight - el.offsetHeight - el.offsetTop;
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
+    const next = {
+      x: clamp(offset.current.x, -el.offsetLeft, maxX),
+      y: clamp(offset.current.y, -el.offsetTop, maxY),
+    };
+    if (next.x !== offset.current.x || next.y !== offset.current.y) {
+      offset.current = next;
+      apply(el, next);
+    }
+  }, [elRef, apply]);
+
+  /**
+   * Start a drag from a pointerdown. `threshold` (px) lets the same element act as a
+   * button: movement below it is a click, above it becomes a drag and swallows the click.
+   */
+  const startDrag = useCallback((e, threshold = 0) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const el = elRef.current;
+    const parent = el && (el.offsetParent || el.parentElement);
+    if (!el || !parent) return;
     e.stopPropagation();
-    e.preventDefault();
-    const el = panelRef.current;
-    if (!el) return;
-    const start = { px: e.clientX, py: e.clientY, x: offsetRef.current.x, y: offsetRef.current.y };
-    setDragging(true);
+
+    // Measure once.
+    const bounds = {
+      minX: -el.offsetLeft,
+      maxX: parent.clientWidth - el.offsetWidth - el.offsetLeft,
+      minY: -el.offsetTop,
+      maxY: parent.clientHeight - el.offsetHeight - el.offsetTop,
+    };
+    const start = { px: e.clientX, py: e.clientY, x: offset.current.x, y: offset.current.y };
     const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    const pointerId = e.pointerId;
+    let active = threshold === 0;
+    let frame = 0;
+    let last = null;
+
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
+    const begin = () => {
+      active = true;
+      el.classList.add('dragging');
+      try { target.setPointerCapture(pointerId); } catch { /* pointer already gone */ }
+    };
+    if (active) { e.preventDefault(); begin(); }
+
+    const flush = () => {
+      frame = 0;
+      if (!last) return;
+      const next = {
+        x: clamp(start.x + last.x - start.px, bounds.minX, bounds.maxX),
+        y: clamp(start.y + last.y - start.py, bounds.minY, bounds.maxY),
+      };
+      offset.current = next;
+      apply(el, next);
+    };
     const onMove = (ev) => {
-      ev.stopPropagation();
-      const next = clampOffset(el, start.x + ev.clientX - start.px, start.y + ev.clientY - start.py);
-      offsetRef.current = next;
-      el.style.transform = next.x || next.y ? `translate(${next.x}px, ${next.y}px)` : '';
+      if (ev.pointerId !== pointerId) return;
+      if (!active) {
+        if (Math.hypot(ev.clientX - start.px, ev.clientY - start.py) <= threshold) return;
+        suppressClick.current = true;
+        begin();
+      }
+      ev.preventDefault();
+      last = { x: ev.clientX, y: ev.clientY };
+      if (!frame) frame = requestAnimationFrame(flush);
     };
     const onUp = (ev) => {
-      ev.stopPropagation();
-      target.removeEventListener('pointermove', onMove);
-      target.removeEventListener('pointerup', onUp);
-      target.removeEventListener('pointercancel', onUp);
-      setDragging(false);
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      if (frame) { cancelAnimationFrame(frame); flush(); }
+      el.classList.remove('dragging');
+      try { target.releasePointerCapture(pointerId); } catch { /* not captured */ }
     };
-    target.addEventListener('pointermove', onMove);
-    target.addEventListener('pointerup', onUp);
-    target.addEventListener('pointercancel', onUp);
-  }, [panelRef]);
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  }, [elRef, apply]);
 
-  const onDoubleClick = useCallback((e) => {
+  const reset = useCallback(() => {
+    offset.current = { x: 0, y: 0 };
+    const el = elRef.current;
+    if (el) apply(el, offset.current);
+  }, [elRef, apply]);
+
+  /** Swallow the click that ends a drag (attach as onClickCapture). */
+  const onClickCapture = useCallback((e) => {
+    if (!suppressClick.current) return;
+    suppressClick.current = false;
+    e.preventDefault();
     e.stopPropagation();
-    offsetRef.current = { x: 0, y: 0 };
-    const el = panelRef.current;
-    if (el) el.style.transform = '';
-  }, [panelRef]);
+  }, []);
 
+  // Parent resizes (window, sidebar splitter) must not strand the element outside.
   useEffect(() => {
-    const el = panelRef.current;
+    const el = elRef.current;
     const parent = el && (el.offsetParent || el.parentElement);
     if (!el || !parent) return undefined;
-    const ro = new ResizeObserver(() => {
-      const next = clampOffset(el, offsetRef.current.x, offsetRef.current.y);
-      if (next.x !== offsetRef.current.x || next.y !== offsetRef.current.y) {
-        offsetRef.current = next;
-        el.style.transform = next.x || next.y ? `translate(${next.x}px, ${next.y}px)` : '';
-      }
-    });
+    const ro = new ResizeObserver(() => reclamp());
     ro.observe(parent);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [panelRef]);
+  }, [elRef, reclamp]);
 
-  return {
-    handleProps: {
-      className: 'panel-drag-handle' + (dragging ? ' dragging' : ''),
-      title: 'Drag to move · double-click to reset',
-      onPointerDown,
-      onDoubleClick,
-    },
-  };
+  return { startDrag, reclamp, reset, onClickCapture };
 }
