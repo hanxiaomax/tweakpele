@@ -16,11 +16,11 @@ import Canvas from './components/Canvas.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import MarkdownView from './components/MarkdownView.jsx';
 import { ContextMenu, Dialog, IconButton, Toast } from './components/ui.jsx';
-import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, themeFileJson } from './constants.js';
+import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, exportOptions, themeFileJson } from './constants.js';
 import { copyText, navigate, newId, useHashRoute } from './lib.js';
 import { download } from './export.js';
 import { slugify } from './export.js';
-import { mergeDiagramVars } from './diagramOverrides.js';
+import { buildDiagramMountOptions, mergeDiagramVars } from './diagramOverrides.js';
 import { mermaidConfig, mermaidFrontmatter, withMermaidFrontmatter } from './mermaidConfig.js';
 import {
   buildSnapshot, snapshotFileJson, parseSnapshot, parseThemeFile, snapshotTheme, diagramFromSnapshot,
@@ -165,7 +165,7 @@ export default function App() {
 
   const downloadMermaidConfig = () => {
     const filename = 'mermaid.config.json';
-    download(new Blob([JSON.stringify(mermaidConfig(vars), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
+    download(new Blob([JSON.stringify(mermaidConfig(vars, exportOptions(optVals, vars)), null, 2) + '\n'], { type: 'application/json;charset=utf-8' }), filename);
     notify(`Downloaded ${filename}`);
     setStatus(`Downloaded ${filename}`);
   };
@@ -174,7 +174,7 @@ export default function App() {
     setCtxMenu({
       x: e.clientX, y: e.clientY,
       items: [
-        { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars), 'Mermaid frontmatter') },
+        { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars, exportOptions(optVals, vars)), 'Mermaid frontmatter') },
         { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
       ],
     });
@@ -625,7 +625,11 @@ export default function App() {
                   onResetSource={resetSourceSafe}
                   onCopySource={(d) => doCopy(d.source, `${d.title} source`)}
                   onCopyMermaidSource={(d) => doCopy(
-                    withMermaidFrontmatter(d.source, mergeDiagramVars(vars, diagramOverrides[d.id]?.vars)),
+                    withMermaidFrontmatter(
+                      d.source,
+                      mergeDiagramVars(vars, diagramOverrides[d.id]?.vars),
+                      buildDiagramMountOptions(optVals, vars, diagramOverrides[d.id]),
+                    ),
                     `${d.title} source with Mermaid theme`,
                   )}
                   notify={notify}

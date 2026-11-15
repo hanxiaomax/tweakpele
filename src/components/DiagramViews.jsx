@@ -11,7 +11,7 @@ const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
 const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
 
 /** View + Pele SVG state for one diagram; resets when the diagram (resetKey) changes. */
-export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVars }) {
+export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVars, options }) {
   const [view, setView] = useState('pele');
   const [peleSvg, setPeleSvg] = useState('');
   const [stock, setStock] = useState({ svg: '', error: '' });
@@ -30,9 +30,10 @@ export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVa
   }, [resetKey]);
 
   // The compatible theme applies in Compare only; the Mermaid-only view stays stock.
-  // Stock calls pass only { theme } so leftover themeVariables/themeCSS never leak.
+  // Stock calls pass only { theme } so leftover themeVariables/themeCSS never leak;
+  // the compat config also carries Pele render options Mermaid understands.
   const stockConfig = view === 'compare' && compat
-    ? mermaidConfig(themeVars || {})
+    ? mermaidConfig(themeVars || {}, options)
     : { theme: isDarkBackground(bodyBg) ? 'dark' : 'default' };
   const stockConfigKey = JSON.stringify(stockConfig);
 
