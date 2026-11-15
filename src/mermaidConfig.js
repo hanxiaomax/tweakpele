@@ -86,8 +86,60 @@ function themeCss(vars) {
   return rules.join('\n');
 }
 
+// Pele `config.<diagram>.<key>` render options that Mermaid 12.1.0 accepts under the same name.
+// Checked against mermaid@12.1.0 dist/config.type.d.ts. Not mapped: padding, maxWidth, responsive,
+// autoDirection, directionBreakpoint, monospace, now, zoom, fontFamilyMono (no Mermaid key), and
+// config.treemap.* (Mermaid 12.1.0 has no treemap config).
+const MERMAID_DIAGRAM_OPTIONS = {
+  flowchart: ['curve', 'nodeSpacing', 'rankSpacing', 'wrappingWidth'],
+  class: ['nodeSpacing', 'rankSpacing'],
+  state: ['nodeSpacing', 'rankSpacing'],
+  er: ['nodeSpacing', 'rankSpacing'],
+  sequence: ['mirrorActors', 'actorMargin', 'width', 'height', 'messageMargin', 'noteMargin', 'messageAlign'],
+  gantt: ['barHeight', 'barGap', 'fontSize', 'sectionFontSize', 'topPadding', 'leftPadding', 'rightPadding', 'numberSectionStyles', 'useWidth', 'topAxis', 'displayMode'],
+  pie: ['textPosition'],
+  gitGraph: ['showBranches', 'showCommitLabel', 'rotateCommitLabel'],
+  xyChart: ['width', 'height', 'chartOrientation', 'showDataLabel'],
+  quadrantChart: ['chartWidth', 'chartHeight', 'pointRadius', 'quadrantPadding'],
+  sankey: ['showValues', 'nodeWidth', 'nodePadding', 'nodeAlignment', 'linkColor', 'width', 'height'],
+  radar: ['width', 'height'],
+  packet: ['bitsPerRow', 'bitWidth', 'rowHeight', 'showBits'],
+  architecture: ['iconSize', 'padding'],
+  mindmap: ['maxNodeWidth'],
+  kanban: ['sectionWidth'],
+  block: ['padding'],
+  railroad: ['arcRadius', 'verticalSeparation', 'horizontalSeparation', 'strokeWidth'],
+  treeView: ['rowIndent', 'lineThickness'],
+  cynefin: ['boundaryAmplitude', 'width'],
+  usecase: ['nodeSpacing', 'rankSpacing'],
+  agentflow: ['rankSpacing'],
+};
+
+/** Pele mount options -> the subset Mermaid 12.1.0 understands under the same name. */
+export function mermaidRenderOptions(options) {
+  const out = {};
+  if (!options || typeof options !== 'object') return out;
+  const coerce = (v) => (typeof v === 'string' && v.trim() !== '' && !isNaN(+v) ? +v : v);
+  const fs = coerce(options.fontSize);
+  if (fs !== undefined && fs !== null && fs !== '' && !isNaN(fs)) out.themeVariables = { fontSize: `${fs}px` };
+  const cfg = options.config;
+  if (!cfg || typeof cfg !== 'object') return out;
+  for (const [diagram, keys] of Object.entries(MERMAID_DIAGRAM_OPTIONS)) {
+    const src = cfg[diagram];
+    if (!src || typeof src !== 'object') continue;
+    const section = {};
+    for (const k of keys) {
+      const v = src[k];
+      if (v === undefined || v === null || v === '') continue;
+      section[k] = coerce(v);
+    }
+    if (Object.keys(section).length) out[diagram] = section;
+  }
+  return out;
+}
+
 /** Build a Mermaid `theme: base` config from a Pele vars object. Frontmatter only honours the top-level fontFamily. */
-export function mermaidConfig(vars) {
+export function mermaidConfig(vars, options, layout) {
   const tv = {};
   let bg = null;
   for (const [src, keys] of COLOR_GROUPS) {
@@ -112,7 +164,16 @@ export function mermaidConfig(vars) {
     const lum = luminance(bg);
     if (lum !== null) tv.darkMode = lum < 0.5;
   }
-  return { theme: 'base', ...(font && { fontFamily: font }), themeVariables: tv, themeCSS: themeCss(vars) };
+  const { themeVariables: roTv, ...diagrams } = mermaidRenderOptions(options);
+  if (roTv) Object.assign(tv, roTv);
+  return {
+    theme: 'base',
+    ...(font && { fontFamily: font }),
+    themeVariables: tv,
+    themeCSS: themeCss(vars),
+    ...diagrams,
+    ...(typeof layout === 'string' && layout && { layout }),
+  };
 }
 
 /** Minimal YAML emitter for nested objects of strings/booleans/numbers. */
@@ -133,14 +194,14 @@ function yamlEmit(obj, indent = '') {
 }
 
 /** Mermaid YAML frontmatter block (with trailing newline) carrying the config. */
-export function mermaidFrontmatter(vars) {
-  const body = yamlEmit({ config: mermaidConfig(vars) });
+export function mermaidFrontmatter(vars, options, layout) {
+  const body = yamlEmit({ config: mermaidConfig(vars, options, layout) });
   return `---\n${body}\n---\n`;
 }
 
 /** Prepend the Mermaid config frontmatter, replacing any existing `config:` block. */
-export function withMermaidFrontmatter(source, vars) {
-  const cfgBlock = yamlEmit({ config: mermaidConfig(vars) });
+export function withMermaidFrontmatter(source, vars, options, layout) {
+  const cfgBlock = yamlEmit({ config: mermaidConfig(vars, options, layout) });
   const m = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
   if (!m) return `---\n${cfgBlock}\n---\n` + source;
   const kept = [];

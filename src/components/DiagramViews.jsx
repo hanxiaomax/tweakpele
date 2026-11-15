@@ -9,9 +9,10 @@ import { isDarkBackground, isDarkComposite, mermaidConfig } from '../mermaidConf
 
 const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
 const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
+const LAYOUTS = [['elk', 'ELK'], ['dagre', 'dagre']];
 
 /** View + Pele SVG state for one diagram; resets when the diagram (resetKey) changes. */
-export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVars }) {
+export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVars, options, layout }) {
   const [view, setView] = useState('pele');
   const [peleSvg, setPeleSvg] = useState('');
   const [stock, setStock] = useState({ svg: '', error: '' });
@@ -30,9 +31,10 @@ export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVa
   }, [resetKey]);
 
   // The compatible theme applies in Compare only; the Mermaid-only view stays stock.
-  // Stock calls pass only { theme } so leftover themeVariables/themeCSS never leak.
+  // Stock calls pass only { theme } so leftover themeVariables/themeCSS never leak;
+  // the compat config also carries Pele render options Mermaid understands.
   const stockConfig = view === 'compare' && compat
-    ? mermaidConfig(themeVars || {})
+    ? mermaidConfig(themeVars || {}, options, layout || 'elk')
     : { theme: isDarkBackground(bodyBg) ? 'dark' : 'default' };
   const stockConfigKey = JSON.stringify(stockConfig);
 
@@ -72,7 +74,7 @@ export function DiagramViewSwitch({ view, onChange, onCopy, canCopy, tone }) {
 }
 
 /** The non-Pele panes; the Pele pane stays in the host view so its interactions are untouched. */
-export function DiagramAltBody({ view, source, options, peleSvg, onPeleSvg, stock, compat, onToggleCompat, bodyTone }) {
+export function DiagramAltBody({ view, source, options, peleSvg, onPeleSvg, stock, compat, onToggleCompat, layout, onLayoutChange, bodyTone }) {
   if (view === 'pele') return null;
 
   const mermaidBody = stock.error
@@ -101,6 +103,13 @@ export function DiagramAltBody({ view, source, options, peleSvg, onPeleSvg, stoc
             title="Apply tweakpele's Mermaid-compatible theme"
             onClick={onToggleCompat}
           >Compatible theme</button>
+          {compat && (
+            <div className="diagram-layout-toggle" role="group" aria-label="Mermaid layout engine" title="ELK ignores curve, nodeSpacing and rankSpacing; dagre applies them">
+              {LAYOUTS.map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={layout === v} title="ELK ignores curve, nodeSpacing and rankSpacing; dagre applies them" onClick={() => onLayoutChange?.(v)}>{label}</button>
+              ))}
+            </div>
+          )}
         </figcaption>
         {mermaidBody}
       </figure>

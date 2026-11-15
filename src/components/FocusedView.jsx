@@ -29,6 +29,7 @@ export default function FocusedView({
   notify, onRenderFeedback,
   onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
   vars, styleApi,
+  mermaidLayout, onMermaidLayoutChange,
   sidebarOpen = false, onToggleSidebar,
   split, onSplitChange,
   /** When set, Ctrl+wheel adjusts gallery column density (1×1 ↔ grid). */
@@ -49,7 +50,7 @@ export default function FocusedView({
   const themeVars = mergeDiagramVars(vars, styleApi?.overrides?.[diagram.id]?.vars);
   // Pele / Mermaid / SVG / Compare switch; only the Pele view keeps the full interactions below.
   const { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg, compat, setCompat, bodyTone } =
-    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id, themeVars });
+    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id, themeVars, options, layout: mermaidLayout });
 
   useEffect(() => { setC4Sel(null); }, [diagram.id]);
 
@@ -280,7 +281,12 @@ export default function FocusedView({
               onPeleSvg={setPeleSvg}
               stock={stock}
               compat={compat}
-              onToggleCompat={() => setCompat((v) => !v)}
+              onToggleCompat={() => {
+                if (compat) onMermaidLayoutChange?.('elk'); // no hidden dagre choice in exports
+                setCompat(!compat);
+              }}
+              layout={mermaidLayout}
+              onLayoutChange={onMermaidLayoutChange}
               bodyTone={bodyTone}
             />
           )}
