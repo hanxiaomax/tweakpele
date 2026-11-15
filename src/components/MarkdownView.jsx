@@ -1,13 +1,12 @@
 /** Markdown preview: sanitized prose via marked, ```mermaid blocks render live with the current Pele theme. */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
-import { LuCopy as Copy, LuFolderOpen as FolderOpen, LuX as X } from 'react-icons/lu';
+import { LuFolderOpen as FolderOpen, LuX as X } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
-import { copyText, usePersistedState } from '../lib.js';
+import { usePersistedState } from '../lib.js';
 import { markdownSegments } from '../markdown.js';
-import { renderStockMermaid } from '../stockMermaid.js';
 
 const SANITIZE_CONFIG = { USE_PROFILES: { html: true } };
 
@@ -18,69 +17,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
-const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
-
-/** One ```mermaid card: Pele render plus the playground's Pele / Mermaid / SVG / Compare switch. */
-function MdDiagram({ source, options, cardTone, notify }) {
-  const [view, setView] = useState('pele');
-  const [peleSvg, setPeleSvg] = useState('');
-  const [stock, setStock] = useState({ svg: '', error: '' });
-  const needsStock = view === 'mermaid' || view === 'compare';
-
-  useEffect(() => {
-    if (!needsStock) return;
-    let cancelled = false;
-    setStock({ svg: '', error: '' });
-    renderStockMermaid(source, cardTone === 'dark' ? 'dark' : 'default')
-      .then((svg) => { if (!cancelled) setStock({ svg, error: '' }); })
-      .catch((err) => { if (!cancelled) setStock({ svg: '', error: err?.message || String(err) }); });
-    return () => { cancelled = true; };
-  }, [needsStock, source, cardTone]);
-
-  const onCopy = async () => {
-    const ok = await copyText(peleSvg);
-    notify(ok ? 'Copied SVG' : 'Copy failed');
-  };
-
-  const mermaidBody = stock.error
-    ? <div className="md-diagram-error">{stock.error}</div>
-    : stock.svg
-      ? <div className="md-mermaid" dangerouslySetInnerHTML={{ __html: stock.svg }} />
-      : <div>Loading Mermaid…</div>;
-
-  return (
-    <figure className="md-diagram" data-view={view} data-tone={cardTone}>
-      <div className="md-diagram-bar">
-        <div className="md-views" role="group" aria-label="Output view">
-          {VIEWS.map((v) => (
-            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>
-              {VIEW_LABELS[v]}
-            </button>
-          ))}
-        </div>
-        <IconButton Icon={Copy} label="Copy SVG" onClick={onCopy} disabled={!peleSvg} />
-      </div>
-      {view === 'pele' && <PeleHost source={source} options={options} lazy onResult={(r) => setPeleSvg(r.svg)} />}
-      {view === 'mermaid' && mermaidBody}
-      {view === 'svg' && <pre className="md-svg"><code>{peleSvg}</code></pre>}
-      {view === 'compare' && (
-        <div className="md-compare">
-          <figure>
-            <figcaption>Pele</figcaption>
-            <PeleHost source={source} options={options} lazy onResult={(r) => setPeleSvg(r.svg)} />
-          </figure>
-          <figure>
-            <figcaption>Mermaid</figcaption>
-            {mermaidBody}
-          </figure>
-        </div>
-      )}
-    </figure>
-  );
-}
-
-export default function MarkdownView({ options, onClose, notify, cardTone }) {
+export default function MarkdownView({ options, onClose, notify }) {
   const [doc, setDoc] = usePersistedState('tweakpele.markdown.v1', null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef(null);
@@ -136,7 +73,11 @@ export default function MarkdownView({ options, onClose, notify, cardTone }) {
           <article ref={docRef} className="md-doc" onClick={onDocClick}>
             {segments.map((seg, i) => seg.kind === 'md'
               ? <div key={i} dangerouslySetInnerHTML={{ __html: seg.html }} />
-              : <MdDiagram key={i} source={seg.source} options={options} cardTone={cardTone} notify={notify} />)}
+              : (
+                <figure key={i} className="md-diagram">
+                  <PeleHost source={seg.source} options={options} lazy />
+                </figure>
+              ))}
           </article>
         </div>
       ) : (

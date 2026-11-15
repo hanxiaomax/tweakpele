@@ -20,13 +20,13 @@ function loadMermaid() {
   return loadPromise;
 }
 
-export async function renderStockMermaid(source, theme) {
+export async function renderStockMermaid(source, config = {}) {
   const mermaid = await loadMermaid();
   await mermaid.initialize({
+    ...config,
     startOnLoad: false,
     securityLevel: 'strict',
     suppressErrorRendering: true,
-    theme,
   });
   const { svg } = await mermaid.render(`tp-mermaid-${++counter}`, source);
   return svg;
