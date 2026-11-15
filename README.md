@@ -4,7 +4,7 @@ Pele theme & render playground (React + esbuild).
 
 ## Preview Markdown
 
-The **Markdown preview** button in the top bar (or `#/md`) opens a local `.md` file by file picker or drag-and-drop. Prose renders as HTML; every ` ```mermaid ` block renders with the current tweakpele theme and follows the toolbox live. The image lines `tweakpele render` inserts are hidden, since the live diagram replaces them. The last opened file is kept in the browser across reloads.
+The **Markdown preview** button in the top bar (or `#/md`) opens a local `.md` file by file picker or drag-and-drop. Prose renders as HTML; every ` ```mermaid ` block renders with the current tweakpele theme and follows the toolbox live. The image lines `tweakpele render` inserts are hidden, since the live diagram replaces them. The last opened file is kept in the browser across reloads. Each diagram has the Pele playground's Pele / Mermaid / SVG / Compare switch; Mermaid and Compare load stock Mermaid 12.1.0 from jsDelivr on first use (needs network).
 
 ## Render Markdown diagrams
 
