@@ -135,15 +135,11 @@ export function mermaidRenderOptions(options) {
     }
     if (Object.keys(section).length) out[diagram] = section;
   }
-  // Mermaid 12.1.0 defaults to the ELK layout, which ignores curve/spacing options — switch to dagre so they take effect.
-  if (['flowchart', 'class', 'state', 'er'].some((d) => out[d] && ['curve', 'nodeSpacing', 'rankSpacing'].some((k) => k in out[d]))) {
-    out.layout = 'dagre';
-  }
   return out;
 }
 
 /** Build a Mermaid `theme: base` config from a Pele vars object. Frontmatter only honours the top-level fontFamily. */
-export function mermaidConfig(vars, options) {
+export function mermaidConfig(vars, options, layout) {
   const tv = {};
   let bg = null;
   for (const [src, keys] of COLOR_GROUPS) {
@@ -176,6 +172,7 @@ export function mermaidConfig(vars, options) {
     themeVariables: tv,
     themeCSS: themeCss(vars),
     ...diagrams,
+    ...(typeof layout === 'string' && layout && { layout }),
   };
 }
 
@@ -197,14 +194,14 @@ function yamlEmit(obj, indent = '') {
 }
 
 /** Mermaid YAML frontmatter block (with trailing newline) carrying the config. */
-export function mermaidFrontmatter(vars, options) {
-  const body = yamlEmit({ config: mermaidConfig(vars, options) });
+export function mermaidFrontmatter(vars, options, layout) {
+  const body = yamlEmit({ config: mermaidConfig(vars, options, layout) });
   return `---\n${body}\n---\n`;
 }
 
 /** Prepend the Mermaid config frontmatter, replacing any existing `config:` block. */
-export function withMermaidFrontmatter(source, vars, options) {
-  const cfgBlock = yamlEmit({ config: mermaidConfig(vars, options) });
+export function withMermaidFrontmatter(source, vars, options, layout) {
+  const cfgBlock = yamlEmit({ config: mermaidConfig(vars, options, layout) });
   const m = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
   if (!m) return `---\n${cfgBlock}\n---\n` + source;
   const kept = [];
