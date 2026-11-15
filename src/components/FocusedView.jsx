@@ -7,6 +7,7 @@ import {
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
+import { DiagramAltBody, DiagramViewSwitch, useDiagramViews } from './DiagramViews.jsx';
 import EditorSidebar from './EditorSidebar.jsx';
 import { IconButton } from './ui.jsx';
 import { exportDiagram, slugify } from '../export.js';
@@ -44,6 +45,9 @@ export default function FocusedView({
   const [c4Sel, setC4Sel] = useState(null);
   const [status, setStatus] = useState(null);   // { info } | { error }
   const c4 = isC4Source(diagram.source);
+  // Pele / Mermaid / SVG / Compare switch; only the Pele view keeps the full interactions below.
+  const { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg } =
+    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], notify, resetKey: diagram.id });
 
   useEffect(() => { setC4Sel(null); }, [diagram.id]);
 
@@ -160,11 +164,12 @@ export default function FocusedView({
       <header className="focused-view-title">
         <b>{diagram.title}</b>
         <code>{diagram.keyword || ''}</code>
+        <DiagramViewSwitch view={view} onChange={setView} onCopy={copySvg} canCopy={!!peleSvg} tone={tone} />
         <span className="focused-view-actions">
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onPrev} disabled={total <= 1} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onNext} disabled={total <= 1} />
           <span className="focused-view-count">{index + 1} / {total}</span>
-          <IconButton Icon={Maximize} label="Reset Pele zoom"
+          <IconButton Icon={Maximize} label="Reset Pele zoom" disabled={view !== 'pele'}
             onClick={() => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } }} />
           <IconButton Icon={Pencil} label={`Edit ${diagram.title} (toggle sidebar)`} pressed={sidebarOpen}
             onClick={onToggleSidebar} />
@@ -204,60 +209,76 @@ export default function FocusedView({
           </>
         )}
         <div
-          className={'focused-view-body' + (c4 ? ' c4-interactive' : '')}
+          className={'focused-view-body' + (c4 && view === 'pele' ? ' c4-interactive' : '')}
           ref={bodyRef}
+          data-view={view}
           title={c4
             ? 'Click a C4 shape or arrow to edit style · wheel: prev/next · Ctrl+wheel: grid density · Pele pinch / +/− zoom'
             : 'Wheel: prev/next slide · Ctrl+wheel: grid density · Pele pinch / +/− overlay to zoom'}
           onClick={onBodyClick}
           style={styleApi?.varsStyleFor?.(diagram.id)}
         >
-          <PeleHost
-            source={diagram.source}
-            options={options}
-            bindController={(c) => { ctlRef.current = c; }}
-            onResult={(r) => {
-              const info = `${r.mermaidType} · ${Math.round(r.width)}×${Math.round(r.height)} px`;
-              setStatus({ info });
-              onRenderFeedback?.({
-                ok: true, diagramId: diagram.id, info,
-                mermaidType: r.mermaidType, width: r.width, height: r.height,
-              });
-              // re-apply highlight after Pele redraw
-              requestAnimationFrame(() => applySelectionHighlight(bodyRef.current, c4Sel));
-            }}
-            onError={(e) => {
-              const error = String(e && e.message ? e.message : e);
-              setStatus({ error });
-              onRenderFeedback?.({ ok: false, diagramId: diagram.id, error });
-            }}
-          />
-          {c4 && onChangeSource && (
-            <C4StylePanel
-              compact
+          {view === 'pele' && (
+            <>
+              <PeleHost
+                source={diagram.source}
+                options={options}
+                bindController={(c) => { ctlRef.current = c; }}
+                onResult={(r) => {
+                  const info = `${r.mermaidType} · ${Math.round(r.width)}×${Math.round(r.height)} px`;
+                  setStatus({ info });
+                  onRenderFeedback?.({
+                    ok: true, diagramId: diagram.id, info,
+                    mermaidType: r.mermaidType, width: r.width, height: r.height,
+                  });
+                  setPeleSvg(r.svg);
+                  // re-apply highlight after Pele redraw
+                  requestAnimationFrame(() => applySelectionHighlight(bodyRef.current, c4Sel));
+                }}
+                onError={(e) => {
+                  const error = String(e && e.message ? e.message : e);
+                  setStatus({ error });
+                  onRenderFeedback?.({ ok: false, diagramId: diagram.id, error });
+                }}
+              />
+              {c4 && onChangeSource && (
+                <C4StylePanel
+                  compact
+                  source={diagram.source}
+                  selection={c4Sel}
+                  onSelect={setC4Sel}
+                  onChangeSource={(next) => onChangeSource(diagram.id, next)}
+                  vars={vars}
+                />
+              )}
+              {!c4 && styleApi && (() => {
+                const type = detectDiagramType(diagram.source, diagram.keyword);
+                if (!type || !hasTypeSpecificFields(type)) return null;
+                return (
+                  <DiagramTypePanel
+                    compact
+                    diagramType={type}
+                    globalVars={styleApi.globalVars}
+                    globalOptVals={styleApi.globalOptVals}
+                    override={styleApi.overrides[diagram.id]}
+                    onChangeOpt={(optId, v) => styleApi.setOpt(diagram.id, optId, v)}
+                    onChangeVar={(name, v) => styleApi.setVar(diagram.id, name, v)}
+                    onResetAll={() => styleApi.resetAll(diagram.id)}
+                  />
+                );
+              })()}
+            </>
+          )}
+          {view !== 'pele' && (
+            <DiagramAltBody
+              view={view}
               source={diagram.source}
-              selection={c4Sel}
-              onSelect={setC4Sel}
-              onChangeSource={(next) => onChangeSource(diagram.id, next)}
-              vars={vars}
+              options={options}
+              peleSvg={peleSvg}
+              onPeleSvg={setPeleSvg}
+              stock={stock}
             />
           )}
-          {!c4 && styleApi && (() => {
-            const type = detectDiagramType(diagram.source, diagram.keyword);
-            if (!type || !hasTypeSpecificFields(type)) return null;
-            return (
-              <DiagramTypePanel
-                compact
-                diagramType={type}
-                globalVars={styleApi.globalVars}
-                globalOptVals={styleApi.globalOptVals}
-                override={styleApi.overrides[diagram.id]}
-                onChangeOpt={(optId, v) => styleApi.setOpt(diagram.id, optId, v)}
-                onChangeVar={(name, v) => styleApi.setVar(diagram.id, name, v)}
-                onResetAll={() => styleApi.resetAll(diagram.id)}
-              />
-            );
-          })()}
         </div>
       </div>
     </article>

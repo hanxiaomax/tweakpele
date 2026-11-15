@@ -2,9 +2,13 @@
 
 Pele theme & render playground (React + esbuild).
 
+## Focused diagram view
+
+The **focused diagram view** (click a gallery card, or gallery 1×1) has the Pele playground's Pele / Mermaid / SVG / Compare switch and **Copy SVG** (copies the Pele output). Mermaid and Compare load stock Mermaid 12.1.0 from jsDelivr on first use (needs network). Zoom, C4 selection, and the style panels stay on the Pele view; the other views are read-only.
+
 ## Preview Markdown
 
-The **Markdown preview** button in the top bar (or `#/md`) opens a local `.md` file by file picker or drag-and-drop. Prose renders as HTML; every ` ```mermaid ` block renders with the current tweakpele theme and follows the toolbox live. The image lines `tweakpele render` inserts are hidden, since the live diagram replaces them. The last opened file is kept in the browser across reloads. Each diagram has the Pele playground's Pele / Mermaid / SVG / Compare switch; Mermaid and Compare load stock Mermaid 12.1.0 from jsDelivr on first use (needs network).
+The **Markdown preview** button in the top bar (or `#/md`) opens a local `.md` file by file picker or drag-and-drop. Prose renders as HTML; every ` ```mermaid ` block renders with the current tweakpele theme and follows the toolbox live. The image lines `tweakpele render` inserts are hidden, since the live diagram replaces them. The last opened file is kept in the browser across reloads.
 
 ## Render Markdown diagrams
 
