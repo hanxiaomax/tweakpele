@@ -47,7 +47,7 @@ export default function FocusedView({
   const c4 = isC4Source(diagram.source);
   // Pele / Mermaid / SVG / Compare switch; only the Pele view keeps the full interactions below.
   const { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg } =
-    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], notify, resetKey: diagram.id });
+    useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id });
 
   useEffect(() => { setC4Sel(null); }, [diagram.id]);
 

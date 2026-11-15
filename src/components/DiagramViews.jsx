@@ -5,18 +5,19 @@ import PeleHost from './PeleHost.jsx';
 import { IconButton } from './ui.jsx';
 import { copyText } from '../lib.js';
 import { renderStockMermaid } from '../stockMermaid.js';
-import { isDarkBackground } from '../mermaidConfig.js';
+import { isDarkBackground, isDarkComposite } from '../mermaidConfig.js';
 
 const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
 const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
 
 /** View + Pele SVG state for one diagram; resets when the diagram (resetKey) changes. */
-export function useDiagramViews({ source, bg, notify, resetKey }) {
+export function useDiagramViews({ source, bg, surface, notify, resetKey }) {
   const [view, setView] = useState('pele');
   const [peleSvg, setPeleSvg] = useState('');
   const [stock, setStock] = useState({ svg: '', error: '' });
   const needsStock = view === 'mermaid' || view === 'compare';
-  const tone = isDarkBackground(bg) ? 'dark' : 'light';
+  // Switch ink follows the focused title bar (surface 92% over bg), not the diagram bg.
+  const tone = isDarkComposite(surface || bg, bg) ? 'dark' : 'light';
 
   useEffect(() => {
     setView('pele');
@@ -28,11 +29,11 @@ export function useDiagramViews({ source, bg, notify, resetKey }) {
     if (!needsStock) return;
     let cancelled = false;
     setStock({ svg: '', error: '' });
-    renderStockMermaid(source, tone === 'dark' ? 'dark' : 'default')
+    renderStockMermaid(source, isDarkBackground(bg) ? 'dark' : 'default')
       .then((svg) => { if (!cancelled) setStock({ svg, error: '' }); })
       .catch((err) => { if (!cancelled) setStock({ svg: '', error: err?.message || String(err) }); });
     return () => { cancelled = true; };
-  }, [needsStock, source, tone]);
+  }, [needsStock, source, bg]);
 
   const copySvg = async () => {
     const ok = await copyText(peleSvg);

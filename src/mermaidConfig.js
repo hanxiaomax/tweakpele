@@ -43,6 +43,29 @@ export function isDarkBackground(color) {
   return 1.05 / (lum + 0.05) > (lum + 0.05) / 0.05;
 }
 
+/** [r,g,b] 0–255 from a CSS color, or null. */
+function rgbChannels(color) {
+  const c = normalizeColor(color);
+  if (!c) return null;
+  let m = /^#([0-9a-f]{6})$/i.exec(c);
+  if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+  m = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(c);
+  return m ? [+m[1], +m[2], +m[3]] : null;
+}
+
+/**
+ * True when white text contrasts better on `over` painted at `amount` over opaque `under`.
+ * Matches `.focused-view-title`: color-mix(--pele-surface 92%, transparent) over --pele-bg.
+ */
+export function isDarkComposite(over, under, amount = 0.92) {
+  const top = rgbChannels(over) || rgbChannels(under);
+  const bot = rgbChannels(under) || top;
+  if (!top || !bot) return isDarkBackground(over || under);
+  const mix = (a, b) => Math.round(a * amount + b * (1 - amount));
+  const hex = (n) => n.toString(16).padStart(2, '0');
+  return isDarkBackground(`#${hex(mix(top[0], bot[0]))}${hex(mix(top[1], bot[1]))}${hex(mix(top[2], bot[2]))}`);
+}
+
 const COLOR_GROUPS = [
   ['bg', ['background', 'edgeLabelBackground']],
   ['surface', ['primaryColor', 'mainBkg', 'nodeBkg', 'actorBkg', 'labelBoxBkgColor']],

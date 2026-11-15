@@ -587,9 +587,10 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 /* ---------------- diagram output views (Pele / Mermaid / SVG / Compare) ---------------- */
 .diagram-views-bar {
   --diagram-views-ink: #000;
+  --diagram-views-paper: #fff;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.diagram-views-bar[data-tone="dark"] { --diagram-views-ink: #fff; }
+.diagram-views-bar[data-tone="dark"] { --diagram-views-ink: #fff; --diagram-views-paper: #000; }
 .diagram-views {
   display: inline-flex; overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); border-radius: 7px;
@@ -600,7 +601,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .diagram-views button + button { border-left: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); }
 .diagram-views button[aria-pressed="true"] {
-  background: var(--diagram-views-ink); color: var(--pele-bg, #fff); font-weight: 600;
+  background: var(--diagram-views-ink); color: var(--diagram-views-paper); font-weight: 600;
 }
 /* The bar's Copy button follows the bar ink, not the focused-view .ibtn theme colors. */
 .diagram-views-bar .ibtn {
