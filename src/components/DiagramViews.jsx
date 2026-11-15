@@ -1,8 +1,6 @@
 /** The Pele playground's output switch (Pele / Mermaid / SVG / Compare) for a single diagram. */
 import { useEffect, useState } from 'react';
-import { LuCopy as Copy } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
-import { IconButton } from './ui.jsx';
 import { copyText } from '../lib.js';
 import { renderStockMermaid } from '../stockMermaid.js';
 import { isDarkBackground, isDarkComposite, mermaidConfig } from '../mermaidConfig.js';
@@ -57,8 +55,8 @@ export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVa
   return { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg, compat, setCompat, bodyTone };
 }
 
-/** Segmented view buttons plus Copy SVG (copies the Pele output, like the playground). */
-export function DiagramViewSwitch({ view, onChange, onCopy, canCopy, tone }) {
+/** Segmented view buttons (Copy SVG lives in the focused title bar's Actions menu). */
+export function DiagramViewSwitch({ view, onChange, tone }) {
   return (
     <div className="diagram-views-bar" data-tone={tone}>
       <div className="diagram-views" role="group" aria-label="Output view">
@@ -68,7 +66,6 @@ export function DiagramViewSwitch({ view, onChange, onCopy, canCopy, tone }) {
           </button>
         ))}
       </div>
-      <IconButton Icon={Copy} label="Copy SVG" onClick={onCopy} disabled={!canCopy} />
     </div>
   );
 }

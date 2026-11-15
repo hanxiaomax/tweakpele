@@ -3,13 +3,14 @@ import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
   LuMinimize2 as Minimize2, LuMaximize as Maximize,
+  LuEllipsis as MoreHorizontal,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { DiagramAltBody, DiagramViewSwitch, useDiagramViews } from './DiagramViews.jsx';
 import EditorSidebar from './EditorSidebar.jsx';
-import { IconButton } from './ui.jsx';
+import { IconButton, MenuButton } from './ui.jsx';
 import { exportDiagram, slugify } from '../export.js';
 import { clamp, detectDiagramType } from '../lib.js';
 import { hasTypeSpecificFields, mergeDiagramVars } from '../diagramOverrides.js';
@@ -27,7 +28,7 @@ export default function FocusedView({
   onClose, onPrev, onNext, onDuplicate, onDelete, onMenu,
   onChangeSource, onChangeTitle, onResetSource, onCopySource, onCopyMermaidSource,
   notify, onRenderFeedback,
-  onCopyShareLink, onDownloadSnapshot, onOpenSnapshot,
+  onCopyShareLink, onDownloadSnapshot,
   vars, styleApi,
   mermaidLayout, onMermaidLayoutChange,
   sidebarOpen = false, onToggleSidebar,
@@ -167,17 +168,20 @@ export default function FocusedView({
       <header className="focused-view-title">
         <b>{diagram.title}</b>
         <code>{diagram.keyword || ''}</code>
-        <DiagramViewSwitch view={view} onChange={setView} onCopy={copySvg} canCopy={!!peleSvg} tone={tone} />
+        <DiagramViewSwitch view={view} onChange={setView} tone={tone} />
         <span className="focused-view-actions">
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onPrev} disabled={total <= 1} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onNext} disabled={total <= 1} />
           <span className="focused-view-count">{index + 1} / {total}</span>
-          <IconButton Icon={Maximize} label="Reset Pele zoom" disabled={view !== 'pele'}
-            onClick={() => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } }} />
           <IconButton Icon={Pencil} label={`Edit ${diagram.title} (toggle sidebar)`} pressed={sidebarOpen}
             onClick={onToggleSidebar} />
-          <IconButton Icon={Copy} label={`Duplicate ${diagram.title}`} onClick={() => onDuplicate(diagram.id)} />
-          <IconButton Icon={Trash2} label={`Delete ${diagram.title}`} kind="danger" onClick={() => onDelete(diagram.id)} />
+          <MenuButton Icon={MoreHorizontal} text="Actions" label="Diagram actions" items={() => [
+            { label: 'Copy SVG', Icon: Copy, disabled: !peleSvg, onClick: copySvg },
+            { label: 'Reset Pele zoom', Icon: Maximize, disabled: view !== 'pele',
+              onClick: () => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } } },
+            { label: `Duplicate ${diagram.title}`, Icon: Copy, onClick: () => onDuplicate(diagram.id) },
+            { label: `Delete ${diagram.title}`, Icon: Trash2, danger: true, onClick: () => onDelete(diagram.id) },
+          ]} />
           <IconButton Icon={Minimize2} label="Exit focus (Esc / F)" onClick={onClose} />
         </span>
       </header>
@@ -201,7 +205,6 @@ export default function FocusedView({
               onExport={runExport}
               onCopyShareLink={onCopyShareLink}
               onDownloadSnapshot={onDownloadSnapshot}
-              onOpenSnapshot={onOpenSnapshot}
             />
             <div
               className="splitter sidebar-splitter" role="separator" aria-orientation="vertical"

@@ -55,6 +55,8 @@ body { overflow: hidden; }
 .top-actions { display: flex; gap: 6px; flex: none; }
 .top-actions .ibtn { border-color: transparent; }
 .top-actions .ibtn:hover { border-color: var(--ui-border); }
+/* Labeled menu triggers keep a visible border so they read as buttons, not more icons. */
+.top-actions .menu-btn { border-color: var(--ui-border); }
 
 /* ---------------- buttons ---------------- */
 button { font: inherit; cursor: pointer; }
@@ -70,6 +72,13 @@ button { font: inherit; cursor: pointer; }
 .ibtn.ghost { border-color: transparent; background: transparent; }
 .ibtn.tiny { width: 20px; height: 20px; border-radius: 4px; font-size: 10px; }
 .ibtn svg { width: 16px; height: 16px; }
+/* ibtn variant with a visible label next to the icon (menu triggers). */
+.menu-btn {
+  width: auto; flex: none; padding: 0 8px; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 600; white-space: nowrap;
+}
+.menu-btn svg { flex: none; }
 .ibtn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--ui-accent) 60%, transparent); outline-offset: 1px;
 }
@@ -439,7 +448,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--ui-muted); font: 11.5px var(--ui-mono);
 }
-.editor-actions { display: flex; gap: 6px; flex: none; }
+.editor-actions { display: flex; gap: 6px; flex: none; flex-shrink: 0; }
 .editor-missing { margin: auto; text-align: center; }
 
 /* Sidebar lives inside the diagram scope: remap chrome vars to the diagram palette. */
@@ -535,7 +544,7 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   font-family: var(--pele-font-mono, monospace); white-space: nowrap;
 }
 .focused-view-actions {
-  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-left: auto;
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-left: auto; flex: none;
 }
 .focused-view-count { color: var(--pele-muted, #555); font-size: 11.5px; margin: 0 4px; white-space: nowrap; }
 .focused-view .ibtn {
@@ -545,6 +554,9 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   color: var(--pele-fg, #000);
 }
 .focused-view .ibtn svg { width: 14px; height: 14px; }
+/* Labeled menus inside the focused chrome must beat `.focused-view .ibtn { width: 28px }`. */
+.focused-view .ibtn.menu-btn { width: auto; padding: 0 8px; }
+
 .focused-view .ibtn:hover {
   border-color: var(--pele-accent, #d9641a); color: var(--pele-accent, #d9641a);
 }
@@ -603,11 +615,6 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .diagram-views button[aria-pressed="true"] {
   background: var(--diagram-views-ink); color: var(--diagram-views-paper); font-weight: 600;
 }
-/* The bar's Copy button follows the bar ink, not the focused-view .ibtn theme colors. */
-.diagram-views-bar .ibtn {
-  color: var(--diagram-views-ink); background: transparent;
-  border-color: color-mix(in srgb, var(--diagram-views-ink) 35%, transparent);
-}
 /* Non-Pele panes scroll in place; the Pele view keeps overflow hidden for native zoom. */
 .focused-view-body[data-view="svg"],
 .focused-view-body[data-view="mermaid"],
@@ -665,7 +672,10 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   font-size: 12.5px; text-align: left;
 }
 .ctxitem svg { width: 14px; height: 14px; color: var(--ui-muted); flex: none; }
-.ctxitem:hover { background: var(--ui-accent-soft); }
+.ctxitem:hover, .ctxitem:focus, .ctxitem:focus-visible { background: var(--ui-accent-soft); }
+.ctxitem:disabled { opacity: .45; cursor: default; }
+.ctxitem:disabled:hover { background: transparent; }
+.ctxsep { height: 1px; margin: 4px 6px; background: var(--ui-border-soft); }
 .ctxitem.danger { color: var(--ui-danger); }
 .ctxitem.danger svg { color: var(--ui-danger); }
 .ctxitem.danger:hover { background: color-mix(in srgb, var(--ui-danger) 12%, transparent); }
