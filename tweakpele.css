@@ -282,11 +282,15 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .view-holder {
   display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   flex: 1; min-width: 0; min-height: 0;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ui-border) 50%, transparent) 1px, transparent 0)
+    0 0 / 28px 28px,
+    var(--ui-bg);
 }
 .overview-view, .focused-view { grid-area: 1 / 1; min-width: 0; min-height: 0; }
 .overview-view { display: flex; flex-direction: column; }
-/* Preserve overview dimensions, gallery scroll, and canvas camera without a backdrop. */
-.overview-view[aria-hidden="true"] { visibility: hidden; pointer-events: none; }
+/* Preserve overview dimensions, gallery scroll, and canvas camera behind the floating focused view. */
+.overview-view[aria-hidden="true"] { opacity: 0.3; pointer-events: none; }
 .fatal { margin: 20px; padding: 14px; border: 1px solid var(--ui-danger); border-radius: 8px; color: var(--ui-danger); font-weight: 600; }
 
 /* gallery: Ctrl+wheel zooms column density; cols=1 hands off to FocusedView (slide focus) */
@@ -514,10 +518,13 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 /* ---------------- in-place focused diagram ---------------- */
 .focused-view {
   display: flex; flex-direction: column; flex: 1;
+  margin: 28px 40px;
   background: var(--pele-bg, #fff); color: var(--pele-fg, #000);
-  border: 1px solid color-mix(in srgb, var(--pele-border, #000) 45%, transparent);
-  border-radius: calc(var(--pele-radius, 6px) + 4px);
+  border: 1px solid color-mix(in srgb, var(--ui-border) 85%, transparent);
+  border-radius: calc(var(--pele-radius, 6px) + 6px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .16), 0 4px 12px rgba(0, 0, 0, .07);
   overflow: hidden; font-family: var(--pele-font, inherit);
+  z-index: 2;
 }
 @keyframes focused-slide-next {
   from { opacity: 0.35; transform: translateX(36px); }
@@ -775,103 +782,228 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .canvas-empty { position: absolute; left: 40px; top: 40px; width: 320px; }
 
 
-/* ---------------- draggable style panels: shared top handle ---------------- */
-.panel-drag-handle {
-  position: sticky; top: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: center;
-  height: 12px; flex: none;
-  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
-  cursor: grab; touch-action: none;
-}
-.panel-drag-handle::before {
-  content: ''; width: 30px; height: 3px; border-radius: 2px;
-  background: var(--ui-border);
-}
-.panel-drag-handle::after { content: ''; position: absolute; inset: 0 0 -8px; }
-.panel-drag-handle:hover::before,
-.panel-drag-handle.dragging::before { background: var(--ui-accent); }
-.panel-drag-handle.dragging { cursor: grabbing; }
-
-/* ---------------- C4 interactive style editor ---------------- */
-.focused-view-body.c4-interactive {
-  position: relative;
-  cursor: crosshair;
-}
-.focused-view-body .c4-style-panel {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  z-index: 5;
-  width: min(360px, calc(100% - 20px));
-  max-height: min(520px, calc(100% - 20px));
-  overflow: auto;
-  border: 1px solid var(--ui-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--ui-shadow);
-  color: var(--ui-text);
-  pointer-events: auto;
-  cursor: default;
-}
-.c4-style-panel.compact { width: min(340px, calc(100% - 16px)); }
-
-/* ---------------- per-diagram type style panel (shares the C4 look) ---------------- */
+/* ---------------- floating draggable style panels (DiagramTypePanel + C4StylePanel) ---------------- */
 .focused-view-body, .card-body, .canvas-frame-body { position: relative; }
-.focused-view-body .diagram-style-panel,
-.card-body .diagram-style-panel {
+.focused-view-body.c4-interactive { position: relative; cursor: crosshair; }
+
+/* Outer dock only holds position + translate3d drag offset (never transition its transform). */
+.style-dock {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
-  z-index: 5;
-  width: min(320px, calc(100% - 20px));
-  max-height: min(480px, calc(100% - 20px));
-  overflow: auto;
-  border: 1px solid var(--ui-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--ui-panel-2) 94%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--ui-shadow);
-  color: var(--ui-text);
+  bottom: 12px;
+  left: 12px;
+  z-index: 6;
   pointer-events: auto;
+}
+.card-body .style-dock { bottom: 8px; left: 8px; }
+.style-dock.dragging { will-change: transform; }
+
+.style-dock.collapsed { width: 40px; height: 40px; }
+.style-dock.compact.collapsed { width: 32px; height: 32px; }
+
+.style-dock.open {
+  width: min(336px, calc(100% - 24px));
+  max-height: min(460px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+}
+.c4-style-panel.style-dock.open {
+  width: min(360px, calc(100% - 24px));
+  max-height: min(500px, calc(100% - 24px));
+}
+.style-dock.compact.open {
+  width: min(312px, calc(100% - 16px));
+  max-height: min(400px, calc(100% - 16px));
+}
+
+/* Collapsed circular FAB */
+.style-panel-fab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-panel-2) 96%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .06);
+  color: var(--ui-accent);
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+.style-panel-fab:hover {
+  border-color: var(--ui-accent);
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ui-accent) 22%, rgba(0, 0, 0, .12));
+}
+.style-panel-fab:active { transform: scale(0.96); }
+.style-dock.dragging .style-panel-fab {
+  cursor: grabbing;
+  border-color: var(--ui-accent);
+  transform: scale(1.04);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+  transition: none;
+}
+.style-panel-fab svg { width: 18px; height: 18px; pointer-events: none; }
+.compact .style-panel-fab svg { width: 15px; height: 15px; }
+.style-panel-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+  pointer-events: none;
+}
+.style-panel-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--ui-accent);
+  box-shadow: 0 0 0 2px var(--ui-panel-2);
+  pointer-events: none;
+}
+
+/* Expanded card */
+.style-panel-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ui-panel-2) 96%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .16), 0 3px 8px rgba(0, 0, 0, .06);
+  color: var(--ui-text);
+  overflow: hidden;
   cursor: default;
+  transform-origin: bottom left;
+  animation: style-panel-in 0.16s cubic-bezier(.2, .8, .2, 1);
 }
-.diagram-style-panel.compact { width: min(260px, calc(100% - 16px)); }
-.diagram-style-panel.collapsed, .c4-style-panel.collapsed { max-height: none; overflow: visible; }
-.diagram-style-panel .diagram-style-head,
-.c4-style-panel .diagram-style-head {
-  display: flex; align-items: center; gap: 6px; width: 100%;
-  padding: 7px 10px; border: none; background: transparent; color: var(--ui-text);
-  text-align: left; cursor: pointer;
+@keyframes style-panel-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
-.diagram-style-panel .diagram-style-head:hover b,
-.c4-style-panel .diagram-style-head:hover b { color: var(--ui-accent); }
-.diagram-style-panel .diagram-style-head svg,
-.c4-style-panel .diagram-style-head svg { width: 14px; height: 14px; color: var(--ui-accent); flex: none; }
-.diagram-style-panel .diagram-style-head b,
-.c4-style-panel .diagram-style-head b { font-size: 12.5px; }
-.c4-style-panel .diagram-style-head { width: auto; flex: 1; min-width: 0; }
+
+.style-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 9px 10px 9px 12px;
+  border-bottom: 1px solid var(--ui-border-soft);
+  background: color-mix(in srgb, var(--ui-panel) 72%, transparent);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.style-dock.dragging .style-panel-header { cursor: grabbing; }
+.style-panel-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}
+.style-panel-icon svg { width: 15px; height: 15px; }
+.style-panel-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.style-panel-titles b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  color: var(--ui-text);
+}
+.style-panel-titles small {
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--ui-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.style-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  align-self: flex-start;
+  margin-left: auto;
+}
+.style-panel-iconbtn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ui-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.style-panel-iconbtn:hover {
+  background: var(--ui-accent-soft);
+  border-color: color-mix(in srgb, var(--ui-accent) 35%, transparent);
+  color: var(--ui-accent);
+}
+.style-panel-iconbtn svg { width: 14px; height: 14px; }
+
+.style-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .diagram-style-count {
-  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  min-width: 16px; height: 16px; padding: 0 5px; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--ui-accent-soft, color-mix(in srgb, var(--ui-accent) 18%, transparent));
   color: var(--ui-accent); font-size: 10.5px; font-weight: 700;
 }
 .diagram-style-group {
-  margin-top: 2px; padding-top: 4px; font-size: 10.5px; font-weight: 700;
+  margin-top: 4px; padding-top: 6px; font-size: 10.5px; font-weight: 700;
   letter-spacing: 0.04em; text-transform: uppercase; color: var(--ui-muted);
   border-top: 1px solid var(--ui-border-soft);
 }
-.diagram-style-group:first-child { border-top: none; padding-top: 0; }
+.diagram-style-group:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 .diagram-opt-row {
-  display: grid; grid-template-columns: 86px 1fr; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 8px; align-items: center;
   font-size: 12px; color: var(--ui-muted);
 }
 .diagram-opt-row.set .c4-field-label,
 .c4-color-field.set .c4-field-label { color: var(--ui-accent); font-weight: 600; }
 .diagram-opt-ctl { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.diagram-opt-ctl .ibtn.tiny { flex: none; }
 .diagram-opt-ctl select,
 .diagram-opt-ctl input {
   flex: 1 1 auto; min-width: 0; height: 26px; border: 1px solid var(--ui-border);
@@ -882,18 +1014,8 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   width: 26px; height: 26px; padding: 0; flex: none; cursor: pointer;
 }
 .diagram-opt-ctl input[type="checkbox"] { flex: none; width: auto; height: auto; }
-.diagram-opt-checks { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; }
+.diagram-opt-checks { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 5px 10px; font-size: 11.5px; }
 .diagram-opt-checks label { display: inline-flex; align-items: center; gap: 4px; }
-.c4-style-head {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  padding: 0; border-bottom: 1px solid var(--ui-border-soft);
-}
-.c4-style-head svg { width: 15px; height: 15px; color: var(--ui-accent); flex: none; }
-.c4-style-head b { font-size: 12.5px; }
-.c4-style-hint {
-  flex: 1 1 120px; min-width: 0; font-size: 10.5px; color: var(--ui-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 .c4-style-tabs {
   display: flex; gap: 0; padding: 0 8px; border-bottom: 1px solid var(--ui-border-soft);
 }
@@ -906,10 +1028,10 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   color: var(--ui-accent); border-bottom-color: var(--ui-accent);
 }
 .c4-style-tabs button:hover { color: var(--ui-text); }
-.c4-style-body { display: flex; flex-direction: column; gap: 7px; padding: 8px 10px 10px; }
+.c4-style-body { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
 .c4-style-empty { margin: 4px 0; color: var(--ui-muted); font-size: 12px; }
 .c4-style-select {
-  display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 8px; align-items: center;
   font-size: 12px; color: var(--ui-muted);
 }
 .c4-style-select select {
@@ -918,12 +1040,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .c4-field-label { font-size: 12px; color: var(--ui-muted); }
 .c4-color-field {
-  display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 8px; align-items: center;
   font-size: 12px; color: var(--ui-muted);
 }
 .c4-color-row { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .c4-color-trigger {
-  width: 22px; height: 22px; padding: 0; flex: none; cursor: pointer;
+  width: 22px; height: 22px; margin: 0; padding: 0; flex: none; cursor: pointer;
   border: 1px solid var(--ui-border); border-radius: 6px;
   background: var(--ui-panel-2, var(--ui-panel));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 8%, transparent);
@@ -1006,6 +1128,7 @@ g.pele-edge.c4-selected path {
 
 /* Sidebar stacks above the focused body on narrow screens; splitter hidden. */
 @media (max-width: 760px) {
+  .focused-view { margin: 10px; }
   .focused-view-main.with-sidebar { display: flex; flex-direction: column; }
   .focused-view-main.with-sidebar .editor-sidebar {
     flex: 0 0 45%; min-height: 0; border-bottom: 1px solid var(--ui-border);
@@ -1028,18 +1151,18 @@ g.pele-edge.c4-selected path {
   .title-input { width: auto; min-width: 0; flex: 1 1 auto; }
   .editor-status { display: none; }
   .focused-view-body { padding: 10px; }
-  .c4-style-hint { display: none; }
+  .style-panel-titles small { display: none; }
 }
 
 /* ---------------- touch (phones & tablets) ---------------- */
 @media (hover: none) and (pointer: coarse) {
   .ibtn { width: 36px; height: 36px; }
   .ibtn.tiny { width: 28px; height: 28px; font-size: 12px; }
+  .style-panel-iconbtn { width: 30px; height: 30px; }
   .card .ibtn { width: 32px; height: 32px; }
   .card-actions { display: inline-flex; }
   .card-title code { display: none; }
   .gallery-hint { display: none; }
-  .panel-drag-handle { height: 18px; }
   .c4-color-trigger { width: 30px; height: 30px; }
   .c4-swatch { width: 24px; height: 24px; }
   input, select, textarea, .editor-sidebar textarea, .editor-gutter { font-size: 16px; }

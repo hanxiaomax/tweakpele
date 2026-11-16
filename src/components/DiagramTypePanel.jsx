@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { LuPalette as Palette, LuChevronDown as ChevronDown, LuChevronRight as ChevronRight } from 'react-icons/lu';
+import { useMemo, useState } from 'react';
 import { VAR_META } from '../constants.js';
 import { typeSpecificVars, typeSpecificOpts, overrideKeyCount } from '../diagramOverrides.js';
-import useDragOffset from '../useDragOffset.js';
 import ColorField from './ColorField.jsx';
+import StylePanelShell from './StylePanelShell.jsx';
 
 function OptField({ o, effective, overridden, onChange, onClear }) {
   let ctl = null;
@@ -85,18 +84,6 @@ export default function DiagramTypePanel({
   const tsVars = useMemo(() => typeSpecificVars(diagramType), [diagramType]);
   const tsOpts = useMemo(() => typeSpecificOpts(diagramType), [diagramType]);
   const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-  const { handleProps } = useDragOffset(rootRef);
-
-  // Native wheel stop: panel scrolling must not pan/zoom the canvas viewport
-  // (its wheel listener sits on an ancestor and React stopPropagation is too late).
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return undefined;
-    const stop = (e) => e.stopPropagation();
-    el.addEventListener('wheel', stop);
-    return () => el.removeEventListener('wheel', stop);
-  }, []);
 
   const paletteTokens = useMemo(() => VAR_META
     .filter((m) => m.kind === 'color')
@@ -113,31 +100,16 @@ export default function DiagramTypePanel({
   const setVar = (name, value) => onChangeVar(name, value);
 
   return (
-    <aside
-      ref={rootRef}
-      className={
-        'diagram-style-panel'
-        + (compact ? ' compact' : '')
-        + (open ? '' : ' collapsed')
-      }
-      aria-label={`${diagramType} style editor`}
-      onClick={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
+    <StylePanelShell
+      className="diagram-style-panel"
+      compact={compact}
+      open={open}
+      onOpenChange={setOpen}
+      title={`${diagramType} style`}
+      hint="Per-diagram · global in toolbox"
+      badge={overriddenCount}
+      ariaLabel={`${diagramType} style editor`}
     >
-      <div {...handleProps} />
-      <button type="button" className="diagram-style-head" onClick={() => setOpen((o) => !o)}
-        aria-expanded={open} title={open ? 'Collapse style panel' : 'Expand style panel'}>
-        {open ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
-        <Palette aria-hidden="true" />
-        <b>{diagramType} style</b>
-        {overriddenCount > 0 && (
-          <span className="diagram-style-count" title="Per-diagram overrides set">{overriddenCount}</span>
-        )}
-        <span className="c4-style-hint">per-diagram · global defaults in toolbox</span>
-      </button>
-
-      {open && (
         <div className="c4-style-body diagram-style-body">
           {tsVars.length > 0 && (
             <>
@@ -186,13 +158,12 @@ export default function DiagramTypePanel({
               ))}
             </>
           )}
-          <div className="c4-style-actions">
-            <button type="button" className="btn" onClick={onResetAll} disabled={!overriddenCount}>
-              Reset to global
-            </button>
-          </div>
+        <div className="c4-style-actions">
+          <button type="button" className="btn" onClick={onResetAll} disabled={!overriddenCount}>
+            Reset to global
+          </button>
         </div>
-      )}
-    </aside>
+      </div>
+    </StylePanelShell>
   );
 }
