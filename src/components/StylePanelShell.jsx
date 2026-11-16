@@ -23,6 +23,24 @@ export default function StylePanelShell({
   // Size changes on open/close: clamp before paint so the card never flashes off-screen.
   useLayoutEffect(() => { reclamp(); }, [open, reclamp]);
 
+  // Escape must close the panel even when focus is on document.body (the FAB
+  // unmounts on click). Capture phase is required so this runs before the
+  // bubble-phase shortcut listener in useViewState, which would leave the edit
+  // route; stopPropagation keeps that listener from firing. While a popover /
+  // menu / modal that owns its own Escape handling is open, let it go first —
+  // it registered after us, so it only sees the event if we let it through.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (document.querySelector('.color-pop, .ctxmenu, .dialog-backdrop, .dialog')) return;
+      e.stopPropagation();
+      onOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, onOpenChange]);
+
   // Native wheel stop: panel scrolling must not pan/zoom the canvas behind it
   // (that listener sits on an ancestor and React stopPropagation is too late).
   useEffect(() => {
@@ -46,9 +64,6 @@ export default function StylePanelShell({
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        if (open && e.key === 'Escape') { e.stopPropagation(); onOpenChange(false); }
-      }}
     >
       {!open ? (
         <button
