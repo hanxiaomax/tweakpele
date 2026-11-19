@@ -1,13 +1,24 @@
 /** The Pele playground's output switch (Pele / Mermaid / SVG / Compare) for a single diagram. */
 import { useEffect, useState } from 'react';
+import {
+  LuHexagon as Hexagon, LuWaves as Waves, LuCodeXml as CodeXml, LuColumns2 as Columns2,
+  LuSwatchBook as SwatchBook, LuNetwork as Network, LuGitFork as GitFork,
+} from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import { copyText } from '../lib.js';
 import { renderStockMermaid } from '../stockMermaid.js';
 import { isDarkBackground, isDarkComposite, mermaidConfig } from '../mermaidConfig.js';
 
-const VIEWS = ['pele', 'mermaid', 'svg', 'compare'];
-const VIEW_LABELS = { pele: 'Pele', mermaid: 'Mermaid', svg: 'SVG', compare: 'Compare' };
-const LAYOUTS = [['elk', 'ELK'], ['dagre', 'dagre']];
+const VIEWS = [
+  ['pele', Hexagon, 'Pele view'],
+  ['mermaid', Waves, 'Mermaid view'],
+  ['svg', CodeXml, 'SVG source view'],
+  ['compare', Columns2, 'Compare Pele and Mermaid'],
+];
+const LAYOUTS = [
+  ['elk', Network, 'ELK layout (ignores curve, nodeSpacing and rankSpacing)'],
+  ['dagre', GitFork, 'dagre layout (applies curve, nodeSpacing and rankSpacing)'],
+];
 
 /** View + Pele SVG state for one diagram; resets when the diagram (resetKey) changes. */
 export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVars, options, layout }) {
@@ -55,14 +66,15 @@ export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVa
   return { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg, compat, setCompat, bodyTone };
 }
 
-/** Segmented view buttons (Copy SVG lives in the focused title bar's Actions menu). */
+/** Icon-only segmented view buttons (Copy SVG lives in the focused-title overflow menu). */
 export function DiagramViewSwitch({ view, onChange, tone }) {
   return (
     <div className="diagram-views-bar" data-tone={tone}>
       <div className="diagram-views" role="group" aria-label="Output view">
-        {VIEWS.map((v) => (
-          <button key={v} type="button" aria-pressed={view === v} onClick={() => onChange(v)}>
-            {VIEW_LABELS[v]}
+        {VIEWS.map(([v, Icon, label]) => (
+          <button key={v} type="button" aria-pressed={view === v} title={label} aria-label={label}
+            onClick={() => onChange(v)}>
+            <Icon aria-hidden="true" focusable="false" />
           </button>
         ))}
       </div>
@@ -99,11 +111,14 @@ export function DiagramAltBody({ view, source, options, peleSvg, onPeleSvg, stoc
             aria-label="Apply tweakpele's Mermaid-compatible theme"
             title="Apply tweakpele's Mermaid-compatible theme"
             onClick={onToggleCompat}
-          >Compatible theme</button>
+          ><SwatchBook aria-hidden="true" focusable="false" /></button>
           {compat && (
-            <div className="diagram-layout-toggle" role="group" aria-label="Mermaid layout engine" title="ELK ignores curve, nodeSpacing and rankSpacing; dagre applies them">
-              {LAYOUTS.map(([v, label]) => (
-                <button key={v} type="button" aria-pressed={layout === v} title="ELK ignores curve, nodeSpacing and rankSpacing; dagre applies them" onClick={() => onLayoutChange?.(v)}>{label}</button>
+            <div className="diagram-layout-toggle" role="group" aria-label="Mermaid layout engine">
+              {LAYOUTS.map(([v, Icon, label]) => (
+                <button key={v} type="button" aria-pressed={layout === v} title={label} aria-label={label}
+                  onClick={() => onLayoutChange?.(v)}>
+                  <Icon aria-hidden="true" focusable="false" />
+                </button>
               ))}
             </div>
           )}

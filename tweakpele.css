@@ -55,8 +55,7 @@ body { overflow: hidden; }
 .top-actions { display: flex; gap: 6px; flex: none; }
 .top-actions .ibtn { border-color: transparent; }
 .top-actions .ibtn:hover { border-color: var(--ui-border); }
-/* Labeled menu triggers keep a visible border so they read as buttons, not more icons. */
-.top-actions .menu-btn { border-color: var(--ui-border); }
+.tool-sep { width: 1px; height: 16px; margin: 0 4px; background: var(--ui-border); flex: none; align-self: center; }
 
 /* ---------------- buttons ---------------- */
 button { font: inherit; cursor: pointer; }
@@ -92,13 +91,6 @@ button { font: inherit; cursor: pointer; }
 .layout { flex: 1; display: grid; grid-template-columns: minmax(310px, 370px) 1fr; min-height: 0; }
 .app.toolbox-off .layout { grid-template-columns: 1fr; }
 .app.toolbox-off .toolbox { display: none; }
-.edge-toggle {
-  position: absolute; left: 0; top: 50%; z-index: 6; transform: translateY(-50%);
-  width: 14px; height: 76px; padding: 0; border: 1px solid var(--ui-border); border-left: none;
-  border-radius: 0 7px 7px 0; background: var(--ui-panel); color: var(--ui-muted);
-  font-size: 11px; line-height: 1; opacity: .6;
-}
-.edge-toggle:hover { opacity: 1; color: var(--ui-accent); }
 body.dragging-split { cursor: col-resize; user-select: none; }
 body.dragging-split .focused-view-main * { pointer-events: none; }
 
@@ -452,7 +444,6 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--ui-muted); font: 11.5px var(--ui-mono);
 }
-.editor-actions { display: flex; gap: 6px; flex: none; flex-shrink: 0; }
 .editor-missing { margin: auto; text-align: center; }
 
 /* Sidebar lives inside the diagram scope: remap chrome vars to the diagram palette. */
@@ -537,21 +528,25 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .focused-view.slide-next { animation: focused-slide-next 0.28s ease; }
 .focused-view.slide-prev { animation: focused-slide-prev 0.28s ease; }
 .focused-view-title {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: none;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; flex: none;
   padding: 10px 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--pele-border, #000) 22%, transparent);
   background: color-mix(in srgb, var(--pele-surface, var(--pele-bg, #fff)) 92%, transparent);
+}
+.focused-view-title .tool-sep {
+  background: color-mix(in srgb, var(--pele-border, #000) 32%, transparent);
 }
 .focused-view-title b {
   min-width: 0; max-width: 100%; font-size: 14px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .focused-view-title code {
-  font-size: 11px; color: var(--pele-muted, #555);
+  min-width: 0; font-size: 11px; color: var(--pele-muted, #555);
   font-family: var(--pele-font-mono, monospace); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .focused-view-actions {
-  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; flex: none;
 }
 .focused-view-count { color: var(--pele-muted, #555); font-size: 11.5px; margin: 0 4px; white-space: nowrap; }
 .focused-view .ibtn {
@@ -561,8 +556,6 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   color: var(--pele-fg, #000);
 }
 .focused-view .ibtn svg { width: 14px; height: 14px; }
-/* Labeled menus inside the focused chrome must beat `.focused-view .ibtn { width: 28px }`. */
-.focused-view .ibtn.menu-btn { width: auto; padding: 0 8px; }
 
 .focused-view .ibtn:hover {
   border-color: var(--pele-accent, #d9641a); color: var(--pele-accent, #d9641a);
@@ -607,7 +600,8 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .diagram-views-bar {
   --diagram-views-ink: #000;
   --diagram-views-paper: #fff;
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  margin-left: auto;
 }
 .diagram-views-bar[data-tone="dark"] { --diagram-views-ink: #fff; --diagram-views-paper: #000; }
 .diagram-views {
@@ -615,12 +609,14 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); border-radius: 7px;
 }
 .diagram-views button {
-  font-size: 11.5px; padding: 3px 10px; border: none; background: transparent;
+  display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  border: none; background: transparent;
   color: var(--diagram-views-ink); cursor: pointer;
 }
+.diagram-views button svg { width: 14px; height: 14px; }
 .diagram-views button + button { border-left: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); }
 .diagram-views button[aria-pressed="true"] {
-  background: var(--diagram-views-ink); color: var(--diagram-views-paper); font-weight: 600;
+  background: var(--diagram-views-ink); color: var(--diagram-views-paper);
 }
 /* Non-Pele panes scroll in place; the Pele view keeps overflow hidden for native zoom. */
 .focused-view-body[data-view="svg"],
@@ -641,25 +637,29 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   display: flex; align-items: center; gap: 8px;
 }
 .diagram-compat-toggle {
-  font-size: 10.5px; padding: 2px 8px; border-radius: 6px; cursor: pointer;
+  display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  border-radius: 6px; cursor: pointer;
   border: 1px solid color-mix(in srgb, var(--compare-ink) 35%, transparent);
   background: transparent; color: var(--compare-ink);
 }
+.diagram-compat-toggle svg { width: 13px; height: 13px; }
 .diagram-compat-toggle[aria-pressed="true"] {
-  background: var(--compare-ink); color: var(--compare-paper); font-weight: 600;
+  background: var(--compare-ink); color: var(--compare-paper);
 }
 /* ELK / dagre layout switch for the Compare Mermaid half (compat toggle size, title-bar look). */
 .diagram-layout-toggle {
-  display: inline-flex; overflow: hidden;
+  display: inline-flex; overflow: hidden; flex: none;
   border: 1px solid color-mix(in srgb, var(--compare-ink) 35%, transparent); border-radius: 6px;
 }
 .diagram-layout-toggle button {
-  font-size: 10.5px; padding: 2px 8px; border: none; background: transparent;
+  display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  border: none; background: transparent;
   color: var(--compare-ink); cursor: pointer;
 }
+.diagram-layout-toggle button svg { width: 13px; height: 13px; }
 .diagram-layout-toggle button + button { border-left: 1px solid color-mix(in srgb, var(--compare-ink) 35%, transparent); }
 .diagram-layout-toggle button[aria-pressed="true"] {
-  background: var(--compare-ink); color: var(--compare-paper); font-weight: 600;
+  background: var(--compare-ink); color: var(--compare-paper);
 }
 .diagram-compare .pele-host-wrap,
 .diagram-compare .pele-host { width: 100%; height: auto; min-width: 0; overflow: visible; }

@@ -7,9 +7,8 @@ import {
   LuLayoutGrid as LayoutGrid, LuInfinity as InfinityIcon,
   LuFocus as Focus, LuSave as Save, LuDownload as Download, LuFolderOpen as FolderOpen,
   LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
-  LuFileCode2 as FileCode2,
+  LuEllipsisVertical as EllipsisVertical,
   LuFileText as FileText,
-  LuFile as File,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -528,26 +527,29 @@ export default function App() {
         <span className="top-actions">
           <IconButton Icon={siteTheme === 'light' ? Moon : Sun}
             label={siteTheme === 'light' ? 'Switch to dark site theme' : 'Switch to light site theme'}
+            pressed={siteTheme === 'dark'}
             onClick={toggleTheme} />
           {!inSession && route.view !== 'markdown' && (
             <IconButton
               Icon={viewMode === 'gallery' ? InfinityIcon : LayoutGrid}
               label={viewMode === 'gallery' ? 'Switch to infinite canvas' : 'Switch to gallery'}
+              pressed={viewMode === 'canvas'}
               onClick={() => setViewMode((m) => (m === 'gallery' ? 'canvas' : 'gallery'))}
             />
           )}
+          <span className="tool-sep" aria-hidden="true" />
           <IconButton Icon={Undo2} label="Undo" disabled={!history.canUndo} onClick={history.undo} />
           <IconButton Icon={Redo2} label="Redo" disabled={!history.canRedo} onClick={history.redo} />
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
-          <MenuButton Icon={FileCode2} text="Export" label="Export theme and Mermaid" items={() => [
+          <span className="tool-sep" aria-hidden="true" />
+          <MenuButton Icon={EllipsisVertical} label="Export and file" items={() => [
             { label: 'Copy .pele CSS', Icon: ClipboardCopy, onClick: () => doCopy(cssBlock, '.pele CSS') },
             { label: 'Copy render options JSON', Icon: Braces, onClick: () => doCopy(optionsJson, 'render options JSON') },
             { label: 'Download theme file', Icon: Download, onClick: downloadTheme },
             { sep: true },
             { label: 'Copy Mermaid frontmatter', Icon: Copy, onClick: () => doCopy(mermaidFrontmatter(vars, exportOptions(optVals, vars), mermaidExportLayout), 'Mermaid frontmatter') },
             { label: 'Download mermaid.config.json', Icon: Download, onClick: downloadMermaidConfig },
-          ]} />
-          <MenuButton Icon={File} text="File" label="File" items={() => [
+            { sep: true },
             ...(!inSession ? [{ label: 'Markdown preview', Icon: FileText, onClick: () => navigate({ view: 'markdown' }) }] : []),
             { label: 'Import theme file', Icon: Upload, onClick: () => themeFileRef.current?.click() },
             { label: 'Open snapshot file', Icon: FolderOpen, onClick: openSnapshotFile },
@@ -650,12 +652,6 @@ export default function App() {
           )}
         </div>
       </main>
-
-      <button
-        type="button" className="edge-toggle" title={toolboxCollapsed ? 'Show toolbox (T)' : 'Hide toolbox (T)'}
-        aria-label={toolboxCollapsed ? 'Show toolbox' : 'Hide toolbox'}
-        onClick={() => setToolboxCollapsed((c) => !c)}
-      >{toolboxCollapsed ? '›' : '‹'}</button>
 
       <ContextMenu menu={ctxMenu} onClose={() => setCtxMenu(null)} />
       {newOpen && (

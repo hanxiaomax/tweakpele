@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  LuRotateCcw as RotateCcw, LuClipboardCopy as ClipboardCopy, LuCopy as Copy,
-  LuDownload as Download, LuLink as Link,
-} from 'react-icons/lu';
-import { IconButton, MenuButton } from './ui.jsx';
 import { errorLine } from '../lib.js';
 
 /**
- * Left source editor inside the focused view: title, Mermaid textarea, render
- * status line, and the source/export/share actions. The live preview is the
- * focused body next to it; render status comes from its PeleHost.
+ * Left source editor inside the focused view: title, Mermaid textarea and a
+ * render status line (footer is status only — copy/export/share actions live
+ * in the focused-title overflow menu). The live preview is the focused body
+ * next to it; render status comes from its PeleHost.
  */
 export default function EditorSidebar({
-  diagram, status, onClose, notify,
-  onChangeTitle, onChangeSource, onResetSource, onCopySource, onCopyMermaidSource,
-  onExport, onCopySvg, canCopySvg, onCopyShareLink, onDownloadSnapshot,
+  diagram, status, onClose,
+  onChangeTitle, onChangeSource,
 }) {
   const [text, setText] = useState(diagram.source);
   const [scrollTop, setScrollTop] = useState(0);
@@ -120,25 +115,6 @@ export default function EditorSidebar({
       <div className="editor-sidebar-foot">
         <span className="editor-status" aria-live="polite">
           {empty ? 'Empty' : status ? (status.info || '') : 'rendering…'}
-        </span>
-        <span className="editor-actions">
-          <IconButton Icon={RotateCcw} label="Reset source to original" disabled={!dirty}
-            onClick={() => { onResetSource(diagram.id); notify('Source reset'); }} />
-          <MenuButton Icon={diagram.builtin ? Copy : ClipboardCopy} text="Copy" label="Copy source" items={() => [
-            { label: 'Copy Mermaid source', Icon: Copy, onClick: () => onCopySource(diagram) },
-            { label: 'Copy source with Mermaid theme', Icon: ClipboardCopy, onClick: () => onCopyMermaidSource?.(diagram) },
-          ]} />
-          <MenuButton Icon={Download} text="Export" label="Export and share" items={() => [
-            { label: 'Download PNG', onClick: () => onExport('png', true) },
-            { label: 'Download PNG (transparent)', onClick: () => onExport('png', false) },
-            { sep: true },
-            { label: 'Copy SVG', Icon: Copy, disabled: !canCopySvg, onClick: onCopySvg },
-            { label: 'Download SVG', onClick: () => onExport('svg', true) },
-            { label: 'Download SVG (transparent)', onClick: () => onExport('svg', false) },
-            { sep: true },
-            { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
-            { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
-          ]} />
         </span>
       </div>
     </aside>
