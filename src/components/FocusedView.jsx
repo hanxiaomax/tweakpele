@@ -3,7 +3,9 @@ import {
   LuPencil as Pencil, LuCopy as Copy, LuTrash2 as Trash2,
   LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight,
   LuMinimize2 as Minimize2, LuMaximize as Maximize,
-  LuEllipsis as MoreHorizontal,
+  LuEllipsisVertical as EllipsisVertical,
+  LuDownload as Download, LuLink as Link, LuRotateCcw as RotateCcw,
+  LuClipboardCopy as ClipboardCopy,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
@@ -173,13 +175,28 @@ export default function FocusedView({
         <b>{diagram.title}</b>
         <code>{diagram.keyword || ''}</code>
         <DiagramViewSwitch view={view} onChange={setView} tone={tone} />
+        <span className="tool-sep" aria-hidden="true" />
         <span className="focused-view-actions">
           <IconButton Icon={ChevronLeft} label="Previous diagram" onClick={onPrev} disabled={total <= 1} />
           <IconButton Icon={ChevronRight} label="Next diagram" onClick={onNext} disabled={total <= 1} />
           <span className="focused-view-count">{index + 1} / {total}</span>
           <IconButton Icon={Pencil} label={`Edit ${diagram.title} (toggle sidebar)`} pressed={sidebarOpen}
             onClick={onToggleSidebar} />
-          <MenuButton Icon={MoreHorizontal} text="Actions" label="Diagram actions" items={() => [
+          <MenuButton Icon={EllipsisVertical} label="Copy, export, and diagram actions" items={() => [
+            { label: 'Copy Mermaid source', Icon: Copy, onClick: () => onCopySource(diagram) },
+            { label: 'Copy source with Mermaid theme', Icon: ClipboardCopy, onClick: () => onCopyMermaidSource?.(diagram) },
+            { label: 'Copy SVG', Icon: Copy, disabled: !peleSvg, onClick: copySvg },
+            { sep: true },
+            { label: 'Download PNG', Icon: Download, onClick: () => runExport('png', true) },
+            { label: 'Download PNG (transparent)', Icon: Download, onClick: () => runExport('png', false) },
+            { label: 'Download SVG', Icon: Download, onClick: () => runExport('svg', true) },
+            { label: 'Download SVG (transparent)', Icon: Download, onClick: () => runExport('svg', false) },
+            { sep: true },
+            { label: 'Copy share link', Icon: Link, onClick: () => onCopyShareLink?.() },
+            { label: 'Download snapshot', Icon: Download, onClick: () => onDownloadSnapshot?.() },
+            { sep: true },
+            { label: 'Reset source to original', Icon: RotateCcw, disabled: diagram.source === diagram.original,
+              onClick: () => { onResetSource(diagram.id); notify('Source reset'); } },
             { label: 'Reset Pele zoom', Icon: Maximize, disabled: view !== 'pele',
               onClick: () => { try { ctlRef.current?.zoom?.reset(); } catch (_) { /* ignore */ } } },
             { label: `Duplicate ${diagram.title}`, Icon: Copy, onClick: () => onDuplicate(diagram.id) },
@@ -199,17 +216,8 @@ export default function FocusedView({
               diagram={diagram}
               status={status}
               onClose={onToggleSidebar}
-              notify={notify}
               onChangeTitle={onChangeTitle}
               onChangeSource={onChangeSource}
-              onResetSource={onResetSource}
-              onCopySource={onCopySource}
-              onCopyMermaidSource={onCopyMermaidSource}
-              onExport={runExport}
-              onCopySvg={copySvg}
-              canCopySvg={!!peleSvg}
-              onCopyShareLink={onCopyShareLink}
-              onDownloadSnapshot={onDownloadSnapshot}
             />
             <div
               className="splitter sidebar-splitter" role="separator" aria-orientation="vertical"
