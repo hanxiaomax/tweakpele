@@ -609,11 +609,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); border-radius: 7px;
 }
 .diagram-views button {
-  display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  display: inline-grid; place-items: center; height: 26px; padding: 0 9px;
   border: none; background: transparent;
   color: var(--diagram-views-ink); cursor: pointer;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
+  font-family: inherit; line-height: 1;
 }
-.diagram-views button svg { width: 14px; height: 14px; }
 .diagram-views button + button { border-left: 1px solid color-mix(in srgb, var(--diagram-views-ink) 35%, transparent); }
 .diagram-views button[aria-pressed="true"] {
   background: var(--diagram-views-ink); color: var(--diagram-views-paper);
