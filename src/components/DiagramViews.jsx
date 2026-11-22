@@ -1,7 +1,6 @@
 /** The Pele playground's output switch (Pele / Mermaid / SVG / Compare) for a single diagram. */
 import { useEffect, useState } from 'react';
 import {
-  LuHexagon as Hexagon, LuWaves as Waves, LuCodeXml as CodeXml, LuColumns2 as Columns2,
   LuSwatchBook as SwatchBook, LuNetwork as Network, LuGitFork as GitFork,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
@@ -9,11 +8,12 @@ import { copyText } from '../lib.js';
 import { renderStockMermaid } from '../stockMermaid.js';
 import { isDarkBackground, isDarkComposite, mermaidConfig } from '../mermaidConfig.js';
 
+// The view names are unrecognizable as pictograms, so the words are the icons.
 const VIEWS = [
-  ['pele', Hexagon, 'Pele view'],
-  ['mermaid', Waves, 'Mermaid view'],
-  ['svg', CodeXml, 'SVG source view'],
-  ['compare', Columns2, 'Compare Pele and Mermaid'],
+  ['pele', 'Pele', 'Pele view'],
+  ['mermaid', 'Mermaid', 'Mermaid view'],
+  ['svg', 'SVG', 'SVG source view'],
+  ['compare', 'Compare', 'Compare Pele and Mermaid'],
 ];
 const LAYOUTS = [
   ['elk', Network, 'ELK layout (ignores curve, nodeSpacing and rankSpacing)'],
@@ -66,15 +66,15 @@ export function useDiagramViews({ source, bg, surface, notify, resetKey, themeVa
   return { view, setView, peleSvg, setPeleSvg, stock, tone, copySvg, compat, setCompat, bodyTone };
 }
 
-/** Icon-only segmented view buttons (Copy SVG lives in the focused-title overflow menu). */
+/** Typographic segmented view buttons (Copy SVG lives in the focused-title overflow menu). */
 export function DiagramViewSwitch({ view, onChange, tone }) {
   return (
     <div className="diagram-views-bar" data-tone={tone}>
       <div className="diagram-views" role="group" aria-label="Output view">
-        {VIEWS.map(([v, Icon, label]) => (
+        {VIEWS.map(([v, text, label]) => (
           <button key={v} type="button" aria-pressed={view === v} title={label} aria-label={label}
             onClick={() => onChange(v)}>
-            <Icon aria-hidden="true" focusable="false" />
+            {text}
           </button>
         ))}
       </div>
