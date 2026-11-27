@@ -446,8 +446,8 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .editor-missing { margin: auto; text-align: center; }
 
-/* Sidebar lives inside the diagram scope: remap chrome vars to the diagram palette. */
-.editor-sidebar, .sidebar-splitter {
+/* Sidebar / AI panel live inside the diagram scope: remap chrome vars to the diagram palette. */
+.editor-sidebar, .sidebar-splitter, .ai-chat-panel {
   --ui-panel: var(--pele-surface, #f8f7f3);
   --ui-panel-2: var(--pele-bg, #fff);
   --ui-text: var(--pele-fg, #1b1a17);
@@ -494,6 +494,78 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   border-top: 1px solid var(--ui-border-soft);
 }
 
+/* ---------------- AI chat panel (bring your own key) ---------------- */
+.ai-chat-panel {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--ui-panel); color: var(--ui-text);
+  font-family: var(--pele-font, "Noto Sans", system-ui, sans-serif);
+  border-left: 1px solid var(--ui-border-soft);
+}
+.ai-chat-head {
+  display: flex; align-items: center; gap: 6px; flex: none; padding: 6px 10px;
+  border-bottom: 1px solid var(--ui-border-soft);
+}
+.ai-chat-head b { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
+.ai-chat-settings {
+  flex: none; display: grid; gap: 8px; padding: 10px;
+  border-bottom: 1px solid var(--ui-border-soft);
+  background: var(--ui-panel-2); font-size: 12px; text-align: left;
+}
+.ai-chat-settings label { display: grid; gap: 4px; }
+.ai-chat-settings label > span:first-child { color: var(--ui-muted); font-size: 11px; }
+.ai-chat-settings input[type="text"], .ai-chat-settings input[type="password"] {
+  width: 100%; min-width: 0; height: 26px; padding: 0 7px;
+  border: 1px solid var(--ui-border); border-radius: 5px;
+  background: var(--ui-panel); color: var(--ui-text); font: 11.5px var(--ui-mono);
+}
+.ai-key-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ai-key-row input { flex: 1 1 auto; }
+.ai-check { display: flex; align-items: center; gap: 6px; }
+.ai-check input { flex: none; margin: 0; }
+.ai-check small { color: var(--ui-muted); }
+.ai-clear-key-btn { justify-self: start; font-size: 11.5px; padding: 4px 10px; }
+.ai-clear-key-btn:hover { border-color: var(--ui-danger); color: var(--ui-danger); }
+.ai-chat-note { margin: 0; color: var(--ui-muted); font-size: 11px; line-height: 1.45; }
+.ai-chat-log {
+  flex: 1; min-height: 0; overflow: auto; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ai-chat-empty { margin: auto; text-align: center; color: var(--ui-muted); font-size: 11.5px; line-height: 1.5; }
+.ai-msg {
+  max-width: 92%; padding: 6px 9px; border-radius: 8px; font-size: 12px;
+  border: 1px solid var(--ui-border-soft); white-space: pre-wrap; word-break: break-word;
+}
+.ai-msg.user {
+  align-self: flex-end; background: var(--ui-accent-soft);
+  border-color: color-mix(in srgb, var(--ui-accent) 35%, transparent);
+}
+.ai-msg.assistant { align-self: flex-start; background: var(--ui-panel-2); }
+.ai-msg pre {
+  margin: 6px 0 0; padding: 6px 8px; max-height: 180px; overflow: auto;
+  border-radius: 5px; background: var(--ui-panel);
+  border: 1px solid var(--ui-border-soft);
+  font: 11px/1.5 var(--ui-mono); white-space: pre;
+}
+.ai-apply-btn { margin-top: 6px; font-size: 11.5px; padding: 3px 10px; border-color: var(--ui-accent); color: var(--ui-accent); }
+.ai-chat-error {
+  flex: none; margin: 0 10px 6px; padding: 6px 9px; border-radius: 6px;
+  color: var(--ui-danger); background: color-mix(in srgb, var(--ui-danger) 10%, transparent);
+  font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+}
+.ai-chat-composer {
+  flex: none; display: flex; align-items: flex-start; gap: 6px; padding: 10px;
+  border-top: 1px solid var(--ui-border-soft);
+}
+.ai-chat-composer textarea {
+  flex: 1 1 auto; min-width: 0; height: 54px; resize: none; padding: 6px 8px;
+  border: 1px solid var(--ui-border); border-radius: 6px;
+  background: var(--ui-panel-2); color: var(--ui-text); caret-color: var(--ui-accent);
+  font-family: inherit; font-size: 12px; line-height: 1.45;
+}
+.ai-chat-keyhint {
+  flex: none; padding: 0 10px 8px; color: var(--ui-muted); font-size: 11px;
+}
+
 .splitter { cursor: col-resize; background: transparent; position: relative; }
 .splitter::after {
   content: ""; position: absolute; inset: 0 2px; border-radius: 3px; background: var(--ui-border);
@@ -537,11 +609,12 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
   background: color-mix(in srgb, var(--pele-border, #000) 32%, transparent);
 }
 .focused-view-title b {
-  min-width: 0; max-width: 100%; font-size: 14px;
+  /* shrinkable so the extra AI button never overflows the nowrap title bar */
+  flex: 0 1 auto; min-width: 0; max-width: 100%; font-size: 14px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .focused-view-title code {
-  min-width: 0; font-size: 11px; color: var(--pele-muted, #555);
+  flex: 0 1 auto; min-width: 0; font-size: 11px; color: var(--pele-muted, #555);
   font-family: var(--pele-font-mono, monospace); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -568,6 +641,15 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 .focused-view-main.with-sidebar {
   display: grid;
   grid-template-columns: clamp(260px, var(--sidebar-w, 380px), 60%) 6px minmax(220px, 1fr);
+}
+/* AI panel as a fourth (or second) column; overlay instead on narrow screens. */
+.focused-view-main.with-ai { position: relative; }
+.focused-view-main.with-ai:not(.with-sidebar) {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 340px;
+}
+.focused-view-main.with-sidebar.with-ai {
+  grid-template-columns: clamp(260px, var(--sidebar-w, 380px), 60%) 6px minmax(220px, 1fr) 340px;
 }
 .focused-view-main .focused-view-body { flex: 1; min-width: 0; }
 .focused-view-body {
@@ -1125,6 +1207,31 @@ g.pele-edge.c4-selected path {
   .app.toolbox-off .layout { grid-template-rows: 1fr; }
   .toolbox { border-right: none; border-bottom: 1px solid var(--ui-border); }
   .status { display: none; }
+}
+
+/* Narrow screens: the AI panel overlays the body (right side, below the title
+ * bar) instead of taking a column — below ~1040px, and below 1280px when the
+ * editor sidebar is open too. Keep the overlay rule on the same breakpoint as
+ * the grid collapse so an empty 340px column is not left behind. */
+@media (max-width: 1280px) {
+  .focused-view-main.with-sidebar.with-ai {
+    grid-template-columns: clamp(260px, var(--sidebar-w, 380px), 60%) 6px minmax(220px, 1fr);
+  }
+  .focused-view-main.with-sidebar.with-ai .ai-chat-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; z-index: 5;
+    width: min(340px, 92%);
+    border-left: 1px solid var(--ui-border);
+    box-shadow: -12px 0 28px rgba(0, 0, 0, .18);
+  }
+}
+@media (max-width: 1040px) {
+  .focused-view-main.with-ai:not(.with-sidebar) { display: flex; }
+  .focused-view-main.with-ai:not(.with-sidebar) .ai-chat-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; z-index: 5;
+    width: min(340px, 92%);
+    border-left: 1px solid var(--ui-border);
+    box-shadow: -12px 0 28px rgba(0, 0, 0, .18);
+  }
 }
 
 /* Sidebar stacks above the focused body on narrow screens; splitter hidden. */
