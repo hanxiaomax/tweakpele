@@ -5,9 +5,10 @@ import {
   LuMinimize2 as Minimize2, LuMaximize as Maximize,
   LuEllipsisVertical as EllipsisVertical,
   LuDownload as Download, LuLink as Link, LuRotateCcw as RotateCcw,
-  LuClipboardCopy as ClipboardCopy,
+  LuClipboardCopy as ClipboardCopy, LuSparkles as Sparkles,
 } from 'react-icons/lu';
 import PeleHost from './PeleHost.jsx';
+import AiChatPanel from './AiChatPanel.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { DiagramAltBody, DiagramViewSwitch, useDiagramViews } from './DiagramViews.jsx';
@@ -48,6 +49,7 @@ export default function FocusedView({
   const colsAcc = useRef(0);
   const [c4Sel, setC4Sel] = useState(null);
   const [status, setStatus] = useState(null);   // { info } | { error }
+  const [aiOpen, setAiOpen] = useState(false);
   const c4 = isC4Source(diagram.source);
   // Same vars as the copy/download paths: global toolbox + per-diagram overrides.
   const themeVars = mergeDiagramVars(vars, styleApi?.overrides?.[diagram.id]?.vars);
@@ -70,10 +72,10 @@ export default function FocusedView({
     const el = rootRef.current;
     if (!el) return undefined;
     const onWheel = (e) => {
-      if (e.ctrlKey && e.target.closest?.('.editor-sidebar')) { e.preventDefault(); return; }
-      if (e.target.closest && e.target.closest('input, textarea, select, button, a, .editor-sidebar, .diagram-style-panel, .c4-style-panel, .pele-zoom')) {
-        // Still allow Ctrl+wheel density over chrome except form fields / sidebar
-        if (!(e.ctrlKey && onCtrlWheelCols) || e.target.closest('input, textarea, select, .editor-sidebar')) return;
+      if (e.ctrlKey && e.target.closest?.('.editor-sidebar, .ai-chat-panel')) { e.preventDefault(); return; }
+      if (e.target.closest && e.target.closest('input, textarea, select, button, a, .editor-sidebar, .ai-chat-panel, .diagram-style-panel, .c4-style-panel, .pele-zoom')) {
+        // Still allow Ctrl+wheel density over chrome except form fields / sidebar / AI panel
+        if (!(e.ctrlKey && onCtrlWheelCols) || e.target.closest('input, textarea, select, .editor-sidebar, .ai-chat-panel')) return;
       }
       const dy = e.deltaY;
       if (!dy) return;
@@ -182,6 +184,8 @@ export default function FocusedView({
           <span className="focused-view-count">{index + 1} / {total}</span>
           <IconButton Icon={Pencil} label={`Edit ${diagram.title} (toggle sidebar)`} pressed={sidebarOpen}
             onClick={onToggleSidebar} />
+          <IconButton Icon={Sparkles} label="AI chat (toggle panel)" pressed={aiOpen}
+            onClick={() => setAiOpen((v) => !v)} />
           <MenuButton Icon={EllipsisVertical} label="Copy, export, and diagram actions" items={() => [
             { label: 'Copy Mermaid source', Icon: Copy, onClick: () => onCopySource(diagram) },
             { label: 'Copy source with Mermaid theme', Icon: ClipboardCopy, onClick: () => onCopyMermaidSource?.(diagram) },
@@ -207,7 +211,7 @@ export default function FocusedView({
       </header>
       <div
         ref={mainRef}
-        className={'focused-view-main' + (sidebarOpen ? ' with-sidebar' : '')}
+        className={'focused-view-main' + (sidebarOpen ? ' with-sidebar' : '') + (aiOpen ? ' with-ai' : '')}
         style={sidebarOpen && split ? { '--sidebar-w': `${split}px` } : undefined}
       >
         {sidebarOpen && (
@@ -307,6 +311,14 @@ export default function FocusedView({
             />
           )}
         </div>
+        {aiOpen && (
+          <AiChatPanel
+            diagram={diagram}
+            notify={notify}
+            onChangeSource={onChangeSource}
+            onClose={() => setAiOpen(false)}
+          />
+        )}
       </div>
     </article>
   );
