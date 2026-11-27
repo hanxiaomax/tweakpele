@@ -26,6 +26,10 @@ Without cloning: `npx github:hanxiaomax/tweakpele render docs --theme theme.twea
 - The code block stays in place, so GitHub and Mermaid viewers still see the source. Re-running only rewrites what changed; old SVGs are listed, never deleted.
 - `--check` writes nothing and exits 1 when anything would change — handy for CI.
 
+## Bring your own API key
+
+The focused diagram view has an **AI chat** panel (sparkles button in the title bar): describe a diagram to create, or ask for a change to the current one. When a reply contains a Mermaid block, **一键应用** writes it into the editor like a normal edit. It uses your own OpenAI-compatible API key — defaults are base URL `https://api.openai.com/v1` and model `gpt-4o`, both changeable in the panel's settings. The key is held in memory only and forgotten on reload unless **记住这台设备** is checked (then it lives in this browser's localStorage). tweakpele has no backend: the key is sent straight from your browser to the base URL you set and nowhere else. Official APIs often reject direct browser calls (CORS); if requests fail, point the base URL at a CORS-enabled endpoint you trust.
+
 ## Development
 
 ```
