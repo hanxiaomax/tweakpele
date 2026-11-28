@@ -95,7 +95,7 @@ export const DARK = {
 
 
 /** Shared type tokens reused by light paper-leaning presets. */
-const PAPER_TYPE = {
+export const PAPER_TYPE = {
   '--pele-font': FACTORY['--pele-font'],
   '--pele-font-mono': FACTORY['--pele-font-mono'],
   '--pele-title-weight': FACTORY['--pele-title-weight'],
@@ -105,7 +105,7 @@ const PAPER_TYPE = {
 };
 
 /** Shared type tokens reused by dark ink-leaning presets. */
-const INK_TYPE = {
+export const INK_TYPE = {
   '--pele-font': DARK['--pele-font'],
   '--pele-font-mono': DARK['--pele-font-mono'],
   '--pele-title-weight': DARK['--pele-title-weight'],
@@ -1396,9 +1396,10 @@ export function varsMatchPreset(vars, preset) {
   return VAR_META.every(({ name }) => vars[name] === preset.vars[name]);
 }
 
-/** Return the curated preset whose tokens exactly match `vars`, or null (Custom). */
-export function matchThemePreset(vars) {
-  return THEME_PRESETS.find((preset) => varsMatchPreset(vars, preset)) || null;
+/** Return the preset whose tokens exactly match `vars` — built-ins first, then
+ *  `extraPresets` (custom palettes) — or null (Custom). */
+export function matchThemePreset(vars, extraPresets = []) {
+  return [...THEME_PRESETS, ...extraPresets].find((preset) => varsMatchPreset(vars, preset)) || null;
 }
 
 export const REMEASURE_VARS = new Set([
