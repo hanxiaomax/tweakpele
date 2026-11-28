@@ -9,12 +9,14 @@ import {
   LuUpload as Upload, LuUndo2 as Undo2, LuRedo2 as Redo2,
   LuEllipsisVertical as EllipsisVertical,
   LuFileText as FileText,
+  LuSettings2 as Settings2,
 } from 'react-icons/lu';
 import Toolbox from './components/Toolbox.jsx';
 import Gallery from './components/Gallery.jsx';
 import Canvas from './components/Canvas.jsx';
 import FocusedView from './components/FocusedView.jsx';
 import MarkdownView from './components/MarkdownView.jsx';
+import AiSettingsDialog from './components/AiSettingsDialog.jsx';
 import { ContextMenu, Dialog, IconButton, MenuButton, Toast } from './components/ui.jsx';
 import { ALL_OPTS, OPT_GROUPS, STARTERS, THEME_PRESETS, exportOptions, themeFileJson } from './constants.js';
 import { copyText, navigate, newId, useHashRoute } from './lib.js';
@@ -32,6 +34,9 @@ import { useThemeState } from './state/useThemeState.js';
 import { useDiagrams } from './state/useDiagrams.js';
 import { useViewState } from './state/useViewState.js';
 import { useHistory } from './state/useHistory.js';
+import {
+  useAiSettingsOpen, openSettings, closeSettings,
+} from './ai/useAiSettings.js';
 
 const NO_DIAGRAMS = [];
 const NO_POSITIONS = {};
@@ -54,6 +59,7 @@ export default function App() {
 
   const route = useHashRoute();
   const isSharedCanvas = route.view === 'sharedCanvas';
+  const aiSettingsOpen = useAiSettingsOpen();
   const [sessionCanvas, setSessionCanvas] = useState(null);
   const [sessionSidebarOpen, setSessionSidebarOpen] = useState(false);
   const sessionNonceRef = useRef(0);
@@ -541,6 +547,8 @@ export default function App() {
           <IconButton Icon={Undo2} label="Undo" disabled={!history.canUndo} onClick={history.undo} />
           <IconButton Icon={Redo2} label="Redo" disabled={!history.canRedo} onClick={history.redo} />
           <IconButton Icon={FilePlus2} label="New diagram" onClick={() => setNewOpen(true)} />
+          <IconButton Icon={Settings2} label="AI settings" pressed={aiSettingsOpen}
+            onClick={() => (aiSettingsOpen ? closeSettings() : openSettings())} />
           <span className="tool-sep" aria-hidden="true" />
           <MenuButton Icon={EllipsisVertical} label="Export and file" items={() => [
             { label: 'Copy .pele CSS', Icon: ClipboardCopy, onClick: () => doCopy(cssBlock, '.pele CSS') },
@@ -566,6 +574,7 @@ export default function App() {
           optVals={optVals} onOptChange={onOptChange} onOptReset={onOptReset}
           cssBlock={cssBlock} optionsJson={optionsJson}
           onImportThemeFile={importThemeFile}
+          onOpenAiSettings={openSettings}
         />
         <div className="pele-scope" style={varsStyle}>
           {peleMissing && <div className="fatal">Pele failed to load (vendor/pele.global.js).</div>}
@@ -654,6 +663,7 @@ export default function App() {
       </main>
 
       <ContextMenu menu={ctxMenu} onClose={() => setCtxMenu(null)} />
+      {aiSettingsOpen && <AiSettingsDialog onClose={closeSettings} />}
       {newOpen && (
         <Dialog title="New diagram" onClose={() => setNewOpen(false)}>
           <p className="muted">Pick a starter — titles, source and theme stay fully editable.</p>
