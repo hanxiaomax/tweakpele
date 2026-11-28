@@ -30,6 +30,8 @@ Without cloning: `npx github:hanxiaomax/tweakpele render docs --theme theme.twea
 
 The focused diagram view has an **AI chat** panel (sparkles button in the title bar): describe a diagram to create, or ask for a change to the current one. When a reply contains a Mermaid block, **一键应用** writes it into the editor like a normal edit. It uses your own OpenAI-compatible API key — defaults are base URL `https://api.openai.com/v1` and model `gpt-4o`, both changeable in the panel's settings. The key is held in memory only and forgotten on reload unless **记住这台设备** is checked (then it lives in this browser's localStorage). tweakpele has no backend: the key is sent straight from your browser to the base URL you set and nowhere else. Official APIs often reject direct browser calls (CORS); if requests fail, point the base URL at a CORS-enabled endpoint you trust.
 
+Besides the prompt, you can point the model at exact spots. The panel header has a comment-pin tool: with it on, click the focused **Pele** diagram (pins are Pele-view only, not Mermaid/SVG/Compare) to drop a numbered pin with a short comment — pins stay on their diagram spot through zoom and pan, and can be edited or deleted from the canvas or from the panel's list. In the source editor, selecting Mermaid text shows a contextual **「加入对话」** button that attaches the excerpt (with its line numbers) to the composer as a removable chip. Comments live per diagram in this browser's localStorage (`tweakpele.ai.comments.v1`), separate from the key; like the key, settings, and threads, comments and selections are never included in share links, snapshots, or theme exports.
+
 ## Development
 
 ```
