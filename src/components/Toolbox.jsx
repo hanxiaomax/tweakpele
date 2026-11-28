@@ -4,6 +4,9 @@ import {
 } from '../constants.js';
 import { fuzzyMatch, fuzzyScore } from '../lib.js';
 import { isGlobalOnly } from '../diagramOverrides.js';
+import { AddPaletteCard, CustomPresetCard, PresetCard } from './PresetCards.jsx';
+import { AddPaletteDialog, RenamePaletteDialog } from './PaletteDialogs.jsx';
+import { loadCustomPalettes, saveCustomPalettes } from '../palettes.js';
 
 const isHexColor = (v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(String(v).trim());
 function expandHex(hex) {
@@ -12,43 +15,6 @@ function expandHex(hex) {
   if (/^#[0-9a-fA-F]{8}$/.test(h)) return h.slice(0, 7);
   return h;
 }
-
-const SWATCH_KEYS = [
-  '--pele-bg',
-  '--pele-surface',
-  '--pele-accent',
-  '--pele-series-1',
-  '--pele-fg',
-];
-
-const PresetCard = memo(function PresetCard({ preset, selected, onSelect }) {
-  return (
-    <button
-      type="button"
-      className={'theme-preset' + (selected ? ' selected' : '')}
-      aria-pressed={selected}
-      title={preset.description || preset.label}
-      onClick={() => onSelect(preset)}
-    >
-      <span className="theme-preset-preview" aria-hidden="true">
-        <span className="theme-preset-swatches">
-          {SWATCH_KEYS.map((key) => (
-            <i key={key} style={{ background: preset.vars[key] }} />
-          ))}
-        </span>
-      </span>
-      <span className="theme-preset-meta">
-        <span className="theme-preset-meta-row">
-          <b>{preset.label}</b>
-          <small className={'theme-preset-tone ' + (preset.tone || 'light')}>
-            {preset.tone === 'dark' ? 'Dark' : 'Light'}
-          </small>
-        </span>
-        {preset.description ? <span className="theme-preset-desc">{preset.description}</span> : null}
-      </span>
-    </button>
-  );
-});
 
 const VarRow = memo(function VarRow({ meta, value, onChange }) {
   const short = meta.label || meta.name.replace(/^--pele-/, '');
@@ -172,10 +138,30 @@ function ListSearchBar({ search, onSearch, searchPlaceholder }) {
 
 export default function Toolbox({
   vars, onVarChange, onApplyPreset, optVals, onOptChange, onOptReset,
-  cssBlock, optionsJson, onImportThemeFile,
+  cssBlock, optionsJson, onImportThemeFile, onOpenAiSettings,
 }) {
   const optValue = (o) => (o.kind === 'font' ? vars[o.cssVar] : optVals[o.id]);
-  const active = matchThemePreset(vars);
+  const [customPalettes, setCustomPalettes] = useState(loadCustomPalettes);
+  const [addOpen, setAddOpen] = useState(false);
+  const [renaming, setRenaming] = useState(null); // custom palette being renamed
+  const active = matchThemePreset(vars, customPalettes);
+
+  const persistPalettes = (next) => {
+    setCustomPalettes(next);
+    saveCustomPalettes(next);
+  };
+  const addPalette = (preset) => {
+    persistPalettes([...customPalettes, preset]);
+    setAddOpen(false);
+    onApplyPreset(preset);
+  };
+  const renamePalette = (preset, label) => {
+    persistPalettes(customPalettes.map((p) => (p.id === preset.id ? { ...p, label } : p)));
+    setRenaming(null);
+  };
+  const deletePalette = (preset) => {
+    persistPalettes(customPalettes.filter((p) => p.id !== preset.id));
+  };
 
   const [varQuery, setVarQuery] = useState('');
   const [optQuery, setOptQuery] = useState('');
@@ -246,6 +232,17 @@ export default function Toolbox({
               onSelect={onApplyPreset}
             />
           ))}
+          {customPalettes.map((preset) => (
+            <CustomPresetCard
+              key={preset.id}
+              preset={preset}
+              selected={active?.id === preset.id}
+              onSelect={onApplyPreset}
+              onRename={setRenaming}
+              onDelete={deletePalette}
+            />
+          ))}
+          <AddPaletteCard onAdd={() => setAddOpen(true)} />
         </div>
       </details>
       <details className="section" open>
@@ -301,6 +298,22 @@ export default function Toolbox({
           <pre className="out">{optionsJson}</pre>
         </div>
       </details>
+
+      {addOpen && (
+        <AddPaletteDialog
+          vars={vars}
+          onClose={() => setAddOpen(false)}
+          onSave={addPalette}
+          onOpenAiSettings={onOpenAiSettings}
+        />
+      )}
+      {renaming && (
+        <RenamePaletteDialog
+          preset={renaming}
+          onClose={() => setRenaming(null)}
+          onSave={renamePalette}
+        />
+      )}
     </aside>
   );
 }
