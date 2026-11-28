@@ -1,17 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { errorLine } from '../lib.js';
+import { lineRangeFromOffsets } from '../ai/prompt.js';
 
 /**
  * Left source editor inside the focused view: title, Mermaid textarea and a
  * render status line (footer is status only — copy/export/share actions live
  * in the focused-title overflow menu). The live preview is the focused body
  * next to it; render status comes from its PeleHost.
+ * A non-empty textarea selection shows a contextual 「加入对话」 button that
+ * attaches the excerpt to the AI chat composer.
  */
 export default function EditorSidebar({
   diagram, status, onClose,
   onChangeTitle, onChangeSource,
+  onAttachSelection,
 }) {
   const [text, setText] = useState(diagram.source);
+  const [sel, setSel] = useState(null); // { start, end } while the textarea has a selection
   const [scrollTop, setScrollTop] = useState(0);
   const [metrics, setMetrics] = useState({ lh: 19.4, pt: 12 });
   const areaRef = useRef(null);
@@ -72,6 +77,33 @@ export default function EditorSidebar({
     }
   };
 
+  // track the selection (mouse or keyboard) so 「加入对话」 is contextual only.
+  // selectionchange also catches programmatic setSelectionRange (the `select` event is flaky).
+  const trackSel = (ta) => {
+    const s = ta.selectionStart;
+    const e = ta.selectionEnd;
+    setSel(s < e ? { start: s, end: e } : null);
+  };
+  useEffect(() => {
+    const onSelChange = () => {
+      const ta = areaRef.current;
+      if (!ta || document.activeElement !== ta) return;
+      trackSel(ta);
+    };
+    document.addEventListener('selectionchange', onSelChange);
+    return () => document.removeEventListener('selectionchange', onSelChange);
+  }, []);
+
+  const attachSelection = () => {
+    if (!sel || sel.start >= sel.end || !onAttachSelection) return;
+    const { startLine, endLine } = lineRangeFromOffsets(text, sel.start, sel.end);
+    onAttachSelection({ start: sel.start, end: sel.end, startLine, endLine, text: text.slice(sel.start, sel.end) });
+    // collapse so the action hides after attaching (no accidental double chips)
+    const ta = areaRef.current;
+    if (ta) { ta.setSelectionRange(sel.end, sel.end); ta.focus(); }
+    setSel(null);
+  };
+
   const dirty = diagram.source !== diagram.original;
   const empty = !diagram.source || !diagram.source.trim();
 
@@ -103,12 +135,25 @@ export default function EditorSidebar({
               style={{ top: metrics.pt + (errLine - 1) * metrics.lh - scrollTop, height: metrics.lh }}
             />
           )}
+          {sel && onAttachSelection && (
+            <button
+              type="button" className="editor-attach-btn"
+              aria-label="加入对话" title="Attach this selection to the AI chat"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={attachSelection}
+            >
+              加入对话
+            </button>
+          )}
           <textarea
             ref={areaRef} value={text} spellCheck="false" autoComplete="off" autoCapitalize="off" wrap="off"
             aria-label="Mermaid source"
-            onChange={(e) => applyText(e.target.value, true)}
+            onChange={(e) => { applyText(e.target.value, true); trackSel(e.target); }}
             onKeyDown={onKeyDown}
             onScroll={(e) => setScrollTop(e.target.scrollTop)}
+            onSelect={(e) => trackSel(e.target)}
+            onMouseUp={(e) => trackSel(e.target)}
+            onKeyUp={(e) => trackSel(e.target)}
           />
         </div>
       </div>

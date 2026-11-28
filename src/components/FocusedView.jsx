@@ -10,11 +10,13 @@ import {
 import PeleHost from './PeleHost.jsx';
 import AiChatPanel from './AiChatPanel.jsx';
 import C4StylePanel from './C4StylePanel.jsx';
+import CommentPins from './CommentPins.jsx';
 import DiagramTypePanel from './DiagramTypePanel.jsx';
 import { DiagramAltBody, DiagramViewSwitch, useDiagramViews } from './DiagramViews.jsx';
 import EditorSidebar from './EditorSidebar.jsx';
 import { IconButton, MenuButton } from './ui.jsx';
 import { exportDiagram, parseSvgMarkup, peleStyleVars, slugify } from '../export.js';
+import { loadComments, saveComments } from '../ai/comments.js';
 import { clamp, detectDiagramType } from '../lib.js';
 import { hasTypeSpecificFields, mergeDiagramVars } from '../diagramOverrides.js';
 import { isC4Source, parseC4Model, selectionFromSvgTarget, applySelectionHighlight } from '../c4.js';
@@ -50,6 +52,11 @@ export default function FocusedView({
   const [c4Sel, setC4Sel] = useState(null);
   const [status, setStatus] = useState(null);   // { info } | { error }
   const [aiOpen, setAiOpen] = useState(false);
+  // AI context: canvas comment pins + pending editor selections (lifted so they
+  // survive the panel unmounting; comments are browser-local per diagram id).
+  const [pinTool, setPinTool] = useState(false);
+  const [comments, setComments] = useState(() => loadComments(diagram.id));
+  const [excerpts, setExcerpts] = useState([]);
   const c4 = isC4Source(diagram.source);
   // Same vars as the copy/download paths: global toolbox + per-diagram overrides.
   const themeVars = mergeDiagramVars(vars, styleApi?.overrides?.[diagram.id]?.vars);
@@ -58,6 +65,17 @@ export default function FocusedView({
     useDiagramViews({ source: diagram.source, bg: vars?.['--pele-bg'], surface: vars?.['--pele-surface'], notify, resetKey: diagram.id, themeVars, options, layout: mermaidLayout });
 
   useEffect(() => { setC4Sel(null); }, [diagram.id]);
+
+  // switching diagrams: load that diagram's comments, drop stale editor excerpts
+  useEffect(() => {
+    setComments(loadComments(diagram.id));
+    setExcerpts([]);
+  }, [diagram.id]);
+
+  // The pin tool only places pins while the panel is open on the Pele view.
+  useEffect(() => {
+    if (!aiOpen || view !== 'pele') setPinTool(false);
+  }, [aiOpen, view]);
 
   useEffect(() => {
     if (!c4) return;
@@ -134,7 +152,26 @@ export default function FocusedView({
     window.addEventListener('pointerup', up);
   };
 
+  // Comment persistence: renumber on save; stays in tweakpele.ai.comments.v1 only.
+  const updateComments = (next) => {
+    const clean = saveComments(diagram.id, next);
+    setComments(clean);
+  };
+  const addComment = (nx, ny, nearby, text) =>
+    updateComments([...comments, { nx, ny, nearby, text }]);
+  const updateComment = (id, text) =>
+    updateComments(comments.map((c) => (c.id === id ? { ...c, text } : c)));
+  const deleteComment = (id) =>
+    updateComments(comments.filter((c) => c.id !== id));
+
+  // 「加入对话」 from the editor: attach the excerpt and make sure the panel is open.
+  const attachExcerpt = (x) => {
+    setExcerpts((prev) => (prev.some((p) => p.start === x.start && p.end === x.end) ? prev : [...prev, x]));
+    setAiOpen(true);
+  };
+
   const onBodyClick = (e) => {
+    if (pinTool && aiOpen && view === 'pele') return; // pin placement owns clicks while the tool is on
     if (!c4 || !onChangeSource) return;
     if (e.target.closest && e.target.closest('.pele-zoom, button, a, .c4-style-panel, .diagram-style-panel')) return;
     const model = parseC4Model(diagram.source);
@@ -222,6 +259,7 @@ export default function FocusedView({
               onClose={onToggleSidebar}
               onChangeTitle={onChangeTitle}
               onChangeSource={onChangeSource}
+              onAttachSelection={attachExcerpt}
             />
             <div
               className="splitter sidebar-splitter" role="separator" aria-orientation="vertical"
@@ -232,7 +270,8 @@ export default function FocusedView({
           </>
         )}
         <div
-          className={'focused-view-body' + (c4 && view === 'pele' ? ' c4-interactive' : '')}
+          className={'focused-view-body' + (c4 && view === 'pele' ? ' c4-interactive' : '')
+            + (pinTool && aiOpen && view === 'pele' ? ' pin-tool' : '')}
           ref={bodyRef}
           data-view={view}
           title={c4
@@ -292,6 +331,17 @@ export default function FocusedView({
               })()}
             </>
           )}
+          {aiOpen && view === 'pele' && (
+            <CommentPins
+              key={diagram.id}
+              bodyRef={bodyRef}
+              comments={comments}
+              pinTool={pinTool}
+              onAdd={addComment}
+              onUpdate={updateComment}
+              onDelete={deleteComment}
+            />
+          )}
           {view !== 'pele' && (
             <DiagramAltBody
               view={view}
@@ -317,6 +367,14 @@ export default function FocusedView({
             notify={notify}
             onChangeSource={onChangeSource}
             onClose={() => setAiOpen(false)}
+            pinTool={pinTool}
+            onPinToolChange={setPinTool}
+            pinToolEnabled={view === 'pele'}
+            comments={comments}
+            onUpdateComment={updateComment}
+            onDeleteComment={deleteComment}
+            excerpts={excerpts}
+            onExcerptsChange={setExcerpts}
           />
         )}
       </div>

@@ -32,6 +32,8 @@ AI settings live in the **top bar** (AI settings icon), not in the chat panel: o
 
 The theme presets grid ends with an **Add** card: create a palette manually from the current colors, or describe a style in one sentence and generate it with AI (same key). Custom palettes are stored in this browser (`tweakpele.custom-palettes.v1`); built-ins cannot be deleted, custom ones can be renamed or deleted. Applying a palette is a normal theme change, so undo works. Snapshots and share links never include the API key, AI settings, threads, or the custom-palette library — applied colors may appear as ordinary theme vars.
 
+Besides the prompt, you can point the model at exact spots. The panel header has a comment-pin tool: with it on, click the focused **Pele** diagram (pins are Pele-view only, not Mermaid/SVG/Compare) to drop a numbered pin with a short comment — pins stay on their diagram spot through zoom and pan, and can be edited or deleted from the canvas or from the panel's list. In the source editor, selecting Mermaid text shows a contextual **「加入对话」** button that attaches the excerpt (with its line numbers) to the composer as a removable chip. Comments live per diagram in this browser's localStorage (`tweakpele.ai.comments.v1`), separate from the key; like the key, settings, and threads, comments and selections are never included in share links, snapshots, or theme exports.
+
 ## Development
 
 ```

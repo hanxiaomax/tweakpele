@@ -596,6 +596,108 @@ input[type="text"], .opt-row input[type="number"], .opt-row select, .title-input
 }
 .ai-open-settings-btn { font-size: 11px; padding: 2px 8px; }
 
+/* comment pins listed in the AI panel (edit/delete without hunting the canvas) */
+.ai-comments-list {
+  flex: none; max-height: 148px; overflow: auto; padding: 8px 10px;
+  border-top: 1px solid var(--ui-border-soft);
+  display: grid; gap: 4px; justify-items: stretch;
+}
+.ai-comments-head {
+  color: var(--ui-muted); font-size: 10.5px; letter-spacing: 0.02em;
+}
+.ai-comment-row { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.ai-comment-row .ibtn { flex: none; }
+.ai-comment-badge {
+  flex: none; width: 16px; height: 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ui-accent); color: #fff;
+  font-size: 9.5px; font-weight: 700; line-height: 1;
+}
+.ai-comment-text {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11.5px;
+}
+.ai-comment-row input {
+  flex: 1 1 auto; min-width: 0; height: 22px; padding: 0 6px;
+  border: 1px solid var(--ui-border); border-radius: 5px;
+  background: var(--ui-panel-2); color: var(--ui-text); font: 11.5px var(--pele-font, inherit);
+}
+
+/* editor 「加入对话」 excerpts as removable chips on the composer */
+.ai-chat-chips {
+  flex: none; display: flex; flex-direction: column; gap: 4px; padding: 8px 10px 0;
+}
+.ai-excerpt-chip {
+  display: flex; align-items: center; gap: 6px; min-width: 0; padding: 3px 4px 3px 7px;
+  border-radius: 6px; background: var(--ui-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 35%, transparent);
+}
+.ai-excerpt-range { flex: none; color: var(--ui-accent); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.ai-excerpt-chip code {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ui-muted); font: 10.5px var(--ui-mono);
+}
+.ai-excerpt-chip .ibtn { width: 16px; height: 16px; border: none; background: transparent; flex: none; }
+.ai-excerpt-chip .ibtn svg { width: 11px; height: 11px; }
+/* excerpt remnant shown on sent user bubbles */
+.ai-attach-note {
+  margin-top: 4px; padding-left: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-left: 2px solid color-mix(in srgb, var(--ui-accent) 45%, transparent);
+  color: var(--ui-muted); font: 10.5px var(--ui-mono);
+}
+
+/* contextual 「加入对话」 over the editor textarea (only with a selection) */
+.editor-attach-btn {
+  position: absolute; top: 8px; right: 12px; z-index: 2;
+  height: 22px; padding: 0 9px; border-radius: 5px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 55%, transparent);
+  background: var(--ui-accent-soft); color: var(--ui-accent);
+  font: 600 11px var(--pele-font, inherit); line-height: 1;
+}
+.editor-attach-btn:hover { background: color-mix(in srgb, var(--ui-accent) 22%, transparent); }
+
+/* ---------------- canvas comment pins (Pele view, AI panel open) ---------------- */
+/* Pins live in diagram space; the layer only draws them and never blocks the
+   diagram, zoom controls, or style panels (pointer-events pass through). */
+.ai-pin-layer {
+  position: absolute; inset: 0; pointer-events: none; z-index: 3;
+}
+.ai-pin {
+  position: absolute; transform: translate(-50%, -50%);
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid rgba(255, 255, 255, .9);
+  background: var(--pele-accent, #d9641a); color: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+  font: 700 11px/1 var(--pele-font, inherit); cursor: pointer; pointer-events: auto;
+}
+.ai-pin:hover { outline: 2px solid color-mix(in srgb, var(--pele-accent, #d9641a) 45%, transparent); }
+.ai-pin-draft {
+  position: absolute; transform: translate(12px, -50%);
+  display: flex; align-items: center; gap: 4px; pointer-events: auto;
+  padding: 4px; border-radius: 7px;
+  background: var(--pele-surface, #fff); color: var(--pele-fg, #000);
+  border: 1px solid var(--pele-border, #cfccc2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+  font-family: var(--pele-font, inherit);
+}
+.ai-pin-draft.flip { transform: translate(calc(-100% - 12px), -50%); }
+.ai-pin-draft-badge {
+  flex: none; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--pele-accent, #d9641a); color: #fff;
+  font-size: 9.5px; font-weight: 700; line-height: 1;
+}
+.ai-pin-draft input {
+  width: 168px; height: 24px; padding: 0 7px; border-radius: 5px;
+  border: 1px solid var(--pele-border, #cfccc2);
+  background: var(--pele-bg, #fff); color: var(--pele-fg, #000);
+  caret-color: var(--pele-accent, #d9641a);
+  font: 12px var(--pele-font, inherit);
+}
+.focused-view-body.pin-tool,
+.focused-view-body.pin-tool svg.pele { cursor: crosshair; }
+
 .splitter { cursor: col-resize; background: transparent; position: relative; }
 .splitter::after {
   content: ""; position: absolute; inset: 0 2px; border-radius: 3px; background: var(--ui-border);

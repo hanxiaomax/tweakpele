@@ -7,8 +7,9 @@ export const SHARE_URL_MAX = 8000;
 export const SNAPSHOT_DIAGRAM_ID = 'tweakpele-snapshot';
 
 /** NOTE: snapshots and share URLs must never include AI state — API key
- *  (tweakpele.ai.secret.v1), settings (tweakpele.ai.settings.v1), or chat
- *  threads (tweakpele.ai.threads.v1) stay browser-local, and so does the
+ *  (tweakpele.ai.secret.v1), settings (tweakpele.ai.settings.v1), chat
+ *  threads (tweakpele.ai.threads.v1), or canvas comments
+ *  (tweakpele.ai.comments.v1) stay browser-local, and so does the
  *  custom-palette library (tweakpele.custom-palettes.v1). Applies to
  *  buildSnapshot and buildCanvasSnapshot below. */
 export function buildSnapshot(vars, optVals, diagram) {
